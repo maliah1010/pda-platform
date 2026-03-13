@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: General Discussion
+    url: https://github.com/antnewman/pda-platform/discussions
+    about: Questions, ideas, and general community discussion
+  - name: Security Vulnerability
+    url: https://github.com/antnewman/pda-platform/security/advisories/new
+    about: Report a security vulnerability privately

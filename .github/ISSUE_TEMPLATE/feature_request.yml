@@ -1,0 +1,50 @@
+name: Feature Request
+description: Suggest a new feature or enhancement
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting an improvement. Please describe the problem you want to solve.
+
+  - type: dropdown
+    id: package
+    attributes:
+      label: Affected Package
+      options:
+        - pm-data-tools
+        - agent-task-planning
+        - pm-mcp-servers
+        - Multiple / new package
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: What limitation or missing capability prompted this request?
+      placeholder: "When I try to... I can't because..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe what you'd like to see added or changed.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Any workarounds you've tried or other approaches you considered.
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Links, references, examples, or anything else that helps explain the request.
