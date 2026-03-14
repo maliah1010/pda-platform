@@ -25,7 +25,8 @@ PM Data Tools provides a canonical data model and conversion utilities for proje
   - Asana
   - Smartsheet
 - **Validation framework** for structural and semantic rules
-- **CLI tools** for conversion, validation, and inspection
+- **Evidence Freshness Detector** — detect stale documents and suspicious "fresh paint" editing patterns
+- **CLI tools** for conversion, validation, inspection, and freshness analysis
 - **GMPP-aligned** for UK government project data
 - **NISTA-ready** (placeholder for official schema)
 - **100% test coverage** with comprehensive test suite
@@ -94,6 +95,15 @@ pm-data-tools validate project.xml
 
 # Inspect project structure
 pm-data-tools inspect project.xml
+
+# Analyse evidence freshness of a single file
+pm-data-tools freshness schedule.xml
+
+# Analyse an evidence pack (directory) with a gate date
+pm-data-tools freshness /evidence/ --recursive --gate-date 2026-04-01
+
+# Export freshness report as JSON
+pm-data-tools freshness /evidence/ --json -o freshness_report.json
 ```
 
 ## Canonical Data Model
@@ -174,6 +184,59 @@ ruff check .
 mypy src/pm_data_tools
 ```
 
+## Evidence Freshness Detector
+
+The freshness module addresses the "Confidence and Fresh Paint" problem from *Next Gen Project Assurance* (Murray, Paver & Steinberg, 2026): documents polished immediately before reviews whilst underlying reality has diverged.
+
+### Scoring model
+
+Each document receives three sub-scores (0–100), combined into a composite **freshness score**:
+
+| Sub-score | Weight | Description |
+|-----------|--------|-------------|
+| **Staleness** | 50% | Time since last modification. Green ≤30 days, amber ≤90 days, red beyond 90 days. |
+| **Velocity** | 30% | Edit frequency patterns. Penalises burst editing before a gate date and long dormancy. |
+| **Provenance** | 20% | Metadata completeness. Rewards author trail, version history, and consistent edits. |
+
+### Alert types
+
+| Alert | Severity | Trigger |
+|-------|----------|---------|
+| `stale` | warning/critical | Document not modified beyond threshold |
+| `fresh_paint` | warning/critical | Burst editing before gate date after dormancy |
+| `incomplete_provenance` | warning/critical | Missing author / modification metadata |
+| `never_updated` | info | Version 1 with no revision history |
+
+### Quick start
+
+```python
+from pm_data_tools.freshness import FreshnessAnalyser, FreshnessConfig
+from datetime import datetime
+
+# Analyse a single file
+analyser = FreshnessAnalyser()
+result = analyser.analyse_file("schedule.xml")
+print(result.freshness_score)   # 0–100
+print(result.rag_status)        # "green", "amber", or "red"
+for alert in result.alerts:
+    print(alert)
+
+# Analyse an evidence pack with a gate date
+analyser = FreshnessAnalyser(
+    config=FreshnessConfig(gate_date=datetime(2026, 4, 1))
+)
+pack = analyser.analyse_pack("/evidence/", recursive=True)
+print(pack.overall_score)
+print(pack.rag_status)
+
+# Score pre-extracted metadata directly (for custom pipelines)
+from pm_data_tools.freshness import extract_metadata
+metadata = extract_metadata("schedule.xml")
+result = analyser.score_metadata(metadata)
+```
+
+See [`examples/freshness_analysis.py`](../../examples/freshness_analysis.py) for a full walkthrough.
+
 ## Architecture
 
 PM Data Tools follows a three-layer architecture:
@@ -181,6 +244,7 @@ PM Data Tools follows a three-layer architecture:
 1. **Models Layer** (`src/pm_data_tools/models/`) - Canonical data structures
 2. **Schemas Layer** (`src/pm_data_tools/schemas/`) - Format-specific parsers and writers
 3. **Validation Layer** (`src/pm_data_tools/validators/`) - Structural and semantic validation
+4. **Freshness Layer** (`src/pm_data_tools/freshness/`) - Evidence freshness scoring and alerting
 
 All conversions pass through the canonical model:
 
