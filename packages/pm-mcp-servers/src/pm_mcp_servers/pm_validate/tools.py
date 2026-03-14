@@ -20,6 +20,13 @@ from typing import Any, Callable, Optional
 
 logger = logging.getLogger(__name__)
 
+try:
+    from pm_data_tools.freshness import FreshnessAnalyser, FreshnessConfig
+    HAS_FRESHNESS = True
+except ImportError:
+    HAS_FRESHNESS = False
+    logger.warning("pm_data_tools freshness module not available")
+
 # Access to project store from pm_data
 try:
     from pm_mcp_servers.pm_data.tools import _store
@@ -332,6 +339,73 @@ async def validate_nista(arguments: dict[str, Any]) -> dict[str, Any]:
 # ============================================================================
 # CUSTOM VALIDATION
 # ============================================================================
+
+async def check_freshness(arguments: dict[str, Any]) -> dict[str, Any]:
+    """Check evidence freshness of a file or directory (evidence pack).
+
+    Args:
+        arguments: MCP tool arguments containing ``file_path``, optional
+            ``file_format``, ``gate_date``, ``fresh_threshold_days``,
+            ``stale_threshold_days``, and ``recursive`` keys.
+
+    Returns:
+        Dictionary with freshness scores, RAG status, and alerts.
+    """
+    if not HAS_FRESHNESS:
+        return _make_error(
+            "FRESHNESS_NOT_AVAILABLE",
+            "The freshness module is not available. "
+            "Ensure pm-data-tools is installed with freshness support.",
+        )
+
+    file_path = arguments.get("file_path")
+    if not file_path:
+        return _make_error("MISSING_PARAMETER", "file_path is required")
+
+    file_format: Optional[str] = arguments.get("file_format")
+    gate_date_str: Optional[str] = arguments.get("gate_date")
+    fresh_threshold_days: int = int(arguments.get("fresh_threshold_days", 30))
+    stale_threshold_days: int = int(arguments.get("stale_threshold_days", 90))
+    recursive: bool = bool(arguments.get("recursive", False))
+
+    gate_date = None
+    if gate_date_str:
+        from datetime import datetime, timezone
+
+        try:
+            gate_date = datetime.fromisoformat(
+                gate_date_str.replace("Z", "+00:00")
+            )
+            if gate_date.tzinfo is None:
+                gate_date = gate_date.replace(tzinfo=timezone.utc)
+        except ValueError:
+            return _make_error(
+                "INVALID_PARAMETER",
+                f"gate_date must be an ISO-8601 date string, got: {gate_date_str!r}",
+            )
+
+    config = FreshnessConfig(
+        fresh_threshold_days=fresh_threshold_days,
+        stale_threshold_days=stale_threshold_days,
+        gate_date=gate_date,
+    )
+    analyser = FreshnessAnalyser(config=config)
+
+    import os
+
+    try:
+        if os.path.isdir(file_path):
+            result = analyser.analyse_pack(file_path, recursive=recursive, file_format=file_format)
+            return result.to_dict()
+        else:
+            result = analyser.analyse_file(file_path, file_format=file_format)
+            return result.to_dict()
+    except FileNotFoundError as exc:
+        return _make_error("FILE_NOT_FOUND", str(exc))
+    except Exception as exc:
+        logger.exception("Freshness analysis failed for %s", file_path)
+        return _make_error("PROCESSING_ERROR", str(exc))
+
 
 async def validate_custom(arguments: dict[str, Any]) -> dict[str, Any]:
     """Run custom validation rules."""

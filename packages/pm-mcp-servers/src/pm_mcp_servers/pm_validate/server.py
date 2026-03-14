@@ -16,6 +16,7 @@ from pm_mcp_servers.pm_validate.tools import (
     validate_semantic,
     validate_nista,
     validate_custom,
+    check_freshness,
 )
 
 logger = logging.getLogger(__name__)
@@ -116,6 +117,58 @@ async def list_tools() -> list[Tool]:
                 "required": ["project_id", "rules"]
             }
         ),
+        Tool(
+            name="check_freshness",
+            description=(
+                "Analyse evidence freshness of a project management file or evidence pack "
+                "(directory). Returns a freshness score (0–100), RAG status (green/amber/red), "
+                "and structured alerts for stale documents, suspicious burst editing ('fresh paint'), "
+                "missing provenance, and documents at version 1 with no revision history. "
+                "Supports all eight PM formats: MS Project XML, Primavera P6, Jira, Monday, "
+                "Asana, Smartsheet, GMPP, and NISTA."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "file_path": {
+                        "type": "string",
+                        "description": "Absolute path to the file or directory to analyse."
+                    },
+                    "file_format": {
+                        "type": "string",
+                        "enum": [
+                            "mspdi", "p6_xer", "nista", "jira",
+                            "monday", "asana", "smartsheet", "gmpp"
+                        ],
+                        "description": "Force a specific format (auto-detected when omitted)."
+                    },
+                    "gate_date": {
+                        "type": "string",
+                        "description": (
+                            "ISO-8601 gate/review date for fresh-paint detection "
+                            "(e.g. '2026-04-01'). When set, burst editing immediately "
+                            "before this date is flagged."
+                        )
+                    },
+                    "fresh_threshold_days": {
+                        "type": "integer",
+                        "description": "Days within which a document is green (default 30).",
+                        "default": 30
+                    },
+                    "stale_threshold_days": {
+                        "type": "integer",
+                        "description": "Days beyond which a document is red (default 90).",
+                        "default": 90
+                    },
+                    "recursive": {
+                        "type": "boolean",
+                        "description": "Scan sub-directories when file_path is a directory.",
+                        "default": False
+                    }
+                },
+                "required": ["file_path"]
+            }
+        ),
     ]
 
 
@@ -131,6 +184,8 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             result = await validate_nista(arguments)
         elif name == "validate_custom":
             result = await validate_custom(arguments)
+        elif name == "check_freshness":
+            result = await check_freshness(arguments)
         else:
             return [TextContent(type="text", text=f"Unknown tool: {name}")]
         
