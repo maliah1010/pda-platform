@@ -35,4 +35,12 @@ __all__ = [
     "UnsupportedFormatError",
     "ValidationError",
     "ExportError",
+    # Freshness API
+    "FreshnessAnalyser",
+    "FreshnessConfig",
+    "extract_metadata",
 ]
+
+
+# Freshness API — imported lazily to avoid pulling in optional deps at startup.
+from .freshness import FreshnessAnalyser, FreshnessConfig, extract_metadata  # noqa: E402

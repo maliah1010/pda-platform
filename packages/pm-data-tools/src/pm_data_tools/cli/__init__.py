@@ -14,11 +14,12 @@ def main() -> None:
 
 
 # Register commands
-from .commands import convert, validate, inspect_cmd
+from .commands import convert, validate, inspect_cmd, freshness_cmd
 
 main.add_command(convert)
 main.add_command(validate)
 main.add_command(inspect_cmd)
+main.add_command(freshness_cmd, name="freshness")
 
 
 if __name__ == "__main__":
