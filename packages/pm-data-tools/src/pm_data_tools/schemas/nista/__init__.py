@@ -10,6 +10,13 @@ Components:
 """
 
 from .exporter import NISTAExporter
+from .history import (
+    ConfidenceScoreRecord,
+    NISTAScoreHistory,
+    NISTAThresholdConfig,
+    ThresholdBreach,
+    TrendDirection,
+)
 from .parser import NISTAParser
 from .validator import NISTAValidator, StrictnessLevel, ValidationResult, ValidationIssue
 
@@ -20,4 +27,10 @@ __all__ = [
     "StrictnessLevel",
     "ValidationResult",
     "ValidationIssue",
+    # History
+    "ConfidenceScoreRecord",
+    "NISTAScoreHistory",
+    "NISTAThresholdConfig",
+    "ThresholdBreach",
+    "TrendDirection",
 ]
