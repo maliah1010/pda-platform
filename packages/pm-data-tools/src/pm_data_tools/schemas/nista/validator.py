@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
-    from .history import NISTAScoreHistory
+    from .longitudinal import LongitudinalComplianceTracker
 
 try:
     import jsonschema
@@ -160,7 +160,7 @@ class NISTAValidator:
         self,
         data: dict[str, Any],
         project_id: Optional[str] = None,
-        history: Optional["NISTAScoreHistory"] = None,
+        history: Optional["LongitudinalComplianceTracker"] = None,
     ) -> ValidationResult:
         """Validate NISTA data dictionary.
 
@@ -172,8 +172,9 @@ class NISTAValidator:
             data: NISTA project data dictionary.
             project_id: Project identifier used when persisting to ``history``.
                 Defaults to ``data["project_id"]`` if present.
-            history: Optional :class:`~.history.NISTAScoreHistory` instance.
-                When provided the compliance score is recorded after validation.
+            history: Optional :class:`~.longitudinal.LongitudinalComplianceTracker`
+                instance.  When provided the compliance score is recorded after
+                validation.
 
         Returns:
             ValidationResult with compliance status and issues.
@@ -262,7 +263,7 @@ class NISTAValidator:
 
         # Persist score as side effect when history is provided
         if history is not None:
-            from .history import ConfidenceScoreRecord
+            from .longitudinal import ConfidenceScoreRecord
 
             pid = project_id or str(data.get("project_id", ""))
             record = ConfidenceScoreRecord(

@@ -1,10 +1,13 @@
 # Assurance Module — Developer Reference
 
-This document describes the two assurance features added in v0.3.0:
+This document describes the three assurance features in the PDA Platform:
 
-- **P2 — NISTA Score History**: Persists compliance scores over time and
-  surfaces trend direction and threshold breaches.
-- **P3 — Recommendation Tracker**: Extracts assurance recommendations from
+- **P1 — Artefact Currency Validator**: Detects stale or anomalously refreshed
+  evidence artefacts by inspecting document metadata timestamps against
+  validation-gate deadlines.
+- **P2 — Longitudinal Compliance Tracker**: Persists NISTA compliance scores
+  over time and surfaces trend direction and threshold breaches.
+- **P3 — Cross-Cycle Finding Analyzer**: Extracts review actions from project
   review text, deduplicates within a review cycle, detects recurrences across
   cycles, and persists the full lifecycle.
 
@@ -15,20 +18,22 @@ This document describes the two assurance features added in v0.3.0:
 ```
 pm_data_tools/
   db/
-    store.py          # AssuranceStore — shared SQLite persistence layer
+    store.py              # AssuranceStore — shared SQLite persistence layer
   schemas/
     nista/
-      history.py      # NISTAScoreHistory, ConfidenceScoreRecord, TrendDirection
-      validator.py    # NISTAValidator — extended with optional history param
+      longitudinal.py     # LongitudinalComplianceTracker, ConfidenceScoreRecord,
+                          # ComplianceThresholdConfig, TrendDirection
+      validator.py        # NISTAValidator — extended with optional history param
   assurance/
-    models.py         # Recommendation, RecommendationStatus, ...
-    extractor.py      # RecommendationExtractor
-    recurrence.py     # RecurrenceDetector
+    models.py             # ReviewAction, ReviewActionStatus, FindingAnalysisResult
+    analyzer.py           # FindingAnalyzer
+    recurrence.py         # RecurrenceDetector
 
 pm_mcp_servers/
   pm_assure/
-    server.py         # MCP server: nista_score_trend, track_recommendations,
-                      #             recommendation_status
+    server.py             # MCP server: nista_longitudinal_trend,
+                          #             track_review_actions,
+                          #             review_action_status
 ```
 
 All SQLite tables are created with `CREATE TABLE IF NOT EXISTS` so the store
@@ -40,9 +45,10 @@ is safe to initialise from any subset of features.
 
 | Feature | Required extras |
 |---------|----------------|
-| NISTA Score History | none (SQLite is stdlib) |
-| Recommendation Tracker (extraction) | `agent-task-planning>=0.2.0` (already a core dep) |
-| Recommendation Tracker (recurrence) | `agent-task-planning[mining]` for sentence-transformers |
+| Artefact Currency Validator | none (stdlib only) |
+| Longitudinal Compliance Tracker | none (SQLite is stdlib) |
+| Finding Analyzer (extraction) | `agent-task-planning>=0.2.0` (already a core dep) |
+| Finding Analyzer (recurrence) | `agent-task-planning[mining]` for sentence-transformers |
 
 Install with recurrence detection enabled:
 
@@ -53,7 +59,110 @@ pip install "agent-task-planning[mining]"
 
 ---
 
-## P2 — NISTA Score History
+## P1 — Artefact Currency Validator
+
+### Purpose
+
+Assurance gates depend on project artefacts — plans, risk registers, benefits
+profiles — being current at the time of the gate.  A common failure mode is
+hastily updating stale documents right before a gate review: timestamps are
+refreshed but substantive content is unchanged.  The `ArtefactCurrencyValidator`
+detects both genuinely outdated artefacts and last-minute compliance updates
+that may not reflect real change.
+
+### Data models
+
+#### `CurrencyStatus`
+
+```
+CURRENT            — artefact is within the configured staleness window
+OUTDATED           — artefact has not been updated within the staleness window
+ANOMALOUS_UPDATE   — artefact was updated within a short window before the gate,
+                     suggesting a last-minute compliance update rather than
+                     genuine revision
+```
+
+#### `CurrencyScore`
+
+```python
+class CurrencyScore(BaseModel):
+    artefact_id: str
+    artefact_type: str             # e.g. "risk_register", "benefits_profile"
+    last_modified: datetime
+    gate_date: datetime
+    status: CurrencyStatus
+    staleness_days: int            # Days since last_modified at time of check
+    anomaly_window_days: int       # Days before gate_date that triggered ANOMALOUS_UPDATE
+    message: str
+```
+
+#### `CurrencyConfig`
+
+```python
+class CurrencyConfig(BaseModel):
+    max_staleness_days: int = 90       # Artefacts older than this are OUTDATED
+    anomaly_window_days: int = 3       # Updates this close to a gate are suspicious
+```
+
+### `ArtefactCurrencyValidator`
+
+```python
+from pm_data_tools.assurance.currency import ArtefactCurrencyValidator, CurrencyConfig
+
+validator = ArtefactCurrencyValidator()
+validator = ArtefactCurrencyValidator(
+    config=CurrencyConfig(max_staleness_days=60, anomaly_window_days=2)
+)
+```
+
+| Method | Description |
+|--------|-------------|
+| `check_artefact_currency(artefact_id, last_modified, gate_date)` | Returns a `CurrencyScore` for a single artefact. |
+| `check_batch(artefacts, gate_date)` | Returns a list of `CurrencyScore` objects for multiple artefacts. |
+
+### MCP tool: `check_artefact_currency`
+
+```json
+{
+  "project_id": "PROJ-001",
+  "gate_date": "2026-06-30",
+  "artefacts": [
+    {"id": "risk-register-v3", "type": "risk_register", "last_modified": "2025-12-01"},
+    {"id": "benefits-profile-v2", "type": "benefits_profile", "last_modified": "2026-06-28"}
+  ]
+}
+```
+
+Returns:
+
+```json
+{
+  "project_id": "PROJ-001",
+  "gate_date": "2026-06-30",
+  "results": [
+    {
+      "artefact_id": "risk-register-v3",
+      "status": "OUTDATED",
+      "staleness_days": 211,
+      "message": "Artefact has not been updated in 211 days (threshold: 90)."
+    },
+    {
+      "artefact_id": "benefits-profile-v2",
+      "status": "ANOMALOUS_UPDATE",
+      "staleness_days": 2,
+      "anomaly_window_days": 2,
+      "message": "Artefact was updated 2 days before the gate date, which is within the anomaly window."
+    }
+  ]
+}
+```
+
+> **Note:** P1 implementation is planned for v0.4.0.  The data models and MCP
+> tool interface above represent the intended public API.
+
+---
+
+## P2 — Longitudinal Compliance Tracker
 
 ### Data models
 
@@ -68,10 +177,10 @@ class ConfidenceScoreRecord(BaseModel):
     dimension_scores: dict[str, float]
 ```
 
-#### `NISTAThresholdConfig`
+#### `ComplianceThresholdConfig`
 
 ```python
-class NISTAThresholdConfig(BaseModel):
+class ComplianceThresholdConfig(BaseModel):
     drop_tolerance: float = 5.0    # Max acceptable single-run score drop
     floor: float = 60.0            # Minimum acceptable score
     stagnation_window: int = 3     # Runs examined for trend direction
@@ -90,15 +199,15 @@ DEGRADING  — latest score < oldest-in-window by > drop_tolerance
 Returned by `check_thresholds()`.  Fields: `breach_type` (`"drop"` or
 `"floor"`), `current_score`, `previous_score`, `threshold_value`, `message`.
 
-### `NISTAScoreHistory`
+### `LongitudinalComplianceTracker`
 
 ```python
-from pm_data_tools.schemas.nista.history import NISTAScoreHistory
+from pm_data_tools.schemas.nista.longitudinal import LongitudinalComplianceTracker
 
-history = NISTAScoreHistory()          # uses default ~/.pm_data_tools/store.db
-history = NISTAScoreHistory(
+tracker = LongitudinalComplianceTracker()          # uses default ~/.pm_data_tools/store.db
+tracker = LongitudinalComplianceTracker(
     store=AssuranceStore(db_path=Path("/custom/path.db")),
-    thresholds=NISTAThresholdConfig(floor=70.0),
+    thresholds=ComplianceThresholdConfig(floor=70.0),
 )
 ```
 
@@ -115,20 +224,20 @@ The `validate()` signature is unchanged; persistence is a **side effect**
 controlled by an optional `history` keyword argument:
 
 ```python
-from pm_data_tools.schemas.nista import NISTAValidator, NISTAScoreHistory
+from pm_data_tools.schemas.nista import NISTAValidator, LongitudinalComplianceTracker
 
 validator = NISTAValidator()
-history = NISTAScoreHistory()
+tracker = LongitudinalComplianceTracker()
 
 result = validator.validate(
     data,
     project_id="PROJ-001",   # optional: falls back to data["project_id"]
-    history=history,          # optional: omit to skip persistence
+    history=tracker,          # optional: omit to skip persistence
 )
 # result is identical ValidationResult regardless
 ```
 
-### MCP tool: `nista_score_trend`
+### MCP tool: `nista_longitudinal_trend`
 
 ```json
 {
@@ -149,11 +258,11 @@ Returns:
 
 ---
 
-## P3 — Recommendation Tracker
+## P3 — Cross-Cycle Finding Analyzer
 
 ### Data models
 
-#### `RecommendationStatus`
+#### `ReviewActionStatus`
 
 ```
 OPEN        — newly extracted, no action
@@ -162,33 +271,33 @@ CLOSED      — resolved
 RECURRING   — detected as recurring from a prior cycle
 ```
 
-#### `Recommendation`
+#### `ReviewAction`
 
 ```python
-class Recommendation(BaseModel):
+class ReviewAction(BaseModel):
     id: str                        # UUID4
     text: str                      # Recommended action
     category: str                  # Maps to extraction priority (High/Medium/Low)
     source_review_id: str
     review_date: date
-    status: RecommendationStatus
+    status: ReviewActionStatus
     owner: Optional[str]
-    recurrence_of: Optional[str]   # Prior recommendation id
+    recurrence_of: Optional[str]   # Prior ReviewAction id
     confidence: float              # From ConfidenceExtractor
     flagged_for_review: bool       # True if confidence < min_confidence
 ```
 
-#### `RecommendationExtractionResult`
+#### `FindingAnalysisResult`
 
 ```python
-class RecommendationExtractionResult(BaseModel):
-    recommendations: list[Recommendation]
+class FindingAnalysisResult(BaseModel):
+    recommendations: list[ReviewAction]
     extraction_confidence: float
     review_level: str
     cost_usd: float
 ```
 
-### `RecommendationExtractor`
+### `FindingAnalyzer`
 
 Wraps `ConfidenceExtractor` from `agent-task-planning` with the
 `SchemaType.RECOMMENDATION` schema.  Does not make direct API calls.
@@ -196,18 +305,18 @@ Wraps `ConfidenceExtractor` from `agent-task-planning` with the
 ```python
 from agent_planning.confidence import ConfidenceExtractor
 from agent_planning.providers.anthropic import AnthropicProvider
-from pm_data_tools.assurance import RecommendationExtractor, RecurrenceDetector
+from pm_data_tools.assurance import FindingAnalyzer, RecurrenceDetector
 
 provider = AnthropicProvider(api_key="...")
 ce = ConfidenceExtractor(provider)
 
-extractor = RecommendationExtractor(
+analyzer = FindingAnalyzer(
     extractor=ce,
     min_confidence=0.60,           # flag below this, never reject
     recurrence_detector=RecurrenceDetector(),
 )
 
-result = await extractor.extract(
+result = await analyzer.extract(
     review_text="...",
     review_id="review-2026-Q1",
     project_id="PROJ-001",
@@ -217,12 +326,12 @@ result = await extractor.extract(
 Behaviour:
 
 1. Calls `ConfidenceExtractor.extract()` with `SchemaType.RECOMMENDATION`.
-2. Maps `RecommendationItem.action` to `Recommendation.text`.
+2. Maps `ReviewActionItem.action` to `ReviewAction.text`.
 3. Deduplicates by normalised (lowercased) text within the current review.
-4. If a `RecurrenceDetector` is supplied, fetches prior OPEN recommendations
+4. If a `RecurrenceDetector` is supplied, fetches prior OPEN review actions
    (excluding those from the same `review_id`) and calls
    `detect_recurrences()`.
-5. Persists all recommendations to the shared SQLite store.
+5. Persists all review actions to the shared SQLite store.
 
 ### `RecurrenceDetector`
 
@@ -242,19 +351,19 @@ When `sentence-transformers` is not installed the detector returns the input
 list unchanged and emits a `structlog` warning at `WARNING` level.  No
 exception is raised.
 
-### Updating recommendation status
+### Updating review action status
 
 ```python
 from pm_data_tools.db import AssuranceStore
-from pm_data_tools.assurance import RecommendationStatus
+from pm_data_tools.assurance import ReviewActionStatus
 
 store = AssuranceStore()
-store.update_recommendation_status("rec-id-001", RecommendationStatus.CLOSED.value)
+store.update_recommendation_status("action-id-001", ReviewActionStatus.CLOSED.value)
 ```
 
 ### MCP tools
 
-**`track_recommendations`**
+**`track_review_actions`**
 
 ```json
 {
@@ -267,7 +376,7 @@ store.update_recommendation_status("rec-id-001", RecommendationStatus.CLOSED.val
 
 Requires `ANTHROPIC_API_KEY` to be set in the server environment.
 
-**`recommendation_status`**
+**`review_action_status`**
 
 ```json
 {
@@ -276,7 +385,7 @@ Requires `ANTHROPIC_API_KEY` to be set in the server environment.
 }
 ```
 
-Returns the list of matching recommendations with recurrence flags included.
+Returns the list of matching review actions with recurrence flags included.
 
 ---
 
@@ -303,9 +412,9 @@ Tests live in `packages/pm-data-tools/tests/test_assurance/`.
 
 ```
 test_assurance/
-  conftest.py                      # Shared fixtures, mock ConfidenceExtractor
-  test_nista_history.py            # 12 tests for P2
-  test_recommendation_tracker.py   # 11 tests for P3
+  conftest.py                        # Shared fixtures, mock ConfidenceExtractor
+  test_longitudinal_compliance.py    # 12 tests for P2
+  test_finding_analyzer.py           # 11 tests for P3
 ```
 
 Run:
@@ -321,6 +430,25 @@ calls are made.
 
 ---
 
+## Backward Compatibility
+
+The following aliases are provided for codebases that imported the previous
+names.  They will be removed in v0.5.0.
+
+| Deprecated name | Current name | Location |
+|---|---|---|
+| `NISTAScoreHistory` | `LongitudinalComplianceTracker` | `schemas.nista.longitudinal` |
+| `NISTAThresholdConfig` | `ComplianceThresholdConfig` | `schemas.nista.longitudinal` |
+| `RecommendationExtractor` | `FindingAnalyzer` | `assurance` |
+| `Recommendation` | `ReviewAction` | `assurance.models` |
+| `RecommendationStatus` | `ReviewActionStatus` | `assurance.models` |
+| `RecommendationExtractionResult` | `FindingAnalysisResult` | `assurance.models` |
+| `nista_score_trend` (MCP) | `nista_longitudinal_trend` | `pm_assure` server |
+| `track_recommendations` (MCP) | `track_review_actions` | `pm_assure` server |
+| `recommendation_status` (MCP) | `review_action_status` | `pm_assure` server |
+
+---
+
 ## Logging
 
 All modules use `structlog`.  Key events:
@@ -329,11 +457,11 @@ All modules use `structlog`.  Key events:
 |---|---|---|
 | `assurance_store_ready` | DEBUG | `db.store` |
 | `confidence_score_persisted` | DEBUG | `db.store` |
-| `nista_score_recorded` | INFO | `schemas.nista.history` |
-| `trend_computed` | DEBUG | `schemas.nista.history` |
-| `thresholds_checked` | INFO | `schemas.nista.history` |
-| `recommendation_extraction_started` | INFO | `assurance.extractor` |
-| `recommendation_extraction_complete` | INFO | `assurance.extractor` |
-| `recommendation_deduplicated` | DEBUG | `assurance.extractor` |
+| `compliance_score_recorded` | INFO | `schemas.nista.longitudinal` |
+| `trend_computed` | DEBUG | `schemas.nista.longitudinal` |
+| `thresholds_checked` | INFO | `schemas.nista.longitudinal` |
+| `finding_analysis_started` | INFO | `assurance.analyzer` |
+| `finding_analysis_complete` | INFO | `assurance.analyzer` |
+| `review_action_deduplicated` | DEBUG | `assurance.analyzer` |
 | `recurrence_detected` | INFO | `assurance.recurrence` |
 | `recurrence_detection_skipped` | WARNING | `assurance.recurrence` |

@@ -7,13 +7,14 @@ Components:
 - NISTAParser: Parse JSON, CSV, and Excel formats
 - NISTAValidator: Validate compliance at three strictness levels
 - NISTAExporter: Export to NISTA-compliant formats
+- LongitudinalComplianceTracker: Persist and analyse compliance scores over time
 """
 
 from .exporter import NISTAExporter
-from .history import (
+from .longitudinal import (
+    ComplianceThresholdConfig,
     ConfidenceScoreRecord,
-    NISTAScoreHistory,
-    NISTAThresholdConfig,
+    LongitudinalComplianceTracker,
     ThresholdBreach,
     TrendDirection,
 )
@@ -27,10 +28,10 @@ __all__ = [
     "StrictnessLevel",
     "ValidationResult",
     "ValidationIssue",
-    # History
+    # Longitudinal compliance tracking
     "ConfidenceScoreRecord",
-    "NISTAScoreHistory",
-    "NISTAThresholdConfig",
+    "LongitudinalComplianceTracker",
+    "ComplianceThresholdConfig",
     "ThresholdBreach",
     "TrendDirection",
 ]

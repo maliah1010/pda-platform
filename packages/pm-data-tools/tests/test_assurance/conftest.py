@@ -1,8 +1,8 @@
 """Shared fixtures for assurance module tests.
 
 Provides in-memory SQLite stores, mock ConfidenceExtractor instances, and
-sample review text for P2 (NISTA history) and P3 (recommendation tracker)
-tests.
+sample review text for P2 (longitudinal compliance tracking) and P3 (finding
+analyzer) tests.
 """
 
 from __future__ import annotations
@@ -18,10 +18,10 @@ import pytest
 from agent_planning.confidence.models import ConfidenceResult, ReviewLevel
 
 from pm_data_tools.db.store import AssuranceStore
-from pm_data_tools.schemas.nista.history import (
+from pm_data_tools.schemas.nista.longitudinal import (
     ConfidenceScoreRecord,
-    NISTAScoreHistory,
-    NISTAThresholdConfig,
+    LongitudinalComplianceTracker,
+    ComplianceThresholdConfig,
 )
 
 
@@ -43,21 +43,21 @@ def store(tmp_db_path: Path) -> AssuranceStore:
 
 
 # ---------------------------------------------------------------------------
-# NISTA history fixtures
+# Longitudinal compliance tracker fixtures
 # ---------------------------------------------------------------------------
 
 
 @pytest.fixture()
-def history(store: AssuranceStore) -> NISTAScoreHistory:
-    """NISTAScoreHistory backed by the isolated temp store."""
-    return NISTAScoreHistory(store=store)
+def history(store: AssuranceStore) -> LongitudinalComplianceTracker:
+    """LongitudinalComplianceTracker backed by the isolated temp store."""
+    return LongitudinalComplianceTracker(store=store)
 
 
 @pytest.fixture()
-def history_with_strict_thresholds(store: AssuranceStore) -> NISTAScoreHistory:
-    """NISTAScoreHistory with tight thresholds for breach testing."""
-    thresholds = NISTAThresholdConfig(drop_tolerance=3.0, floor=70.0, stagnation_window=2)
-    return NISTAScoreHistory(store=store, thresholds=thresholds)
+def history_with_strict_thresholds(store: AssuranceStore) -> LongitudinalComplianceTracker:
+    """LongitudinalComplianceTracker with tight thresholds for breach testing."""
+    thresholds = ComplianceThresholdConfig(drop_tolerance=3.0, floor=70.0, stagnation_window=2)
+    return LongitudinalComplianceTracker(store=store, thresholds=thresholds)
 
 
 def make_record(

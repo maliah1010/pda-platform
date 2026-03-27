@@ -1,7 +1,7 @@
-"""Data models for the assurance recommendation tracker.
+"""Data models for the cross-cycle finding analyzer.
 
-These models represent the lifecycle of an assurance recommendation from
-initial extraction through to closure or recurrence detection.
+These models represent the lifecycle of a review action from initial
+extraction through to closure or recurrence detection.
 """
 
 from __future__ import annotations
@@ -14,8 +14,8 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 
-class RecommendationStatus(Enum):
-    """Lifecycle status of a tracked recommendation.
+class ReviewActionStatus(Enum):
+    """Lifecycle status of a tracked review action.
 
     Attributes:
         OPEN: Newly extracted; no action taken yet.
@@ -30,18 +30,18 @@ class RecommendationStatus(Enum):
     RECURRING = "RECURRING"
 
 
-class Recommendation(BaseModel):
-    """A single assurance recommendation extracted from a project review.
+class ReviewAction(BaseModel):
+    """A single review action extracted from a project review.
 
     Attributes:
         id: Unique identifier (UUID4 by default).
         text: The recommended action text.
-        category: Classification of the recommendation (e.g. priority level).
+        category: Classification of the action (e.g. priority level).
         source_review_id: Identifier of the review document this came from.
         review_date: Date of the source review.
         status: Current lifecycle status.
         owner: Optional responsible party.
-        recurrence_of: Optional ID of a prior recommendation this recurs from.
+        recurrence_of: Optional ID of a prior action this recurs from.
         confidence: Extraction confidence score (0.0-1.0) from
             :class:`~agent_planning.confidence.ConfidenceExtractor`.
         flagged_for_review: Whether confidence was below the auto-accept
@@ -53,25 +53,39 @@ class Recommendation(BaseModel):
     category: str
     source_review_id: str
     review_date: date
-    status: RecommendationStatus = RecommendationStatus.OPEN
+    status: ReviewActionStatus = ReviewActionStatus.OPEN
     owner: Optional[str] = None
     recurrence_of: Optional[str] = None
     confidence: float
     flagged_for_review: bool = False
 
 
-class RecommendationExtractionResult(BaseModel):
-    """The output of a single recommendation extraction run.
+class FindingAnalysisResult(BaseModel):
+    """The output of a single finding analysis run.
 
     Attributes:
-        recommendations: All extracted :class:`Recommendation` objects.
+        recommendations: All extracted :class:`ReviewAction` objects.
         extraction_confidence: Overall confidence score for the extraction.
         review_level: Recommended human review level (from
             :class:`~agent_planning.confidence.models.ReviewLevel`).
         cost_usd: Estimated LLM cost for this extraction.
     """
 
-    recommendations: list[Recommendation]
+    recommendations: list[ReviewAction]
     extraction_confidence: float
     review_level: str
     cost_usd: float
+
+
+# ---------------------------------------------------------------------------
+# Backward-compatibility aliases (deprecated — will be removed in v0.5.0)
+# ---------------------------------------------------------------------------
+
+#: Deprecated alias for :class:`ReviewActionStatus`.
+RecommendationStatus = ReviewActionStatus
+
+#: Deprecated alias for :class:`ReviewAction`.
+Recommendation = ReviewAction
+
+#: Deprecated alias for :class:`FindingAnalysisResult`.
+RecommendationExtractionResult = FindingAnalysisResult

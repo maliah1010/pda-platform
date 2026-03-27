@@ -1,7 +1,7 @@
 """PM Assure MCP Server.
 
-Provides MCP tools for assurance quality tracking including NISTA compliance
-score trend analysis and recommendation lifecycle management.
+Provides MCP tools for assurance quality tracking including longitudinal
+compliance score trend analysis and review action lifecycle management.
 """
 
 from __future__ import annotations
@@ -28,7 +28,7 @@ async def list_tools() -> list[Tool]:
     """List available PM Assure tools."""
     return [
         Tool(
-            name="nista_score_trend",
+            name="nista_longitudinal_trend",
             description=(
                 "Retrieve NISTA compliance score history, trend direction, and "
                 "active threshold breaches for a project."
@@ -52,9 +52,9 @@ async def list_tools() -> list[Tool]:
             },
         ),
         Tool(
-            name="track_recommendations",
+            name="track_review_actions",
             description=(
-                "Extract assurance recommendations from review text, persist "
+                "Extract review actions from project review text, persist "
                 "them to the store, and detect any recurrences from prior cycles."
             ),
             inputSchema={
@@ -75,7 +75,7 @@ async def list_tools() -> list[Tool]:
                     "min_confidence": {
                         "type": "number",
                         "description": (
-                            "Confidence threshold below which recommendations "
+                            "Confidence threshold below which review actions "
                             "are flagged for human review (default 0.60)."
                         ),
                         "default": 0.60,
@@ -85,9 +85,9 @@ async def list_tools() -> list[Tool]:
             },
         ),
         Tool(
-            name="recommendation_status",
+            name="review_action_status",
             description=(
-                "Retrieve tracked recommendations for a project, optionally "
+                "Retrieve tracked review actions for a project, optionally "
                 "filtered by status.  Returns recurrence flags."
             ),
             inputSchema={
@@ -117,12 +117,12 @@ async def list_tools() -> list[Tool]:
 @app.call_tool()
 async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
     """Handle tool execution."""
-    if name == "nista_score_trend":
-        return await _nista_score_trend(arguments)
-    if name == "track_recommendations":
-        return await _track_recommendations(arguments)
-    if name == "recommendation_status":
-        return await _recommendation_status(arguments)
+    if name == "nista_longitudinal_trend":
+        return await _nista_longitudinal_trend(arguments)
+    if name == "track_review_actions":
+        return await _track_review_actions(arguments)
+    if name == "review_action_status":
+        return await _review_action_status(arguments)
     return [TextContent(type="text", text=f"Unknown tool: {name}")]
 
 
@@ -131,22 +131,22 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
 # ---------------------------------------------------------------------------
 
 
-async def _nista_score_trend(arguments: dict[str, Any]) -> list[TextContent]:
+async def _nista_longitudinal_trend(arguments: dict[str, Any]) -> list[TextContent]:
     """Return compliance score history, trend, and active breaches."""
     try:
         from pm_data_tools.db.store import AssuranceStore
-        from pm_data_tools.schemas.nista.history import NISTAScoreHistory
+        from pm_data_tools.schemas.nista.longitudinal import LongitudinalComplianceTracker
 
         project_id: str = arguments["project_id"]
         raw_db_path = arguments.get("db_path")
         db_path = Path(raw_db_path) if raw_db_path else None
 
         store = AssuranceStore(db_path=db_path)
-        history = NISTAScoreHistory(store=store)
+        tracker = LongitudinalComplianceTracker(store=store)
 
-        records = history.get_history(project_id)
-        trend = history.compute_trend(project_id)
-        breaches = history.check_thresholds(project_id)
+        records = tracker.get_history(project_id)
+        trend = tracker.compute_trend(project_id)
+        breaches = tracker.check_thresholds(project_id)
 
         output: dict[str, Any] = {
             "project_id": project_id,
@@ -183,16 +183,16 @@ async def _nista_score_trend(arguments: dict[str, Any]) -> list[TextContent]:
         return [TextContent(type="text", text=f"Error: {exc}")]
 
 
-async def _track_recommendations(
+async def _track_review_actions(
     arguments: dict[str, Any],
 ) -> list[TextContent]:
-    """Extract and persist recommendations from review text."""
+    """Extract and persist review actions from project review text."""
     try:
         import anthropic as _anthropic_module  # noqa: F401 — import check
 
         from agent_planning.confidence import ConfidenceExtractor
         from agent_planning.providers.anthropic import AnthropicProvider
-        from pm_data_tools.assurance import RecommendationExtractor
+        from pm_data_tools.assurance import FindingAnalyzer
 
         api_key = os.environ.get("ANTHROPIC_API_KEY", "")
         if not api_key:
@@ -206,12 +206,12 @@ async def _track_recommendations(
         provider = AnthropicProvider(api_key=api_key)
         ce = ConfidenceExtractor(provider)
 
-        extractor = RecommendationExtractor(
+        analyzer = FindingAnalyzer(
             extractor=ce,
             min_confidence=float(arguments.get("min_confidence", 0.60)),
         )
 
-        result = await extractor.extract(
+        result = await analyzer.extract(
             review_text=arguments["review_text"],
             review_id=arguments["review_id"],
             project_id=arguments["project_id"],
@@ -221,7 +221,7 @@ async def _track_recommendations(
             "extraction_confidence": result.extraction_confidence,
             "review_level": result.review_level,
             "cost_usd": result.cost_usd,
-            "recommendations": [
+            "review_actions": [
                 {
                     "id": r.id,
                     "text": r.text,
@@ -247,10 +247,10 @@ async def _track_recommendations(
         return [TextContent(type="text", text=f"Error: {exc}")]
 
 
-async def _recommendation_status(
+async def _review_action_status(
     arguments: dict[str, Any],
 ) -> list[TextContent]:
-    """Return current recommendations for a project."""
+    """Return current review actions for a project."""
     try:
         from pm_data_tools.db.store import AssuranceStore
 
@@ -267,7 +267,7 @@ async def _recommendation_status(
             "project_id": project_id,
             "status_filter": status_filter,
             "count": len(rows),
-            "recommendations": rows,
+            "review_actions": rows,
         }
 
         return [

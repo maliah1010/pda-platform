@@ -23,7 +23,7 @@ except ImportError:  # pragma: no cover
     SENTENCE_TRANSFORMERS_AVAILABLE = False
 
 if TYPE_CHECKING:
-    from .models import Recommendation
+    from .models import ReviewAction
 
 
 class RecurrenceDetector:
@@ -32,7 +32,7 @@ class RecurrenceDetector:
     Uses sentence-transformer embeddings and cosine similarity to identify
     new recommendations that semantically match OPEN recommendations from
     prior review cycles.  When a match is found the new recommendation's
-    status is set to :attr:`~.models.RecommendationStatus.RECURRING` and
+    status is set to :attr:`~.models.ReviewActionStatus.RECURRING` and
     :attr:`~.models.Recommendation.recurrence_of` is set to the prior
     recommendation's ``id``.
 
@@ -77,9 +77,9 @@ class RecurrenceDetector:
 
     def detect_recurrences(
         self,
-        new_recommendations: "list[Recommendation]",
-        prior_recommendations: "list[Recommendation]",
-    ) -> "list[Recommendation]":
+        new_recommendations: "list[ReviewAction]",
+        prior_recommendations: "list[ReviewAction]",
+    ) -> "list[ReviewAction]":
         """Mark new recommendations as recurring where a prior match is found.
 
         Recommendations from ``new_recommendations`` are compared against
@@ -109,7 +109,7 @@ class RecurrenceDetector:
         if not prior_recommendations or not new_recommendations:
             return new_recommendations
 
-        from .models import RecommendationStatus
+        from .models import ReviewActionStatus
 
         model = self._get_model()
 
@@ -128,7 +128,7 @@ class RecurrenceDetector:
 
         similarity_matrix = new_normed @ prior_normed.T  # shape: (new, prior)
 
-        updated: list[Recommendation] = []
+        updated: list[ReviewAction] = []
         for idx, rec in enumerate(new_recommendations):
             best_sim = float(np.max(similarity_matrix[idx]))
             if best_sim >= self._threshold:
@@ -136,7 +136,7 @@ class RecurrenceDetector:
                 prior_id = prior_recommendations[best_prior_idx].id
                 rec = rec.model_copy(
                     update={
-                        "status": RecommendationStatus.RECURRING,
+                        "status": ReviewActionStatus.RECURRING,
                         "recurrence_of": prior_id,
                     }
                 )
