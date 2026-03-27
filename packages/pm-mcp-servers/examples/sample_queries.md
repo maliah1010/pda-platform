@@ -186,6 +186,43 @@ Generate alternative scenarios for delay recovery
 Predict which tasks will miss their deadlines
 ```
 
+## Assurance Queries (pm-assure server)
+
+### Longitudinal Compliance Tracker (P2)
+
+```
+Show me the NISTA compliance trend for project PROJ-001
+
+Have there been any threshold breaches for PROJ-001 recently?
+
+Is PROJ-001's compliance score improving or degrading over time?
+
+What was the compliance score for PROJ-001 on the last five validation runs?
+```
+
+### Cross-Cycle Finding Analyzer (P3)
+
+```
+Extract the recommendations from this review document and track them for PROJ-001
+
+Show me all open review actions for PROJ-001
+
+Which review actions for PROJ-001 are recurring from previous reviews?
+
+Mark review action <id> as closed for PROJ-001
+
+How many review actions are still open from the Q1 review of PROJ-001?
+```
+
+### Workflow: Full Assurance Review
+
+```
+1. Extract review actions from this Q2 review document for PROJ-001
+2. Show me which of the new actions are recurring from Q1
+3. Show me the NISTA compliance trend for PROJ-001 over the last three runs
+4. Are there any active threshold breaches?
+```
+
 ## Complex Workflows
 
 ### Workflow 1: Critical Path Deep Dive

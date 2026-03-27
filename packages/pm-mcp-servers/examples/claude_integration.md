@@ -55,10 +55,21 @@ pm-data-server --version
     "pm-analyse": {
       "command": "pm-analyse-server",
       "args": []
+    },
+    "pm-assure": {
+      "command": "pm-assure-server",
+      "args": [],
+      "env": {
+        "ANTHROPIC_API_KEY": "sk-ant-..."
+      }
     }
   }
 }
 ```
+
+`ANTHROPIC_API_KEY` is required only for the `track_review_actions` tool (AI
+extraction).  The `nista_longitudinal_trend` and `review_action_status` tools
+work without it.
 
 ## Step 3: Restart Claude Desktop
 

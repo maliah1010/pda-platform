@@ -1,6 +1,6 @@
 # PM-MCP-Servers Implementation Roadmap
 
-## Status: Phase 1 - Dependencies Configured ✅
+## Status: Phase 3 (Assurance) Complete ✅
 
 ### Completed
 - ✅ Version bumped to 0.2.0
@@ -67,14 +67,23 @@ Update README with:
 - NISTA validation guide
 - Usage examples
 
+## Phase 3: pm-assure Server ✅ Complete (v0.3.0)
+
+`src/pm_mcp_servers/pm_assure/server.py`
+
+**3 Tools:**
+1. `nista_longitudinal_trend` — compliance score history, trend direction, breaches
+2. `track_review_actions` — AI extraction + deduplication + cross-cycle recurrence
+3. `review_action_status` — retrieve actions by project and status
+
+See [`docs/assurance.md`](../../docs/assurance.md) for full reference.
+
 ## Next Steps
 
-1. Complete Phase 2 (real parser integration)
+1. Complete Phase 2 (real parser integration for pm-data)
 2. Test with sample MSPDI/NISTA files
-3. Commit and push Phase 2
-4. Build Phase 3 (pm-validate)
-5. Commit and push Phase 3
-6. Add tests and documentation
+3. Build Phase 4 (pm-validate with full NISTA v1.0 schema)
+4. Add P1 Artefact Currency Validator (`check_artefact_currency` MCP tool)
 
 ## Attribution
 

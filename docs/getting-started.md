@@ -146,7 +146,56 @@ for task in result.tasks:
 print(f"Confidence: {result.confidence_score}")
 ```
 
-### 5. Set Up MCP Servers for Claude
+### 5. Track Compliance Scores Over Time (P2)
+
+Persist NISTA compliance scores and detect trends and threshold breaches:
+
+```python
+from pm_data_tools.schemas.nista import NISTAValidator, LongitudinalComplianceTracker
+from pm_data_tools.db import AssuranceStore
+
+store = AssuranceStore()
+tracker = LongitudinalComplianceTracker(store=store)
+validator = NISTAValidator()
+
+# Run validation — score is persisted as a side effect
+result = validator.validate(data, project_id="PROJ-001", history=tracker)
+
+# After two or more runs, query trend and breaches
+trend = tracker.compute_trend("PROJ-001")     # IMPROVING / STAGNATING / DEGRADING
+breaches = tracker.check_thresholds("PROJ-001")  # floor and drop alerts
+print(f"Trend: {trend.value}, Breaches: {len(breaches)}")
+```
+
+### 6. Extract and Track Review Actions (P3)
+
+AI-powered extraction, deduplication, and cross-cycle recurrence detection:
+
+```python
+from agent_planning.confidence import ConfidenceExtractor
+from agent_planning.providers.anthropic import AnthropicProvider
+from pm_data_tools.assurance import FindingAnalyzer, RecurrenceDetector
+
+provider = AnthropicProvider(api_key="...")
+ce = ConfidenceExtractor(provider)
+
+analyzer = FindingAnalyzer(
+    extractor=ce,
+    recurrence_detector=RecurrenceDetector(),
+)
+
+result = await analyzer.extract(
+    review_text=open("review-q1-2026.txt").read(),
+    review_id="review-q1-2026",
+    project_id="PROJ-001",
+)
+
+for action in result.recommendations:
+    flag = " [REVIEW]" if action.flagged_for_review else ""
+    print(f"[{action.status.value}] {action.text}{flag}")
+```
+
+### 7. Set Up MCP Servers for Claude
 
 Enable Claude to work with PM data:
 
@@ -175,6 +224,11 @@ Add to your Claude config:
     "pm-analyse": {
       "command": "pm-analyse-server",
       "args": []
+    },
+    "pm-assure": {
+      "command": "pm-assure-server",
+      "args": [],
+      "env": { "ANTHROPIC_API_KEY": "sk-ant-..." }
     }
   }
 }
@@ -184,6 +238,8 @@ Now Claude can:
 - Parse PM files: "Read my schedule.mpp file and summarize the critical path"
 - Validate data: "Check this project for NISTA compliance"
 - Analyze projects: "What are the schedule risks in this project?"
+- Track compliance trends: "Show me the NISTA compliance trend for PROJ-001"
+- Manage review actions: "Extract the actions from this review and track them for PROJ-001"
 
 ## Common Use Cases
 
