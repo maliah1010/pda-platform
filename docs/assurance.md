@@ -1,6 +1,6 @@
 # Assurance Module — Developer Reference
 
-This document describes the eight assurance features in the PDA Platform:
+This document describes the ten assurance features in the PDA Platform:
 
 - **P1 — Artefact Currency Validator**: Detects stale or anomalously refreshed
   evidence artefacts by inspecting document metadata timestamps against
@@ -24,6 +24,14 @@ This document describes the eight assurance features in the PDA Platform:
 - **P8 — Assurance Overhead Optimiser**: Tracks assurance effort, correlates
   it with confidence outcomes, and identifies waste — duplicate checks,
   zero-finding reviews, and misallocated effort.
+- **P9 — Agentic Assurance Workflow Engine**: Deterministic multi-step
+  orchestrator that sequences P1–P8 steps, accumulates inter-step data flow,
+  and produces overall project health, aggregated risk signals, and recommended
+  actions in a single workflow result.
+- **P10 — Project Domain Classifier**: Classifies projects into complexity
+  domains (CLEAR / COMPLICATED / COMPLEX / CHAOTIC) using up to seven explicit
+  indicators and four store-derived signals, then returns a tailored assurance
+  profile with recommended cadence and toolset.
 
 ---
 
@@ -48,10 +56,12 @@ pm_data_tools/
     overrides.py          # OverrideDecisionLogger, OverrideDecision, OverrideType
     lessons.py            # LessonsKnowledgeEngine, LessonRecord, LessonCategory
     overhead.py           # AssuranceOverheadOptimiser, AssuranceActivity, ActivityType
+    workflows.py          # AssuranceWorkflowEngine, WorkflowType, ProjectHealth
+    classifier.py         # ProjectDomainClassifier, ComplexityDomain, ClassificationInput
 
 pm_mcp_servers/
   pm_assure/
-    server.py             # MCP server: 12 tools (see MCP tool sections below)
+    server.py             # MCP server: 16 tools (see MCP tool sections below)
 ```
 
 All SQLite tables are created with `CREATE TABLE IF NOT EXISTS` so the store
@@ -1157,6 +1167,8 @@ is safe.
 | `lessons_learned` | P7 — Lessons Learned Knowledge Engine |
 | `assurance_activities` | P8 — Assurance Overhead Optimiser |
 | `overhead_analyses` | P8 — Assurance Overhead Optimiser |
+| `workflow_executions` | P9 — Agentic Assurance Workflow Engine |
+| `domain_classifications` | P10 — Project Domain Classifier |
 
 ---
 
@@ -1175,6 +1187,8 @@ test_assurance/
   test_overrides.py                  # 15 tests for P6
   test_lessons.py                    # 21 tests for P7
   test_overhead.py                   # 20 tests for P8
+  test_workflows.py                  # 35 tests for P9
+  test_classifier.py                 # 35 tests for P10
 ```
 
 Run:
@@ -1244,3 +1258,327 @@ All modules use `structlog`.  Key events:
 | `activity_logged` | INFO | `assurance.overhead` |
 | `duplicates_detected` | DEBUG | `assurance.overhead` |
 | `overhead_analysed` | INFO | `assurance.overhead` |
+| `workflow_executed` | INFO | `assurance.workflows` |
+| `workflow_step_exception` | WARNING | `assurance.workflows` |
+| `workflow_execution_persisted` | DEBUG | `assurance.workflows` |
+| `workflow_result_persisted` | DEBUG | `assurance.workflows` |
+| `workflow_result_deserialisation_failed` | WARNING | `assurance.workflows` |
+| `project_domain_classified` | INFO | `assurance.classifier` |
+| `classifier_p2_signal_failed` | WARNING | `assurance.classifier` |
+| `classifier_p3_signal_failed` | WARNING | `assurance.classifier` |
+| `classifier_p6_signal_failed` | WARNING | `assurance.classifier` |
+| `classifier_p8_signal_failed` | WARNING | `assurance.classifier` |
+| `domain_classification_persisted` | DEBUG | `assurance.classifier` |
+| `classification_result_deserialisation_failed` | WARNING | `assurance.classifier` |
+
+---
+
+## P9 — Agentic Assurance Workflow Engine
+
+### Purpose
+
+The `AssuranceWorkflowEngine` is a deterministic multi-step orchestrator that
+sequences P1–P8 assurance steps for a given project and returns a complete
+health assessment.  It is NOT an AI agent — all decisions are rule-based and
+reproducible.
+
+Key behaviours:
+
+- **Fail-safe**: If a step raises an exception, it is recorded as `FAILED` and
+  the workflow continues with the next step.
+- **Inter-step data flow**: P1 (currency scores), P2 (trend + breaches), P3
+  (open action counts), and P4 (divergence result) are accumulated and passed
+  to P5 (scheduler) automatically.
+- **Health classification**: Derived from the maximum and average severity of
+  all aggregated risk signals.
+- **Persistence**: Each workflow result is stored in `workflow_executions` for
+  historical retrieval.
+
+### Workflow types
+
+| Type | Steps executed |
+|------|---------------|
+| `FULL_ASSURANCE` | P1, P2, P3, P4, P5, P6, P7, P8 |
+| `COMPLIANCE_FOCUS` | P2, P5, P6 |
+| `CURRENCY_FOCUS` | P1, P5 |
+| `TREND_ANALYSIS` | P2, P3, P5 |
+| `RISK_ASSESSMENT` | P1, P2, P3, P4, P5 |
+
+### Health classification
+
+| Health | Trigger condition |
+|--------|-----------------|
+| `HEALTHY` | No signals above attention threshold (0.20) |
+| `ATTENTION_NEEDED` | Any signal ≥ 0.20, or average ≥ 0.15 |
+| `AT_RISK` | Any signal ≥ 0.50, or average ≥ 0.40 |
+| `CRITICAL` | Any signal ≥ 0.80 |
+
+### Data models
+
+```python
+class WorkflowType(Enum):
+    FULL_ASSURANCE = "FULL_ASSURANCE"
+    COMPLIANCE_FOCUS = "COMPLIANCE_FOCUS"
+    CURRENCY_FOCUS = "CURRENCY_FOCUS"
+    TREND_ANALYSIS = "TREND_ANALYSIS"
+    RISK_ASSESSMENT = "RISK_ASSESSMENT"
+
+class ProjectHealth(Enum):
+    HEALTHY = "HEALTHY"
+    ATTENTION_NEEDED = "ATTENTION_NEEDED"
+    AT_RISK = "AT_RISK"
+    CRITICAL = "CRITICAL"
+
+class WorkflowStepStatus(Enum):
+    COMPLETED = "COMPLETED"
+    SKIPPED = "SKIPPED"
+    FAILED = "FAILED"
+    NOT_APPLICABLE = "NOT_APPLICABLE"
+
+class WorkflowRiskSignal(BaseModel):
+    source: str            # "P1" … "P8"
+    signal_name: str
+    severity: float        # 0.0 – 1.0
+    detail: str
+
+class WorkflowStepResult(BaseModel):
+    step_name: str
+    status: WorkflowStepStatus
+    duration_ms: float
+    output: dict | None
+    error_message: str | None
+    risk_signal: WorkflowRiskSignal | None
+
+class WorkflowResult(BaseModel):
+    id: str                      # UUID4
+    workflow_type: WorkflowType
+    project_id: str
+    started_at: datetime
+    completed_at: datetime
+    duration_ms: float
+    health: ProjectHealth
+    steps: list[WorkflowStepResult]
+    aggregated_risk_signals: list[WorkflowRiskSignal]
+    recommended_actions: list[str]
+    executive_summary: str
+```
+
+### `AssuranceWorkflowEngine`
+
+```python
+from pm_data_tools.assurance.workflows import (
+    AssuranceWorkflowEngine,
+    WorkflowType,
+    WorkflowConfig,
+)
+
+engine = AssuranceWorkflowEngine(
+    config=WorkflowConfig(),
+    store=store,
+)
+result = engine.execute(
+    project_id="PROJ-001",
+    workflow_type=WorkflowType.RISK_ASSESSMENT,
+    artefacts=[                              # optional, for P1
+        {"id": "risk-register", "type": "risk_register", "last_modified": "2026-03-01"},
+    ],
+    gate_date="2026-06-30",                  # optional, for P1
+)
+# result.health == ProjectHealth.AT_RISK
+# result.executive_summary — full summary paragraph
+# result.recommended_actions — ordered list
+```
+
+| Method | Description |
+|--------|-------------|
+| `execute(project_id, workflow_type, artefacts, gate_date)` | Run the workflow and return a `WorkflowResult`. |
+| `get_workflow_history(project_id)` | Retrieve past workflow results from the store. |
+
+### MCP tools
+
+#### `run_assurance_workflow` (tool 13)
+
+```json
+{
+  "project_id": "PROJ-001",
+  "workflow_type": "RISK_ASSESSMENT",
+  "artefacts": [
+    {"id": "risk-register", "type": "risk_register", "last_modified": "2026-03-01"}
+  ],
+  "gate_date": "2026-06-30"
+}
+```
+
+Returns full workflow result with health, steps, risk signals, recommended
+actions, and executive summary.
+
+#### `get_workflow_history` (tool 14)
+
+```json
+{ "project_id": "PROJ-001" }
+```
+
+Returns all historical workflow executions for the project.
+
+---
+
+## P10 — Project Domain Classifier
+
+### Purpose
+
+The `ProjectDomainClassifier` assigns a project to one of four complexity
+domains based on explicit indicators provided by the caller and automated
+signals derived from the AssuranceStore (P2/P3/P6/P8 data).
+
+Domain classification determines the appropriate assurance intensity:
+
+| Domain | Composite score | Review cadence |
+|--------|----------------|----------------|
+| `CLEAR` | < 0.25 | Every 90 days |
+| `COMPLICATED` | 0.25 – 0.50 | Every 60 days |
+| `COMPLEX` | 0.50 – 0.75 | Every 42 days |
+| `CHAOTIC` | ≥ 0.75 | Every 14 days |
+
+### Explicit indicators (7)
+
+| Indicator | Direction | Description |
+|-----------|-----------|-------------|
+| `technical_complexity` | positive | Novelty and integration complexity |
+| `stakeholder_complexity` | positive | Breadth and diversity of stakeholders |
+| `requirement_clarity` | **inverse** | High = clearer = lower complexity |
+| `delivery_track_record` | **inverse** | High = better = lower complexity |
+| `organisational_change` | positive | Degree of organisational change required |
+| `regulatory_exposure` | positive | Level of regulatory risk |
+| `dependency_count` | positive | Normalised count of external dependencies |
+
+Inverse indicators are mapped as `complexity_contribution = 1 - raw_value`.
+
+### Store-derived signals (4)
+
+| Signal | Source | Severity mapping |
+|--------|--------|-----------------|
+| P2 compliance trend | `confidence_scores` table | IMPROVING→0.0, STAGNATING→0.3, DEGRADING→0.7 |
+| P3 open action rate | `recommendations` table | open_count / total |
+| P6 override impact rate | `override_decisions` table | `impact_rate` from `OverrideDecisionLogger` |
+| P8 efficiency rating | `assurance_activities` table | OPTIMAL→0.0, OVER_INVESTED→0.4, UNDER_INVESTED→0.5, MISALLOCATED→0.7 |
+
+### Weight combination
+
+Default weights: explicit 0.70, derived 0.30.  Weights are renormalised when
+only one category has data (e.g. no explicit indicators → derived weight = 1.0).
+
+### Data models
+
+```python
+class ComplexityDomain(Enum):
+    CLEAR = "CLEAR"
+    COMPLICATED = "COMPLICATED"
+    COMPLEX = "COMPLEX"
+    CHAOTIC = "CHAOTIC"
+
+class DomainIndicator(BaseModel):
+    name: str
+    raw_value: float
+    complexity_contribution: float   # after inversion if applicable
+    weight: float = 1.0
+    description: str
+
+class ClassificationInput(BaseModel):
+    project_id: str
+    technical_complexity: float | None = None
+    stakeholder_complexity: float | None = None
+    requirement_clarity: float | None = None
+    delivery_track_record: float | None = None
+    organisational_change: float | None = None
+    regulatory_exposure: float | None = None
+    dependency_count: float | None = None
+    notes: str | None = None
+
+class DomainAssuranceProfile(BaseModel):
+    domain: ComplexityDomain
+    review_frequency_days: int
+    recommended_tools: list[str]
+    confidence_threshold: float
+    compliance_floor: float
+    notes: str
+
+class ClassificationResult(BaseModel):
+    id: str
+    project_id: str
+    domain: ComplexityDomain
+    composite_score: float
+    explicit_score: float | None
+    derived_score: float | None
+    indicators: list[DomainIndicator]
+    profile: DomainAssuranceProfile
+    classified_at: datetime
+    rationale: str
+```
+
+### `ProjectDomainClassifier`
+
+```python
+from pm_data_tools.assurance.classifier import (
+    ProjectDomainClassifier,
+    ClassificationInput,
+    ClassifierConfig,
+)
+
+clf = ProjectDomainClassifier(store=store)
+
+# Full classification with explicit indicators
+result = clf.classify(ClassificationInput(
+    project_id="PROJ-001",
+    technical_complexity=0.7,
+    stakeholder_complexity=0.6,
+    requirement_clarity=0.3,
+    delivery_track_record=0.4,
+    organisational_change=0.8,
+    regulatory_exposure=0.6,
+    dependency_count=0.5,
+))
+# result.domain == ComplexityDomain.COMPLEX
+
+# Store-only reclassification (no explicit indicators)
+result = clf.reclassify_from_store("PROJ-001")
+
+# Look up profile for a domain
+profile = clf.get_profile(ComplexityDomain.CHAOTIC)
+# profile.review_frequency_days == 14
+
+# Retrieve history
+history = clf.get_classification_history("PROJ-001")
+```
+
+| Method | Description |
+|--------|-------------|
+| `classify(inp)` | Classify using explicit indicators + store signals. |
+| `reclassify_from_store(project_id)` | Classify using only store-derived signals. |
+| `get_profile(domain)` | Return the assurance profile for a domain. |
+| `get_classification_history(project_id)` | Retrieve past classifications. |
+
+### MCP tools
+
+#### `classify_project_domain` (tool 15)
+
+```json
+{
+  "project_id": "PROJ-001",
+  "technical_complexity": 0.7,
+  "stakeholder_complexity": 0.6,
+  "requirement_clarity": 0.3,
+  "organisational_change": 0.8
+}
+```
+
+Returns domain, composite score, indicators, profile (cadence + tools), and
+rationale.
+
+#### `reclassify_from_store` (tool 16)
+
+```json
+{ "project_id": "PROJ-001" }
+```
+
+Reclassifies using only P2/P3/P6/P8 store data — no explicit indicators
+required.  Suitable for automated or scheduled reclassification tasks.

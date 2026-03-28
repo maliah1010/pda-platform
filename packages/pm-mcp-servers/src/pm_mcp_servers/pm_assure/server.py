@@ -575,6 +575,170 @@ async def list_tools() -> list[Tool]:
                 "required": ["project_id"],
             },
         ),
+        Tool(
+            name="run_assurance_workflow",
+            description=(
+                "Run a multi-step assurance workflow for a project.  "
+                "Orchestrates P1–P8 steps deterministically, computes overall "
+                "project health (HEALTHY / ATTENTION_NEEDED / AT_RISK / CRITICAL), "
+                "and returns aggregated risk signals, recommended actions, and "
+                "an executive summary.  Five workflow types available."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "project_id": {
+                        "type": "string",
+                        "description": "Project identifier.",
+                    },
+                    "workflow_type": {
+                        "type": "string",
+                        "enum": [
+                            "FULL_ASSURANCE",
+                            "COMPLIANCE_FOCUS",
+                            "CURRENCY_FOCUS",
+                            "TREND_ANALYSIS",
+                            "RISK_ASSESSMENT",
+                        ],
+                        "description": "Which workflow plan to execute.",
+                    },
+                    "artefacts": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {"type": "string"},
+                                "type": {"type": "string"},
+                                "last_modified": {"type": "string"},
+                            },
+                            "required": ["id", "type", "last_modified"],
+                        },
+                        "description": (
+                            "Optional artefact list for P1 currency check.  "
+                            "Each item must have 'id', 'type', and "
+                            "'last_modified' (ISO-8601 datetime string)."
+                        ),
+                    },
+                    "gate_date": {
+                        "type": "string",
+                        "description": (
+                            "Optional ISO-8601 gate date for P1 currency check.  "
+                            "Required when artefacts is provided."
+                        ),
+                    },
+                    "db_path": {
+                        "type": "string",
+                        "description": "Optional path to the SQLite store.",
+                    },
+                },
+                "required": ["project_id", "workflow_type"],
+            },
+        ),
+        Tool(
+            name="get_workflow_history",
+            description=(
+                "Retrieve the assurance workflow execution history for a project.  "
+                "Returns all past workflow results ordered by start time ascending."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "project_id": {
+                        "type": "string",
+                        "description": "Project identifier.",
+                    },
+                    "db_path": {
+                        "type": "string",
+                        "description": "Optional path to the SQLite store.",
+                    },
+                },
+                "required": ["project_id"],
+            },
+        ),
+        Tool(
+            name="classify_project_domain",
+            description=(
+                "Classify a project into a complexity domain (CLEAR / COMPLICATED / "
+                "COMPLEX / CHAOTIC) using up to seven explicit indicators and "
+                "store-derived signals from P2, P3, P6, and P8.  Returns the "
+                "domain, composite score, and a tailored assurance profile."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "project_id": {
+                        "type": "string",
+                        "description": "Project identifier.",
+                    },
+                    "technical_complexity": {
+                        "type": "number",
+                        "description": "Technical novelty and integration complexity (0–1).",
+                    },
+                    "stakeholder_complexity": {
+                        "type": "number",
+                        "description": "Breadth and diversity of stakeholders (0–1).",
+                    },
+                    "requirement_clarity": {
+                        "type": "number",
+                        "description": (
+                            "How well-defined requirements are (0–1; high = clearer, "
+                            "inverted internally)."
+                        ),
+                    },
+                    "delivery_track_record": {
+                        "type": "number",
+                        "description": (
+                            "Team's prior delivery success rate (0–1; high = better, "
+                            "inverted internally)."
+                        ),
+                    },
+                    "organisational_change": {
+                        "type": "number",
+                        "description": "Degree of organisational change required (0–1).",
+                    },
+                    "regulatory_exposure": {
+                        "type": "number",
+                        "description": "Level of regulatory or compliance risk (0–1).",
+                    },
+                    "dependency_count": {
+                        "type": "number",
+                        "description": "Normalised count of external dependencies (0–1).",
+                    },
+                    "notes": {
+                        "type": "string",
+                        "description": "Optional free-text notes about this classification.",
+                    },
+                    "db_path": {
+                        "type": "string",
+                        "description": "Optional path to the SQLite store.",
+                    },
+                },
+                "required": ["project_id"],
+            },
+        ),
+        Tool(
+            name="reclassify_from_store",
+            description=(
+                "Reclassify a project's complexity domain using only store-derived "
+                "signals (P2 trend, P3 open actions, P6 override rate, P8 efficiency).  "
+                "No explicit indicators required.  Useful for automated or scheduled "
+                "reclassification."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "project_id": {
+                        "type": "string",
+                        "description": "Project identifier.",
+                    },
+                    "db_path": {
+                        "type": "string",
+                        "description": "Optional path to the SQLite store.",
+                    },
+                },
+                "required": ["project_id"],
+            },
+        ),
     ]
 
 
@@ -610,6 +774,14 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
         return await _log_assurance_activity(arguments)
     if name == "analyse_assurance_overhead":
         return await _analyse_assurance_overhead(arguments)
+    if name == "run_assurance_workflow":
+        return await _run_assurance_workflow(arguments)
+    if name == "get_workflow_history":
+        return await _get_workflow_history(arguments)
+    if name == "classify_project_domain":
+        return await _classify_project_domain(arguments)
+    if name == "reclassify_from_store":
+        return await _reclassify_from_store(arguments)
     return [TextContent(type="text", text=f"Unknown tool: {name}")]
 
 
@@ -1303,6 +1475,255 @@ async def _analyse_assurance_overhead(arguments: dict[str, Any]) -> list[TextCon
             ],
             "recommendations": analysis.recommendations,
             "message": analysis.message,
+        }
+
+        return [
+            TextContent(
+                type="text",
+                text=json.dumps(output, indent=2, default=str),
+            )
+        ]
+
+    except Exception as exc:
+        return [TextContent(type="text", text=f"Error: {exc}")]
+
+
+# ---------------------------------------------------------------------------
+# Entry point
+# ---------------------------------------------------------------------------
+
+
+async def _run_assurance_workflow(arguments: dict[str, Any]) -> list[TextContent]:
+    """Execute a multi-step assurance workflow for a project."""
+    try:
+        from pathlib import Path
+
+        from pm_data_tools.assurance.workflows import AssuranceWorkflowEngine, WorkflowType
+        from pm_data_tools.db.store import AssuranceStore
+
+        raw_db_path = arguments.get("db_path")
+        db_path = Path(raw_db_path) if raw_db_path else None
+        store = AssuranceStore(db_path=db_path)
+
+        project_id: str = arguments["project_id"]
+        workflow_type = WorkflowType(arguments["workflow_type"])
+        artefacts = list(arguments.get("artefacts") or []) or None
+        gate_date = arguments.get("gate_date")
+
+        engine = AssuranceWorkflowEngine(store=store)
+        result = engine.execute(
+            project_id=project_id,
+            workflow_type=workflow_type,
+            artefacts=artefacts,
+            gate_date=gate_date,
+        )
+
+        output: dict[str, Any] = {
+            "id": result.id,
+            "project_id": result.project_id,
+            "workflow_type": result.workflow_type.value,
+            "health": result.health.value,
+            "started_at": result.started_at.isoformat(),
+            "completed_at": result.completed_at.isoformat(),
+            "duration_ms": round(result.duration_ms, 1),
+            "steps": [
+                {
+                    "step_name": s.step_name,
+                    "status": s.status.value,
+                    "duration_ms": round(s.duration_ms, 1),
+                    "risk_signal": (
+                        {
+                            "source": s.risk_signal.source,
+                            "signal_name": s.risk_signal.signal_name,
+                            "severity": s.risk_signal.severity,
+                            "detail": s.risk_signal.detail,
+                        }
+                        if s.risk_signal
+                        else None
+                    ),
+                    "error_message": s.error_message,
+                }
+                for s in result.steps
+            ],
+            "aggregated_risk_signals": [
+                {
+                    "source": sig.source,
+                    "signal_name": sig.signal_name,
+                    "severity": sig.severity,
+                    "detail": sig.detail,
+                }
+                for sig in result.aggregated_risk_signals
+            ],
+            "recommended_actions": result.recommended_actions,
+            "executive_summary": result.executive_summary,
+        }
+
+        return [
+            TextContent(
+                type="text",
+                text=json.dumps(output, indent=2, default=str),
+            )
+        ]
+
+    except Exception as exc:
+        return [TextContent(type="text", text=f"Error: {exc}")]
+
+
+async def _get_workflow_history(arguments: dict[str, Any]) -> list[TextContent]:
+    """Retrieve workflow execution history for a project."""
+    try:
+        from pathlib import Path
+
+        from pm_data_tools.assurance.workflows import AssuranceWorkflowEngine
+        from pm_data_tools.db.store import AssuranceStore
+
+        raw_db_path = arguments.get("db_path")
+        db_path = Path(raw_db_path) if raw_db_path else None
+        store = AssuranceStore(db_path=db_path)
+
+        project_id: str = arguments["project_id"]
+        engine = AssuranceWorkflowEngine(store=store)
+        history = engine.get_workflow_history(project_id)
+
+        output: dict[str, Any] = {
+            "project_id": project_id,
+            "total_executions": len(history),
+            "executions": [
+                {
+                    "id": r.id,
+                    "workflow_type": r.workflow_type.value,
+                    "health": r.health.value,
+                    "started_at": r.started_at.isoformat(),
+                    "duration_ms": round(r.duration_ms, 1),
+                    "steps_completed": sum(
+                        1 for s in r.steps
+                        if s.status.value == "COMPLETED"
+                    ),
+                    "signals_count": len(r.aggregated_risk_signals),
+                }
+                for r in history
+            ],
+        }
+
+        return [
+            TextContent(
+                type="text",
+                text=json.dumps(output, indent=2, default=str),
+            )
+        ]
+
+    except Exception as exc:
+        return [TextContent(type="text", text=f"Error: {exc}")]
+
+
+async def _classify_project_domain(arguments: dict[str, Any]) -> list[TextContent]:
+    """Classify a project into a complexity domain."""
+    try:
+        from pathlib import Path
+
+        from pm_data_tools.assurance.classifier import (
+            ClassificationInput,
+            ProjectDomainClassifier,
+        )
+        from pm_data_tools.db.store import AssuranceStore
+
+        raw_db_path = arguments.get("db_path")
+        db_path = Path(raw_db_path) if raw_db_path else None
+        store = AssuranceStore(db_path=db_path)
+
+        def _opt_float(key: str) -> float | None:
+            val = arguments.get(key)
+            return float(val) if val is not None else None
+
+        inp = ClassificationInput(
+            project_id=arguments["project_id"],
+            technical_complexity=_opt_float("technical_complexity"),
+            stakeholder_complexity=_opt_float("stakeholder_complexity"),
+            requirement_clarity=_opt_float("requirement_clarity"),
+            delivery_track_record=_opt_float("delivery_track_record"),
+            organisational_change=_opt_float("organisational_change"),
+            regulatory_exposure=_opt_float("regulatory_exposure"),
+            dependency_count=_opt_float("dependency_count"),
+            notes=arguments.get("notes"),
+        )
+
+        clf = ProjectDomainClassifier(store=store)
+        result = clf.classify(inp)
+
+        output: dict[str, Any] = {
+            "id": result.id,
+            "project_id": result.project_id,
+            "domain": result.domain.value,
+            "composite_score": round(result.composite_score, 3),
+            "explicit_score": (
+                round(result.explicit_score, 3) if result.explicit_score is not None else None
+            ),
+            "derived_score": (
+                round(result.derived_score, 3) if result.derived_score is not None else None
+            ),
+            "classified_at": result.classified_at.isoformat(),
+            "indicators": [
+                {
+                    "name": i.name,
+                    "raw_value": i.raw_value,
+                    "complexity_contribution": round(i.complexity_contribution, 3),
+                }
+                for i in result.indicators
+            ],
+            "profile": {
+                "review_frequency_days": result.profile.review_frequency_days,
+                "recommended_tools": result.profile.recommended_tools,
+                "confidence_threshold": result.profile.confidence_threshold,
+                "compliance_floor": result.profile.compliance_floor,
+                "notes": result.profile.notes,
+            },
+            "rationale": result.rationale,
+        }
+
+        return [
+            TextContent(
+                type="text",
+                text=json.dumps(output, indent=2, default=str),
+            )
+        ]
+
+    except Exception as exc:
+        return [TextContent(type="text", text=f"Error: {exc}")]
+
+
+async def _reclassify_from_store(arguments: dict[str, Any]) -> list[TextContent]:
+    """Reclassify a project using only store-derived signals."""
+    try:
+        from pathlib import Path
+
+        from pm_data_tools.assurance.classifier import ProjectDomainClassifier
+        from pm_data_tools.db.store import AssuranceStore
+
+        raw_db_path = arguments.get("db_path")
+        db_path = Path(raw_db_path) if raw_db_path else None
+        store = AssuranceStore(db_path=db_path)
+
+        project_id: str = arguments["project_id"]
+        clf = ProjectDomainClassifier(store=store)
+        result = clf.reclassify_from_store(project_id)
+
+        output: dict[str, Any] = {
+            "id": result.id,
+            "project_id": result.project_id,
+            "domain": result.domain.value,
+            "composite_score": round(result.composite_score, 3),
+            "derived_score": (
+                round(result.derived_score, 3) if result.derived_score is not None else None
+            ),
+            "classified_at": result.classified_at.isoformat(),
+            "profile": {
+                "review_frequency_days": result.profile.review_frequency_days,
+                "recommended_tools": result.profile.recommended_tools,
+                "confidence_threshold": result.profile.confidence_threshold,
+                "compliance_floor": result.profile.compliance_floor,
+                "notes": result.profile.notes,
+            },
+            "rationale": result.rationale,
         }
 
         return [

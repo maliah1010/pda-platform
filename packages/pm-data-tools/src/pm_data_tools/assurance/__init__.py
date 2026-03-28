@@ -1,6 +1,6 @@
 """Assurance module: artefact currency, compliance tracking, finding analysis.
 
-This module provides six capabilities for assurance gate reviews:
+This module provides ten capabilities for assurance gate reviews:
 
 - **P1** — :class:`ArtefactCurrencyValidator`: detect stale and last-minute
   artefact updates against a gate date.
@@ -18,6 +18,10 @@ This module provides six capabilities for assurance gate reviews:
   lessons learned from project history.
 - **P8** — :class:`AssuranceOverheadOptimiser`: measure and optimise the
   efficiency of assurance activities.
+- **P9** — :class:`AssuranceWorkflowEngine`: deterministic multi-step assurance
+  workflow orchestrator across P1–P8.
+- **P10** — :class:`ProjectDomainClassifier`: classify projects into complexity
+  domains using explicit indicators and store-derived signals.
 
 Public API::
 
@@ -54,6 +58,23 @@ Public API::
         EfficiencyRating,
         DuplicateCheckResult,
         OverheadAnalysis,
+        # P9
+        AssuranceWorkflowEngine,
+        WorkflowConfig,
+        WorkflowResult,
+        WorkflowStepResult,
+        WorkflowStepStatus,
+        WorkflowType,
+        ProjectHealth,
+        WorkflowRiskSignal,
+        # P10
+        ProjectDomainClassifier,
+        ClassifierConfig,
+        ClassificationInput,
+        ClassificationResult,
+        ComplexityDomain,
+        DomainAssuranceProfile,
+        DomainIndicator,
     )
 """
 
@@ -106,6 +127,25 @@ from .overhead import (
     OverheadAnalysis,
 )
 from .recurrence import RecurrenceDetector
+from .workflows import (
+    AssuranceWorkflowEngine,
+    ProjectHealth,
+    WorkflowConfig,
+    WorkflowResult,
+    WorkflowRiskSignal,
+    WorkflowStepResult,
+    WorkflowStepStatus,
+    WorkflowType,
+)
+from .classifier import (
+    ClassificationInput,
+    ClassificationResult,
+    ClassifierConfig,
+    ComplexityDomain,
+    DomainAssuranceProfile,
+    DomainIndicator,
+    ProjectDomainClassifier,
+)
 from .scheduler import (
     AdaptiveReviewScheduler,
     ReviewUrgency,
@@ -163,6 +203,23 @@ __all__ = [
     "EfficiencyRating",
     "DuplicateCheckResult",
     "OverheadAnalysis",
+    # P9 — Agentic Assurance Workflow Engine
+    "AssuranceWorkflowEngine",
+    "WorkflowConfig",
+    "WorkflowResult",
+    "WorkflowRiskSignal",
+    "WorkflowStepResult",
+    "WorkflowStepStatus",
+    "WorkflowType",
+    "ProjectHealth",
+    # P10 — Project Domain Classifier
+    "ProjectDomainClassifier",
+    "ClassifierConfig",
+    "ClassificationInput",
+    "ClassificationResult",
+    "ComplexityDomain",
+    "DomainAssuranceProfile",
+    "DomainIndicator",
     # Deprecated aliases — will be removed in v0.5.0
     "Recommendation",
     "RecommendationExtractionResult",

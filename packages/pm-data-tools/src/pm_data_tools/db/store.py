@@ -13,6 +13,8 @@ Tables:
 - ``lessons_learned``: Lessons learned knowledge base (P7).
 - ``assurance_activities``: Assurance activity effort records (P8).
 - ``overhead_analyses``: Persisted overhead analysis results (P8).
+- ``workflow_executions``: Assurance workflow execution results (P9).
+- ``domain_classifications``: Project domain classification results (P10).
 """
 
 from __future__ import annotations
@@ -183,6 +185,26 @@ class AssuranceStore:
                     project_id      TEXT NOT NULL,
                     timestamp       TEXT NOT NULL,
                     analysis_json   TEXT NOT NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS workflow_executions (
+                    id              TEXT PRIMARY KEY,
+                    project_id      TEXT NOT NULL,
+                    workflow_type   TEXT NOT NULL,
+                    started_at      TEXT NOT NULL,
+                    completed_at    TEXT NOT NULL,
+                    duration_ms     REAL NOT NULL,
+                    health          TEXT NOT NULL,
+                    result_json     TEXT NOT NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS domain_classifications (
+                    id              TEXT PRIMARY KEY,
+                    project_id      TEXT NOT NULL,
+                    domain          TEXT NOT NULL,
+                    composite_score REAL NOT NULL,
+                    classified_at   TEXT NOT NULL,
+                    result_json     TEXT NOT NULL
                 );
                 """
             )
@@ -897,6 +919,164 @@ class AssuranceStore:
                 FROM overhead_analyses
                 WHERE project_id = ?
                 ORDER BY timestamp ASC
+                """,
+                (project_id,),
+            )
+            rows = cursor.fetchall()
+        return [dict(row) for row in rows]
+
+    # ------------------------------------------------------------------
+    # Workflow executions (P9)
+    # ------------------------------------------------------------------
+
+    def insert_workflow_execution(
+        self,
+        workflow_id: str,
+        project_id: str,
+        workflow_type: str,
+        started_at: str,
+        completed_at: str,
+        duration_ms: float,
+        health: str,
+        result_json: str,
+    ) -> None:
+        """Persist a workflow execution result.
+
+        Uses ``INSERT OR REPLACE`` so replaying the same ``workflow_id``
+        updates the record rather than raising a unique-constraint error.
+
+        Args:
+            workflow_id: UUID of this workflow execution.
+            project_id: The project identifier.
+            workflow_type: Workflow plan name (e.g. ``"FULL_ASSURANCE"``).
+            started_at: ISO-8601 timestamp when execution began.
+            completed_at: ISO-8601 timestamp when execution finished.
+            duration_ms: Total execution duration in milliseconds.
+            health: Health classification string (e.g. ``"AT_RISK"``).
+            result_json: Full :class:`~pm_data_tools.assurance.workflows.WorkflowResult`
+                serialised as JSON.
+        """
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO workflow_executions
+                    (id, project_id, workflow_type, started_at, completed_at,
+                     duration_ms, health, result_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    workflow_id,
+                    project_id,
+                    workflow_type,
+                    started_at,
+                    completed_at,
+                    duration_ms,
+                    health,
+                    result_json,
+                ),
+            )
+        logger.debug(
+            "workflow_execution_persisted",
+            workflow_id=workflow_id,
+            project_id=project_id,
+            health=health,
+        )
+
+    def get_workflow_history(self, project_id: str) -> list[dict[str, object]]:
+        """Retrieve all workflow execution results for a project.
+
+        Args:
+            project_id: The project identifier.
+
+        Returns:
+            List of row dicts ordered by ``started_at`` ascending.
+            ``result_json`` is returned as a raw JSON string.
+        """
+        with self._connect() as conn:
+            cursor = conn.execute(
+                """
+                SELECT id, project_id, workflow_type, started_at, completed_at,
+                       duration_ms, health, result_json
+                FROM workflow_executions
+                WHERE project_id = ?
+                ORDER BY started_at ASC
+                """,
+                (project_id,),
+            )
+            rows = cursor.fetchall()
+        return [dict(row) for row in rows]
+
+    # ------------------------------------------------------------------
+    # Domain classifications (P10)
+    # ------------------------------------------------------------------
+
+    def insert_domain_classification(
+        self,
+        classification_id: str,
+        project_id: str,
+        domain: str,
+        composite_score: float,
+        classified_at: str,
+        result_json: str,
+    ) -> None:
+        """Persist a domain classification result.
+
+        Uses ``INSERT OR REPLACE`` so replaying the same ``classification_id``
+        updates the record rather than raising a unique-constraint error.
+
+        Args:
+            classification_id: UUID of this classification.
+            project_id: The project identifier.
+            domain: Complexity domain string (e.g. ``"COMPLEX"``).
+            composite_score: Final weighted composite score (0–1).
+            classified_at: ISO-8601 timestamp of the classification.
+            result_json: Full :class:`~pm_data_tools.assurance.classifier.ClassificationResult`
+                serialised as JSON.
+        """
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO domain_classifications
+                    (id, project_id, domain, composite_score,
+                     classified_at, result_json)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    classification_id,
+                    project_id,
+                    domain,
+                    composite_score,
+                    classified_at,
+                    result_json,
+                ),
+            )
+        logger.debug(
+            "domain_classification_persisted",
+            classification_id=classification_id,
+            project_id=project_id,
+            domain=domain,
+        )
+
+    def get_domain_classifications(
+        self, project_id: str
+    ) -> list[dict[str, object]]:
+        """Retrieve all domain classification results for a project.
+
+        Args:
+            project_id: The project identifier.
+
+        Returns:
+            List of row dicts ordered by ``classified_at`` ascending.
+            ``result_json`` is returned as a raw JSON string.
+        """
+        with self._connect() as conn:
+            cursor = conn.execute(
+                """
+                SELECT id, project_id, domain, composite_score,
+                       classified_at, result_json
+                FROM domain_classifications
+                WHERE project_id = ?
+                ORDER BY classified_at ASC
                 """,
                 (project_id,),
             )

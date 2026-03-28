@@ -25,6 +25,11 @@ from pm_data_tools.assurance.lessons import (
     LessonSentiment,
     LessonsKnowledgeEngine,
 )
+from pm_data_tools.assurance.classifier import (
+    ClassificationInput,
+    ClassifierConfig,
+    ProjectDomainClassifier,
+)
 from pm_data_tools.assurance.overhead import (
     ActivityType,
     AssuranceActivity,
@@ -37,11 +42,15 @@ from pm_data_tools.assurance.overrides import (
     OverrideType,
 )
 from pm_data_tools.assurance.scheduler import AdaptiveReviewScheduler
+from pm_data_tools.assurance.workflows import (
+    AssuranceWorkflowEngine,
+    WorkflowConfig,
+)
 from pm_data_tools.db.store import AssuranceStore
 from pm_data_tools.schemas.nista.longitudinal import (
     ConfidenceScoreRecord,
-    LongitudinalComplianceTracker,
     ComplianceThresholdConfig,
+    LongitudinalComplianceTracker,
 )
 
 
@@ -315,6 +324,51 @@ def populated_lessons_engine(store: AssuranceStore) -> LessonsKnowledgeEngine:
         ]
     )
     return engine
+
+
+# ---------------------------------------------------------------------------
+# Workflow engine fixtures (P9)
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture()
+def workflow_engine(store: AssuranceStore) -> AssuranceWorkflowEngine:
+    """AssuranceWorkflowEngine backed by the isolated temp store."""
+    return AssuranceWorkflowEngine(store=store)
+
+
+# ---------------------------------------------------------------------------
+# Domain classifier fixtures (P10)
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture()
+def domain_classifier(store: AssuranceStore) -> ProjectDomainClassifier:
+    """ProjectDomainClassifier backed by the isolated temp store."""
+    return ProjectDomainClassifier(store=store)
+
+
+def make_classification_input(
+    project_id: str = "PROJ-001",
+    technical_complexity: float | None = 0.3,
+    stakeholder_complexity: float | None = 0.3,
+    requirement_clarity: float | None = 0.7,
+    delivery_track_record: float | None = 0.7,
+    organisational_change: float | None = 0.2,
+    regulatory_exposure: float | None = 0.2,
+    dependency_count: float | None = 0.2,
+) -> ClassificationInput:
+    """Helper to build a ClassificationInput with CLEAR-domain defaults."""
+    return ClassificationInput(
+        project_id=project_id,
+        technical_complexity=technical_complexity,
+        stakeholder_complexity=stakeholder_complexity,
+        requirement_clarity=requirement_clarity,
+        delivery_track_record=delivery_track_record,
+        organisational_change=organisational_change,
+        regulatory_exposure=regulatory_exposure,
+        dependency_count=dependency_count,
+    )
 
 
 # ---------------------------------------------------------------------------
