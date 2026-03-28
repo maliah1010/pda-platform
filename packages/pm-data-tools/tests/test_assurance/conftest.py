@@ -1,8 +1,8 @@
 """Shared fixtures for assurance module tests.
 
 Provides in-memory SQLite stores, mock ConfidenceExtractor instances, and
-sample review text for P2 (longitudinal compliance tracking) and P3 (finding
-analyzer) tests.
+sample review text for P1 (artefact currency), P2 (longitudinal compliance
+tracking), P3 (finding analyzer), and P4 (confidence divergence) tests.
 """
 
 from __future__ import annotations
@@ -17,6 +17,8 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from agent_planning.confidence.models import ConfidenceResult, ReviewLevel
 
+from pm_data_tools.assurance.currency import ArtefactCurrencyValidator, CurrencyConfig
+from pm_data_tools.assurance.divergence import DivergenceConfig, DivergenceMonitor
 from pm_data_tools.db.store import AssuranceStore
 from pm_data_tools.schemas.nista.longitudinal import (
     ConfidenceScoreRecord,
@@ -143,6 +145,39 @@ def mock_extractor_low_confidence() -> MagicMock:
         )
     )
     return mock
+
+
+# ---------------------------------------------------------------------------
+# Artefact currency validator fixture (P1)
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture()
+def currency_validator() -> ArtefactCurrencyValidator:
+    """ArtefactCurrencyValidator with default config."""
+    return ArtefactCurrencyValidator()
+
+
+# ---------------------------------------------------------------------------
+# Divergence monitor fixtures (P4)
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture()
+def divergence_monitor(store: AssuranceStore) -> DivergenceMonitor:
+    """DivergenceMonitor backed by the isolated temp store."""
+    return DivergenceMonitor(store=store)
+
+
+@pytest.fixture()
+def divergence_monitor_strict(store: AssuranceStore) -> DivergenceMonitor:
+    """DivergenceMonitor with tight thresholds for signal detection testing."""
+    config = DivergenceConfig(
+        divergence_threshold=0.10,
+        min_consensus=0.75,
+        degradation_window=2,
+    )
+    return DivergenceMonitor(config=config, store=store)
 
 
 # ---------------------------------------------------------------------------

@@ -106,6 +106,102 @@ async def list_tools() -> list[Tool]:
                 "required": ["project_id"],
             },
         ),
+        Tool(
+            name="check_artefact_currency",
+            description=(
+                "Assess whether project artefacts are current against a gate "
+                "date.  Detects stale documents and last-minute compliance "
+                "updates made suspiciously close to the gate."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "artefacts": {
+                        "type": "array",
+                        "description": (
+                            "List of artefact descriptors.  Each must have "
+                            "``id`` (str), ``type`` (str), and "
+                            "``last_modified`` (ISO-8601 string or datetime)."
+                        ),
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {"type": "string"},
+                                "type": {"type": "string"},
+                                "last_modified": {"type": "string"},
+                            },
+                            "required": ["id", "type", "last_modified"],
+                        },
+                    },
+                    "gate_date": {
+                        "type": "string",
+                        "description": "ISO-8601 gate date to assess currency against.",
+                    },
+                    "max_staleness_days": {
+                        "type": "integer",
+                        "description": "Days before gate after which an artefact is OUTDATED (default 90).",
+                        "default": 90,
+                    },
+                    "anomaly_window_days": {
+                        "type": "integer",
+                        "description": (
+                            "Updates this close to the gate date are flagged as "
+                            "ANOMALOUS_UPDATE (default 3)."
+                        ),
+                        "default": 3,
+                    },
+                },
+                "required": ["artefacts", "gate_date"],
+            },
+        ),
+        Tool(
+            name="check_confidence_divergence",
+            description=(
+                "Assess AI extraction confidence for a project review.  "
+                "Detects high sample divergence, low consensus, and degrading "
+                "confidence trends across review cycles."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "project_id": {
+                        "type": "string",
+                        "description": "Project identifier.",
+                    },
+                    "review_id": {
+                        "type": "string",
+                        "description": "Unique identifier for the review.",
+                    },
+                    "confidence_score": {
+                        "type": "number",
+                        "description": "Overall consensus confidence score (0–1).",
+                    },
+                    "sample_scores": {
+                        "type": "array",
+                        "items": {"type": "number"},
+                        "description": "Individual per-sample confidence scores.",
+                    },
+                    "divergence_threshold": {
+                        "type": "number",
+                        "description": "Max acceptable sample spread (default 0.20).",
+                        "default": 0.20,
+                    },
+                    "min_consensus": {
+                        "type": "number",
+                        "description": "Minimum acceptable consensus score (default 0.60).",
+                        "default": 0.60,
+                    },
+                    "db_path": {
+                        "type": "string",
+                        "description": (
+                            "Optional path to the SQLite store.  "
+                            "Defaults to ~/.pm_data_tools/store.db"
+                        ),
+                    },
+                },
+                "required": ["project_id", "review_id", "confidence_score", "sample_scores"],
+            },
+        ),
     ]
 
 
@@ -123,6 +219,10 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
         return await _track_review_actions(arguments)
     if name == "review_action_status":
         return await _review_action_status(arguments)
+    if name == "check_artefact_currency":
+        return await _check_artefact_currency(arguments)
+    if name == "check_confidence_divergence":
+        return await _check_confidence_divergence(arguments)
     return [TextContent(type="text", text=f"Unknown tool: {name}")]
 
 
@@ -268,6 +368,115 @@ async def _review_action_status(
             "status_filter": status_filter,
             "count": len(rows),
             "review_actions": rows,
+        }
+
+        return [
+            TextContent(
+                type="text",
+                text=json.dumps(output, indent=2, default=str),
+            )
+        ]
+
+    except Exception as exc:
+        return [TextContent(type="text", text=f"Error: {exc}")]
+
+
+async def _check_artefact_currency(
+    arguments: dict[str, Any],
+) -> list[TextContent]:
+    """Assess artefact currency against a gate date."""
+    try:
+        from datetime import datetime, timezone
+
+        from pm_data_tools.assurance.currency import (
+            ArtefactCurrencyValidator,
+            CurrencyConfig,
+        )
+
+        gate_date = datetime.fromisoformat(arguments["gate_date"])
+        if gate_date.tzinfo is None:
+            gate_date = gate_date.replace(tzinfo=timezone.utc)
+
+        config = CurrencyConfig(
+            max_staleness_days=int(arguments.get("max_staleness_days", 90)),
+            anomaly_window_days=int(arguments.get("anomaly_window_days", 3)),
+        )
+        validator = ArtefactCurrencyValidator(config=config)
+
+        results = validator.check_batch(
+            artefacts=arguments["artefacts"],
+            gate_date=gate_date,
+        )
+
+        summary: dict[str, Any] = {
+            "gate_date": gate_date.isoformat(),
+            "total": len(results),
+            "current": sum(1 for r in results if r.status.value == "CURRENT"),
+            "outdated": sum(1 for r in results if r.status.value == "OUTDATED"),
+            "anomalous_update": sum(
+                1 for r in results if r.status.value == "ANOMALOUS_UPDATE"
+            ),
+            "artefacts": [
+                {
+                    "artefact_id": r.artefact_id,
+                    "artefact_type": r.artefact_type,
+                    "status": r.status.value,
+                    "staleness_days": r.staleness_days,
+                    "anomaly_window_days": r.anomaly_window_days,
+                    "message": r.message,
+                }
+                for r in results
+            ],
+        }
+
+        return [
+            TextContent(
+                type="text",
+                text=json.dumps(summary, indent=2, default=str),
+            )
+        ]
+
+    except Exception as exc:
+        return [TextContent(type="text", text=f"Error: {exc}")]
+
+
+async def _check_confidence_divergence(
+    arguments: dict[str, Any],
+) -> list[TextContent]:
+    """Assess AI confidence divergence for a review."""
+    try:
+        from pathlib import Path
+
+        from pm_data_tools.assurance.divergence import DivergenceConfig, DivergenceMonitor
+        from pm_data_tools.db.store import AssuranceStore
+
+        raw_db_path = arguments.get("db_path")
+        db_path = Path(raw_db_path) if raw_db_path else None
+        store = AssuranceStore(db_path=db_path)
+
+        config = DivergenceConfig(
+            divergence_threshold=float(arguments.get("divergence_threshold", 0.20)),
+            min_consensus=float(arguments.get("min_consensus", 0.60)),
+        )
+        monitor = DivergenceMonitor(config=config, store=store)
+
+        result = monitor.check(
+            project_id=arguments["project_id"],
+            review_id=arguments["review_id"],
+            confidence_score=float(arguments["confidence_score"]),
+            sample_scores=[float(s) for s in arguments["sample_scores"]],
+        )
+
+        output: dict[str, Any] = {
+            "project_id": result.project_id,
+            "review_id": result.review_id,
+            "confidence_score": result.confidence_score,
+            "sample_scores": result.sample_scores,
+            "signal_type": result.signal.signal_type.value,
+            "spread": result.signal.spread,
+            "previous_confidence": result.signal.previous_confidence,
+            "message": result.signal.message,
+            "snapshot_id": result.snapshot_id,
         }
 
         return [

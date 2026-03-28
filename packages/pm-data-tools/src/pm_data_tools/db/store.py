@@ -95,6 +95,16 @@ class AssuranceStore:
                     confidence       REAL NOT NULL,
                     created_at       TEXT NOT NULL
                 );
+
+                CREATE TABLE IF NOT EXISTS divergence_snapshots (
+                    id               TEXT PRIMARY KEY,
+                    project_id       TEXT NOT NULL,
+                    review_id        TEXT NOT NULL,
+                    confidence_score REAL NOT NULL,
+                    sample_scores    TEXT NOT NULL,
+                    signal_type      TEXT NOT NULL,
+                    timestamp        TEXT NOT NULL
+                );
                 """
             )
 
@@ -269,3 +279,88 @@ class AssuranceStore:
                 (status, rec_id),
             )
         logger.debug("recommendation_status_updated", id=rec_id, status=status)
+
+    # ------------------------------------------------------------------
+    # Divergence snapshots (P4)
+    # ------------------------------------------------------------------
+
+    def insert_divergence_snapshot(
+        self,
+        snapshot_id: str,
+        project_id: str,
+        review_id: str,
+        confidence_score: float,
+        sample_scores: list[float],
+        signal_type: str,
+        timestamp: str,
+    ) -> None:
+        """Persist a confidence divergence snapshot.
+
+        Uses ``INSERT OR REPLACE`` so re-submitting the same ``snapshot_id``
+        updates the record rather than raising a unique-constraint error.
+
+        Args:
+            snapshot_id: UUID for this snapshot.
+            project_id: The project identifier.
+            review_id: The review identifier.
+            confidence_score: Overall consensus confidence score (0–1).
+            sample_scores: Individual per-sample confidence scores.
+            signal_type: Signal classification (e.g. ``"STABLE"``).
+            timestamp: ISO-8601 timestamp string of the check.
+        """
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO divergence_snapshots
+                    (id, project_id, review_id, confidence_score,
+                     sample_scores, signal_type, timestamp)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    snapshot_id,
+                    project_id,
+                    review_id,
+                    confidence_score,
+                    json.dumps(sample_scores),
+                    signal_type,
+                    timestamp,
+                ),
+            )
+        logger.debug(
+            "divergence_snapshot_persisted",
+            snapshot_id=snapshot_id,
+            project_id=project_id,
+            signal_type=signal_type,
+        )
+
+    def get_divergence_history(self, project_id: str) -> list[dict[str, object]]:
+        """Retrieve all divergence snapshots for a project, oldest first.
+
+        Args:
+            project_id: The project identifier.
+
+        Returns:
+            List of row dicts with keys: id, project_id, review_id,
+            confidence_score, sample_scores (deserialised list), signal_type,
+            timestamp.
+        """
+        with self._connect() as conn:
+            cursor = conn.execute(
+                """
+                SELECT id, project_id, review_id, confidence_score,
+                       sample_scores, signal_type, timestamp
+                FROM divergence_snapshots
+                WHERE project_id = ?
+                ORDER BY timestamp ASC
+                """,
+                (project_id,),
+            )
+            rows = cursor.fetchall()
+
+        result: list[dict[str, object]] = []
+        for row in rows:
+            record = dict(row)
+            raw = record.get("sample_scores")
+            record["sample_scores"] = json.loads(raw) if isinstance(raw, str) else []
+            result.append(record)
+        return result

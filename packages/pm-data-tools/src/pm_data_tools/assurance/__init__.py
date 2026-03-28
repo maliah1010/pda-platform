@@ -1,22 +1,54 @@
-"""Assurance module: cross-cycle finding analysis and recurrence detection.
+"""Assurance module: artefact currency, compliance tracking, finding analysis.
 
-This module provides tools for extracting, persisting, and tracking review
-actions from project review documents across multiple review cycles.  It uses
-the ``agent-task-planning`` :class:`~agent_planning.confidence.ConfidenceExtractor`
-for reliable AI extraction and stores results in the shared SQLite store.
+This module provides four capabilities for assurance gate reviews:
+
+- **P1** — :class:`ArtefactCurrencyValidator`: detect stale and last-minute
+  artefact updates against a gate date.
+- **P2** — :class:`~pm_data_tools.schemas.nista.LongitudinalComplianceTracker`:
+  persist NISTA compliance scores and detect trends (see ``schemas.nista``).
+- **P3** — :class:`FindingAnalyzer`: AI-powered extraction, deduplication, and
+  cross-cycle recurrence detection for review actions.
+- **P4** — :class:`DivergenceMonitor`: monitor AI confidence divergence across
+  extraction samples and review cycles.
 
 Public API::
 
     from pm_data_tools.assurance import (
+        # P1
+        ArtefactCurrencyValidator,
+        CurrencyConfig,
+        CurrencyScore,
+        CurrencyStatus,
+        # P3
         ReviewAction,
         FindingAnalysisResult,
         FindingAnalyzer,
         ReviewActionStatus,
         RecurrenceDetector,
+        # P4
+        DivergenceMonitor,
+        DivergenceConfig,
+        DivergenceResult,
+        DivergenceSnapshot,
+        SignalType,
     )
 """
 
 from .analyzer import FindingAnalyzer
+from .currency import (
+    ArtefactCurrencyValidator,
+    CurrencyConfig,
+    CurrencyScore,
+    CurrencyStatus,
+)
+from .divergence import (
+    DivergenceConfig,
+    DivergenceMonitor,
+    DivergenceResult,
+    DivergenceSignal,
+    DivergenceSnapshot,
+    SignalType,
+)
 from .models import (
     FindingAnalysisResult,
     ReviewAction,
@@ -32,12 +64,24 @@ from .recurrence import RecurrenceDetector
 RecommendationExtractor = FindingAnalyzer
 
 __all__ = [
-    # Current names
+    # P1 — Artefact Currency Validator
+    "ArtefactCurrencyValidator",
+    "CurrencyConfig",
+    "CurrencyScore",
+    "CurrencyStatus",
+    # P3 — Finding Analyzer
     "ReviewAction",
     "FindingAnalysisResult",
     "FindingAnalyzer",
     "ReviewActionStatus",
     "RecurrenceDetector",
+    # P4 — Divergence Monitor
+    "DivergenceMonitor",
+    "DivergenceConfig",
+    "DivergenceResult",
+    "DivergenceSignal",
+    "DivergenceSnapshot",
+    "SignalType",
     # Deprecated aliases — will be removed in v0.5.0
     "Recommendation",
     "RecommendationExtractionResult",
