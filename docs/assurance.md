@@ -1,6 +1,6 @@
 # Assurance Module — Developer Reference
 
-This document describes the six assurance features in the PDA Platform:
+This document describes the eight assurance features in the PDA Platform:
 
 - **P1 — Artefact Currency Validator**: Detects stale or anomalously refreshed
   evidence artefacts by inspecting document metadata timestamps against
@@ -18,6 +18,12 @@ This document describes the six assurance features in the PDA Platform:
   calendar intervals.
 - **P6 — Override Decision Logger**: Provides structured logging and pattern
   analysis for governance decisions that proceed against assurance advice.
+- **P7 — Lessons Learned Knowledge Engine**: Ingests structured lessons from
+  project history and provides keyword and semantic search to surface relevant
+  lessons at the point of decision-making.
+- **P8 — Assurance Overhead Optimiser**: Tracks assurance effort, correlates
+  it with confidence outcomes, and identifies waste — duplicate checks,
+  zero-finding reviews, and misallocated effort.
 
 ---
 
@@ -40,10 +46,12 @@ pm_data_tools/
     divergence.py         # DivergenceMonitor, DivergenceConfig, SignalType
     scheduler.py          # AdaptiveReviewScheduler, SchedulerConfig, ReviewUrgency
     overrides.py          # OverrideDecisionLogger, OverrideDecision, OverrideType
+    lessons.py            # LessonsKnowledgeEngine, LessonRecord, LessonCategory
+    overhead.py           # AssuranceOverheadOptimiser, AssuranceActivity, ActivityType
 
 pm_mcp_servers/
   pm_assure/
-    server.py             # MCP server: 8 tools (see MCP tool sections below)
+    server.py             # MCP server: 12 tools (see MCP tool sections below)
 ```
 
 All SQLite tables are created with `CREATE TABLE IF NOT EXISTS` so the store
@@ -783,6 +791,346 @@ Returns:
 
 ---
 
+## P7 — Lessons Learned Knowledge Engine
+
+### Purpose
+
+Organisations accumulate lessons from past projects but rarely make them
+available at the point of decision-making.  Lessons databases exist but are
+unstructured, unsearchable, and disconnected from current project context.
+This feature ingests structured lesson records with contextual metadata and
+provides both keyword and semantic search to surface relevant lessons matched
+to a project's current situation.
+
+### Data models
+
+#### `LessonCategory`
+
+```
+GOVERNANCE, TECHNICAL, COMMERCIAL, STAKEHOLDER, RESOURCE,
+REQUIREMENTS, ESTIMATION, RISK_MANAGEMENT, BENEFITS_REALISATION, OTHER
+```
+
+#### `LessonSentiment`
+
+```
+POSITIVE   — what went well; replicate this
+NEGATIVE   — what went wrong; avoid this
+```
+
+#### `LessonRecord`
+
+```python
+class LessonRecord(BaseModel):
+    id: str                          # UUID4
+    project_id: str
+    title: str
+    description: str
+    category: LessonCategory
+    sentiment: LessonSentiment
+    project_type: str | None         # e.g. "ICT", "Infrastructure"
+    project_phase: str | None        # e.g. "Initiation", "Delivery"
+    department: str | None
+    tags: list[str]
+    date_recorded: date              # defaults to today
+    recorded_by: str | None
+    impact_description: str | None
+```
+
+#### `LessonSearchResult`
+
+```python
+class LessonSearchResult(BaseModel):
+    lesson: LessonRecord
+    relevance_score: float    # 0.0 to 1.0
+    match_reason: str         # e.g. "keyword match in title", "semantic similarity 0.82"
+```
+
+#### `LessonSearchResponse`
+
+```python
+class LessonSearchResponse(BaseModel):
+    query: str
+    results: list[LessonSearchResult]
+    total_in_corpus: int
+    search_method: str        # "keyword" or "semantic"
+```
+
+#### `LessonPatternSummary`
+
+```python
+class LessonPatternSummary(BaseModel):
+    total_lessons: int
+    by_category: dict[str, int]
+    by_sentiment: dict[str, int]
+    by_project_type: dict[str, int]
+    top_tags: list[dict[str, Any]]              # [{tag, count}] top 10
+    most_common_negative_categories: list[dict] # [{category, count}]
+    message: str
+```
+
+### `LessonsKnowledgeEngine`
+
+```python
+from pm_data_tools.assurance import LessonsKnowledgeEngine, LessonRecord, LessonCategory
+
+engine = LessonsKnowledgeEngine()
+engine = LessonsKnowledgeEngine(
+    store=AssuranceStore(db_path=Path("/custom/store.db")),
+    similarity_threshold=0.40,
+)
+```
+
+Supports two search modes.  **Keyword search** is always available.
+**Semantic search** uses sentence-transformer embeddings and requires
+`sentence-transformers` (optional).  Falls back to keyword search when
+unavailable — the same pattern as `RecurrenceDetector`.
+
+| Method | Description |
+|--------|-------------|
+| `ingest(lesson)` | Persist a `LessonRecord`. Returns the lesson with its ID. |
+| `ingest_batch(lessons)` | Ingest multiple lessons. Returns count ingested. |
+| `search(query, project_type, category, sentiment, limit)` | Search with optional filters. Returns `LessonSearchResponse`. |
+| `get_lessons(project_id, category, sentiment)` | Retrieve lessons, optionally filtered. |
+| `get_contextual_lessons(project_type, project_phase, category, limit)` | Retrieve lessons for a specific context; NEGATIVE sentiment ranked first. |
+| `analyse_patterns()` | Compute corpus-wide `LessonPatternSummary`. |
+
+**Keyword scoring:** +1.0 title match, +0.5 description match, +0.3 tag match,
++0.2 category match.  Normalised by dividing by 2.0.
+
+### MCP tool: `ingest_lesson`
+
+```json
+{
+  "project_id": "PROJ-001",
+  "title": "Early stakeholder engagement prevented scope creep",
+  "description": "Fortnightly workshops from week 2 identified conflicting requirements.",
+  "category": "STAKEHOLDER",
+  "sentiment": "POSITIVE",
+  "project_type": "ICT",
+  "project_phase": "Initiation",
+  "tags": ["stakeholders", "scope", "requirements"],
+  "recorded_by": "PMO Lead"
+}
+```
+
+Returns:
+
+```json
+{
+  "id": "a3c8f1e2-...",
+  "project_id": "PROJ-001",
+  "title": "Early stakeholder engagement prevented scope creep",
+  "category": "STAKEHOLDER",
+  "sentiment": "POSITIVE",
+  "date_recorded": "2026-03-28",
+  "message": "Lesson ingested with id 'a3c8f1e2-...'."
+}
+```
+
+### MCP tool: `search_lessons`
+
+```json
+{
+  "query": "procurement delays",
+  "project_type": "ICT",
+  "sentiment": "NEGATIVE",
+  "limit": 5
+}
+```
+
+Returns:
+
+```json
+{
+  "query": "procurement delays",
+  "search_method": "keyword",
+  "total_in_corpus": 42,
+  "results_count": 2,
+  "results": [
+    {
+      "id": "...",
+      "title": "Delayed procurement caused 6-week schedule slip",
+      "category": "COMMERCIAL",
+      "sentiment": "NEGATIVE",
+      "relevance_score": 0.75,
+      "match_reason": "keyword match in title; keyword match in description"
+    }
+  ]
+}
+```
+
+---
+
+## P8 — Assurance Overhead Optimiser
+
+### Purpose
+
+Assurance activities consume project time and budget.  Without measurement,
+organisations cannot tell whether they are investing too little (missing real
+issues) or too much (redundant checks that add overhead without improving
+outcomes).  Common symptoms include the same artefact being reviewed across
+multiple gates, low-value reviews persisting because they have always been
+done, and review frequency that does not adapt to project risk.  This feature
+tracks assurance effort, correlates it with confidence outcomes, and identifies
+waste patterns.
+
+### Data models
+
+#### `ActivityType`
+
+```
+GATE_REVIEW, DOCUMENT_REVIEW, COMPLIANCE_CHECK, RISK_ASSESSMENT,
+STAKEHOLDER_REVIEW, AUDIT, OTHER
+```
+
+#### `EfficiencyRating`
+
+```
+OPTIMAL           — good confidence outcomes relative to effort
+UNDER_INVESTED    — low effort, poor outcomes — more assurance needed
+OVER_INVESTED     — high effort, no better outcomes — reduce frequency
+MISALLOCATED      — effort going to the wrong activities (high duplication)
+```
+
+#### `AssuranceActivity`
+
+```python
+class AssuranceActivity(BaseModel):
+    id: str                             # UUID4
+    project_id: str
+    activity_type: ActivityType
+    description: str
+    date: date
+    effort_hours: float
+    participants: int = 1
+    artefacts_reviewed: list[str]
+    findings_count: int = 0
+    confidence_before: float | None     # NISTA score before (0–100)
+    confidence_after: float | None      # NISTA score after (0–100)
+```
+
+#### `DuplicateCheckResult`
+
+```python
+class DuplicateCheckResult(BaseModel):
+    activity_id: str
+    duplicate_of: str
+    overlap_type: str      # "same_artefact", "same_type_same_week", "no_findings_repeat"
+    detail: str
+```
+
+#### `OverheadAnalysis`
+
+```python
+class OverheadAnalysis(BaseModel):
+    project_id: str
+    timestamp: datetime
+    total_activities: int
+    total_effort_hours: float
+    total_participants_hours: float     # effort_hours × participants, summed
+    effort_by_type: dict[str, float]
+    activities_with_findings: int
+    activities_without_findings: int
+    finding_rate: float                 # proportion producing findings (0–1)
+    avg_confidence_lift: float | None   # avg (confidence_after − confidence_before)
+    duplicate_checks: list[DuplicateCheckResult]
+    efficiency_rating: EfficiencyRating
+    recommendations: list[str]
+    message: str
+```
+
+### `AssuranceOverheadOptimiser`
+
+```python
+from pm_data_tools.assurance import AssuranceOverheadOptimiser, AssuranceActivity, ActivityType
+
+optimiser = AssuranceOverheadOptimiser()
+optimiser = AssuranceOverheadOptimiser(
+    store=AssuranceStore(db_path=Path("/custom/store.db"))
+)
+```
+
+| Method | Description |
+|--------|-------------|
+| `log_activity(activity)` | Persist an `AssuranceActivity`. Returns the activity with its ID. |
+| `get_activities(project_id, activity_type)` | Retrieve activities, optionally filtered by type. |
+| `detect_duplicates(project_id)` | Identify overlapping activities per three detection rules. |
+| `compute_efficiency(project_id)` | Classify overall efficiency as an `EfficiencyRating`. |
+| `generate_recommendations(project_id)` | Generate human-readable optimisation suggestions. |
+| `analyse(project_id)` | Run a complete analysis; persists result to store. |
+
+**Efficiency classification logic (evaluated in order):**
+
+1. `total_effort_hours < 10` and `avg_confidence_lift` is `None` or negative → `UNDER_INVESTED`
+2. `finding_rate < 0.20` and `total_effort_hours > 40` → `OVER_INVESTED`
+3. `duplicate_count > total_activities × 0.30` → `MISALLOCATED`
+4. Otherwise → `OPTIMAL`
+
+**Duplicate detection rules:**
+
+| Rule | Condition |
+|------|-----------|
+| `same_artefact` | Two activities reviewing the same artefact within 14 days |
+| `same_type_same_week` | Two activities of the same type within 7 days |
+| `no_findings_repeat` | Same type, both 0 findings, within 30 days |
+
+### MCP tool: `log_assurance_activity`
+
+```json
+{
+  "project_id": "PROJ-001",
+  "activity_type": "GATE_REVIEW",
+  "description": "Stage gate 3 — delivery readiness assessment",
+  "date": "2026-03-20",
+  "effort_hours": 16.0,
+  "participants": 4,
+  "artefacts_reviewed": ["risk-register-v3", "benefits-profile-v2"],
+  "findings_count": 3,
+  "confidence_before": 72.0,
+  "confidence_after": 78.5
+}
+```
+
+Returns:
+
+```json
+{
+  "id": "b7d2e4f1-...",
+  "project_id": "PROJ-001",
+  "activity_type": "GATE_REVIEW",
+  "date": "2026-03-20",
+  "effort_hours": 16.0,
+  "findings_count": 3,
+  "message": "Activity logged with id 'b7d2e4f1-...'."
+}
+```
+
+### MCP tool: `analyse_assurance_overhead`
+
+```json
+{
+  "project_id": "PROJ-001"
+}
+```
+
+Returns:
+
+```json
+{
+  "project_id": "PROJ-001",
+  "total_activities": 8,
+  "total_effort_hours": 72.0,
+  "finding_rate": 0.75,
+  "efficiency_rating": "OPTIMAL",
+  "duplicate_checks": [],
+  "recommendations": [],
+  "message": "8 assurance activity/activities recorded for 'PROJ-001'. Total effort: 72.0 hours. Finding rate: 75%. Efficiency: OPTIMAL."
+}
+```
+
+---
+
 ## SQLite Store
 
 The `AssuranceStore` manages all persistence.  The default database path is
@@ -806,6 +1154,9 @@ is safe.
 | `divergence_snapshots` | P4 — Confidence Divergence Monitor |
 | `review_schedule_recommendations` | P5 — Adaptive Review Scheduler |
 | `override_decisions` | P6 — Override Decision Logger |
+| `lessons_learned` | P7 — Lessons Learned Knowledge Engine |
+| `assurance_activities` | P8 — Assurance Overhead Optimiser |
+| `overhead_analyses` | P8 — Assurance Overhead Optimiser |
 
 ---
 
@@ -822,6 +1173,8 @@ test_assurance/
   test_divergence.py                 # 17 tests for P4
   test_scheduler.py                  # 18 tests for P5
   test_overrides.py                  # 15 tests for P6
+  test_lessons.py                    # 21 tests for P7
+  test_overhead.py                   # 20 tests for P8
 ```
 
 Run:
@@ -882,3 +1235,12 @@ All modules use `structlog`.  Key events:
 | `override_logged` | INFO | `assurance.overrides` |
 | `override_outcome_recorded` | INFO | `assurance.overrides` |
 | `override_patterns_analysed` | INFO | `assurance.overrides` |
+| `lesson_ingested` | INFO | `assurance.lessons` |
+| `lesson_batch_ingested` | INFO | `assurance.lessons` |
+| `lessons_searched` | INFO | `assurance.lessons` |
+| `semantic_search_unavailable` | WARNING | `assurance.lessons` |
+| `contextual_lessons_retrieved` | DEBUG | `assurance.lessons` |
+| `lessons_patterns_analysed` | INFO | `assurance.lessons` |
+| `activity_logged` | INFO | `assurance.overhead` |
+| `duplicates_detected` | DEBUG | `assurance.overhead` |
+| `overhead_analysed` | INFO | `assurance.overhead` |

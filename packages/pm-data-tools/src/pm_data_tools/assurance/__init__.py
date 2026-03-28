@@ -1,6 +1,6 @@
 """Assurance module: artefact currency, compliance tracking, finding analysis.
 
-This module provides four capabilities for assurance gate reviews:
+This module provides six capabilities for assurance gate reviews:
 
 - **P1** — :class:`ArtefactCurrencyValidator`: detect stale and last-minute
   artefact updates against a gate date.
@@ -10,6 +10,14 @@ This module provides four capabilities for assurance gate reviews:
   cross-cycle recurrence detection for review actions.
 - **P4** — :class:`DivergenceMonitor`: monitor AI confidence divergence across
   extraction samples and review cycles.
+- **P5** — :class:`AdaptiveReviewScheduler`: recommend optimal review timing
+  based on P1–P4 signals.
+- **P6** — :class:`OverrideDecisionLogger`: structured logging and pattern
+  analysis of governance override decisions.
+- **P7** — :class:`LessonsKnowledgeEngine`: ingest, search, and analyse
+  lessons learned from project history.
+- **P8** — :class:`AssuranceOverheadOptimiser`: measure and optimise the
+  efficiency of assurance activities.
 
 Public API::
 
@@ -31,6 +39,21 @@ Public API::
         DivergenceResult,
         DivergenceSnapshot,
         SignalType,
+        # P7
+        LessonsKnowledgeEngine,
+        LessonRecord,
+        LessonCategory,
+        LessonSentiment,
+        LessonSearchResult,
+        LessonSearchResponse,
+        LessonPatternSummary,
+        # P8
+        AssuranceOverheadOptimiser,
+        AssuranceActivity,
+        ActivityType,
+        EfficiencyRating,
+        DuplicateCheckResult,
+        OverheadAnalysis,
     )
 """
 
@@ -64,6 +87,23 @@ from .overrides import (
     OverrideOutcome,
     OverridePatternSummary,
     OverrideType,
+)
+from .lessons import (
+    LessonCategory,
+    LessonPatternSummary,
+    LessonRecord,
+    LessonSearchResponse,
+    LessonSearchResult,
+    LessonSentiment,
+    LessonsKnowledgeEngine,
+)
+from .overhead import (
+    ActivityType,
+    AssuranceActivity,
+    AssuranceOverheadOptimiser,
+    DuplicateCheckResult,
+    EfficiencyRating,
+    OverheadAnalysis,
 )
 from .recurrence import RecurrenceDetector
 from .scheduler import (
@@ -108,6 +148,21 @@ __all__ = [
     "OverrideOutcome",
     "OverridePatternSummary",
     "OverrideType",
+    # P7 — Lessons Learned Knowledge Engine
+    "LessonsKnowledgeEngine",
+    "LessonRecord",
+    "LessonCategory",
+    "LessonSentiment",
+    "LessonSearchResult",
+    "LessonSearchResponse",
+    "LessonPatternSummary",
+    # P8 — Assurance Overhead Optimiser
+    "AssuranceOverheadOptimiser",
+    "AssuranceActivity",
+    "ActivityType",
+    "EfficiencyRating",
+    "DuplicateCheckResult",
+    "OverheadAnalysis",
     # Deprecated aliases — will be removed in v0.5.0
     "Recommendation",
     "RecommendationExtractionResult",

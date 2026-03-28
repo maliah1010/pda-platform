@@ -347,6 +347,234 @@ async def list_tools() -> list[Tool]:
                 "required": ["project_id"],
             },
         ),
+        Tool(
+            name="ingest_lesson",
+            description=(
+                "Ingest a structured lessons learned record into the knowledge "
+                "base.  Captures category, sentiment, project type, phase, tags, "
+                "and impact description for later search and analysis."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "project_id": {
+                        "type": "string",
+                        "description": "Identifier of the source project.",
+                    },
+                    "title": {
+                        "type": "string",
+                        "description": "Short summary of the lesson.",
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Full lesson narrative.",
+                    },
+                    "category": {
+                        "type": "string",
+                        "enum": [
+                            "GOVERNANCE",
+                            "TECHNICAL",
+                            "COMMERCIAL",
+                            "STAKEHOLDER",
+                            "RESOURCE",
+                            "REQUIREMENTS",
+                            "ESTIMATION",
+                            "RISK_MANAGEMENT",
+                            "BENEFITS_REALISATION",
+                            "OTHER",
+                        ],
+                        "description": "Domain classification for the lesson.",
+                    },
+                    "sentiment": {
+                        "type": "string",
+                        "enum": ["POSITIVE", "NEGATIVE"],
+                        "description": "Whether this is a positive or negative lesson.",
+                    },
+                    "project_type": {
+                        "type": "string",
+                        "description": "Optional project type (e.g. 'ICT', 'Infrastructure').",
+                    },
+                    "project_phase": {
+                        "type": "string",
+                        "description": "Optional project phase (e.g. 'Initiation', 'Delivery').",
+                    },
+                    "department": {
+                        "type": "string",
+                        "description": "Optional originating department.",
+                    },
+                    "tags": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Free-form tags for keyword discovery.",
+                    },
+                    "recorded_by": {
+                        "type": "string",
+                        "description": "Name or role of the person recording the lesson.",
+                    },
+                    "impact_description": {
+                        "type": "string",
+                        "description": "What happened as a result of this lesson.",
+                    },
+                    "db_path": {
+                        "type": "string",
+                        "description": "Optional path to the SQLite store.",
+                    },
+                },
+                "required": ["project_id", "title", "description", "category", "sentiment"],
+            },
+        ),
+        Tool(
+            name="search_lessons",
+            description=(
+                "Search the lessons learned corpus by free-text query.  "
+                "Uses semantic search when sentence-transformers is available, "
+                "otherwise falls back to keyword matching.  Supports filtering "
+                "by project type, category, and sentiment."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Free-text search query.",
+                    },
+                    "project_type": {
+                        "type": "string",
+                        "description": "Optional project type filter.",
+                    },
+                    "category": {
+                        "type": "string",
+                        "enum": [
+                            "GOVERNANCE",
+                            "TECHNICAL",
+                            "COMMERCIAL",
+                            "STAKEHOLDER",
+                            "RESOURCE",
+                            "REQUIREMENTS",
+                            "ESTIMATION",
+                            "RISK_MANAGEMENT",
+                            "BENEFITS_REALISATION",
+                            "OTHER",
+                        ],
+                        "description": "Optional category filter.",
+                    },
+                    "sentiment": {
+                        "type": "string",
+                        "enum": ["POSITIVE", "NEGATIVE"],
+                        "description": "Optional sentiment filter.",
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Maximum number of results to return (default 10).",
+                        "default": 10,
+                    },
+                    "db_path": {
+                        "type": "string",
+                        "description": "Optional path to the SQLite store.",
+                    },
+                },
+                "required": ["query"],
+            },
+        ),
+        Tool(
+            name="log_assurance_activity",
+            description=(
+                "Log an assurance activity with effort tracking.  Records "
+                "person-hours, participants, artefacts reviewed, findings "
+                "produced, and before/after compliance scores."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "project_id": {
+                        "type": "string",
+                        "description": "Project identifier.",
+                    },
+                    "activity_type": {
+                        "type": "string",
+                        "enum": [
+                            "GATE_REVIEW",
+                            "DOCUMENT_REVIEW",
+                            "COMPLIANCE_CHECK",
+                            "RISK_ASSESSMENT",
+                            "STAKEHOLDER_REVIEW",
+                            "AUDIT",
+                            "OTHER",
+                        ],
+                        "description": "Classification of the activity.",
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "What was done.",
+                    },
+                    "date": {
+                        "type": "string",
+                        "description": "ISO-8601 date of the activity.",
+                    },
+                    "effort_hours": {
+                        "type": "number",
+                        "description": "Person-hours spent on this activity.",
+                    },
+                    "participants": {
+                        "type": "integer",
+                        "description": "Number of people involved (default 1).",
+                        "default": 1,
+                    },
+                    "artefacts_reviewed": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Artefact IDs checked during this activity.",
+                    },
+                    "findings_count": {
+                        "type": "integer",
+                        "description": "Number of findings or actions produced.",
+                        "default": 0,
+                    },
+                    "confidence_before": {
+                        "type": "number",
+                        "description": "NISTA compliance score before the activity (0–100).",
+                    },
+                    "confidence_after": {
+                        "type": "number",
+                        "description": "NISTA compliance score after the activity (0–100).",
+                    },
+                    "db_path": {
+                        "type": "string",
+                        "description": "Optional path to the SQLite store.",
+                    },
+                },
+                "required": [
+                    "project_id",
+                    "activity_type",
+                    "description",
+                    "date",
+                    "effort_hours",
+                ],
+            },
+        ),
+        Tool(
+            name="analyse_assurance_overhead",
+            description=(
+                "Run a complete assurance overhead analysis for a project.  "
+                "Computes effort metrics, finding rates, duplicate checks, "
+                "efficiency rating, and human-readable optimisation "
+                "recommendations."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "project_id": {
+                        "type": "string",
+                        "description": "Project identifier.",
+                    },
+                    "db_path": {
+                        "type": "string",
+                        "description": "Optional path to the SQLite store.",
+                    },
+                },
+                "required": ["project_id"],
+            },
+        ),
     ]
 
 
@@ -374,6 +602,14 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
         return await _log_override_decision(arguments)
     if name == "analyse_override_patterns":
         return await _analyse_override_patterns(arguments)
+    if name == "ingest_lesson":
+        return await _ingest_lesson(arguments)
+    if name == "search_lessons":
+        return await _search_lessons(arguments)
+    if name == "log_assurance_activity":
+        return await _log_assurance_activity(arguments)
+    if name == "analyse_assurance_overhead":
+        return await _analyse_assurance_overhead(arguments)
     return [TextContent(type="text", text=f"Unknown tool: {name}")]
 
 
@@ -844,6 +1080,229 @@ async def _check_confidence_divergence(
             "previous_confidence": result.signal.previous_confidence,
             "message": result.signal.message,
             "snapshot_id": result.snapshot_id,
+        }
+
+        return [
+            TextContent(
+                type="text",
+                text=json.dumps(output, indent=2, default=str),
+            )
+        ]
+
+    except Exception as exc:
+        return [TextContent(type="text", text=f"Error: {exc}")]
+
+
+async def _ingest_lesson(arguments: dict[str, Any]) -> list[TextContent]:
+    """Ingest a structured lesson into the knowledge base."""
+    try:
+        from pathlib import Path
+
+        from pm_data_tools.assurance.lessons import (
+            LessonCategory,
+            LessonRecord,
+            LessonSentiment,
+            LessonsKnowledgeEngine,
+        )
+        from pm_data_tools.db.store import AssuranceStore
+
+        raw_db_path = arguments.get("db_path")
+        db_path = Path(raw_db_path) if raw_db_path else None
+        store = AssuranceStore(db_path=db_path)
+
+        lesson = LessonRecord(
+            project_id=arguments["project_id"],
+            title=arguments["title"],
+            description=arguments["description"],
+            category=LessonCategory(arguments["category"]),
+            sentiment=LessonSentiment(arguments["sentiment"]),
+            project_type=arguments.get("project_type"),
+            project_phase=arguments.get("project_phase"),
+            department=arguments.get("department"),
+            tags=list(arguments.get("tags", [])),
+            recorded_by=arguments.get("recorded_by"),
+            impact_description=arguments.get("impact_description"),
+        )
+
+        engine = LessonsKnowledgeEngine(store=store)
+        ingested = engine.ingest(lesson)
+
+        output: dict[str, Any] = {
+            "id": ingested.id,
+            "project_id": ingested.project_id,
+            "title": ingested.title,
+            "category": ingested.category.value,
+            "sentiment": ingested.sentiment.value,
+            "date_recorded": ingested.date_recorded.isoformat(),
+            "message": f"Lesson ingested with id '{ingested.id}'.",
+        }
+
+        return [
+            TextContent(
+                type="text",
+                text=json.dumps(output, indent=2, default=str),
+            )
+        ]
+
+    except Exception as exc:
+        return [TextContent(type="text", text=f"Error: {exc}")]
+
+
+async def _search_lessons(arguments: dict[str, Any]) -> list[TextContent]:
+    """Search the lessons corpus by free-text query."""
+    try:
+        from pathlib import Path
+
+        from pm_data_tools.assurance.lessons import (
+            LessonCategory,
+            LessonSentiment,
+            LessonsKnowledgeEngine,
+        )
+        from pm_data_tools.db.store import AssuranceStore
+
+        raw_db_path = arguments.get("db_path")
+        db_path = Path(raw_db_path) if raw_db_path else None
+        store = AssuranceStore(db_path=db_path)
+
+        raw_category = arguments.get("category")
+        raw_sentiment = arguments.get("sentiment")
+
+        engine = LessonsKnowledgeEngine(store=store)
+        response = engine.search(
+            query=arguments["query"],
+            project_type=arguments.get("project_type"),
+            category=LessonCategory(raw_category) if raw_category else None,
+            sentiment=LessonSentiment(raw_sentiment) if raw_sentiment else None,
+            limit=int(arguments.get("limit", 10)),
+        )
+
+        output: dict[str, Any] = {
+            "query": response.query,
+            "search_method": response.search_method,
+            "total_in_corpus": response.total_in_corpus,
+            "results_count": len(response.results),
+            "results": [
+                {
+                    "id": r.lesson.id,
+                    "project_id": r.lesson.project_id,
+                    "title": r.lesson.title,
+                    "category": r.lesson.category.value,
+                    "sentiment": r.lesson.sentiment.value,
+                    "project_type": r.lesson.project_type,
+                    "relevance_score": r.relevance_score,
+                    "match_reason": r.match_reason,
+                }
+                for r in response.results
+            ],
+        }
+
+        return [
+            TextContent(
+                type="text",
+                text=json.dumps(output, indent=2, default=str),
+            )
+        ]
+
+    except Exception as exc:
+        return [TextContent(type="text", text=f"Error: {exc}")]
+
+
+async def _log_assurance_activity(arguments: dict[str, Any]) -> list[TextContent]:
+    """Log an assurance activity with effort tracking."""
+    try:
+        from datetime import date
+        from pathlib import Path
+
+        from pm_data_tools.assurance.overhead import (
+            ActivityType,
+            AssuranceActivity,
+            AssuranceOverheadOptimiser,
+        )
+        from pm_data_tools.db.store import AssuranceStore
+
+        raw_db_path = arguments.get("db_path")
+        db_path = Path(raw_db_path) if raw_db_path else None
+        store = AssuranceStore(db_path=db_path)
+
+        cb = arguments.get("confidence_before")
+        ca = arguments.get("confidence_after")
+
+        activity = AssuranceActivity(
+            project_id=arguments["project_id"],
+            activity_type=ActivityType(arguments["activity_type"]),
+            description=arguments["description"],
+            date=date.fromisoformat(str(arguments["date"])),
+            effort_hours=float(arguments["effort_hours"]),
+            participants=int(arguments.get("participants", 1)),
+            artefacts_reviewed=list(arguments.get("artefacts_reviewed", [])),
+            findings_count=int(arguments.get("findings_count", 0)),
+            confidence_before=float(cb) if cb is not None else None,
+            confidence_after=float(ca) if ca is not None else None,
+        )
+
+        optimiser = AssuranceOverheadOptimiser(store=store)
+        logged = optimiser.log_activity(activity)
+
+        output: dict[str, Any] = {
+            "id": logged.id,
+            "project_id": logged.project_id,
+            "activity_type": logged.activity_type.value,
+            "date": logged.date.isoformat(),
+            "effort_hours": logged.effort_hours,
+            "findings_count": logged.findings_count,
+            "message": f"Activity logged with id '{logged.id}'.",
+        }
+
+        return [
+            TextContent(
+                type="text",
+                text=json.dumps(output, indent=2, default=str),
+            )
+        ]
+
+    except Exception as exc:
+        return [TextContent(type="text", text=f"Error: {exc}")]
+
+
+async def _analyse_assurance_overhead(arguments: dict[str, Any]) -> list[TextContent]:
+    """Run a complete assurance overhead analysis for a project."""
+    try:
+        from pathlib import Path
+
+        from pm_data_tools.assurance.overhead import AssuranceOverheadOptimiser
+        from pm_data_tools.db.store import AssuranceStore
+
+        raw_db_path = arguments.get("db_path")
+        db_path = Path(raw_db_path) if raw_db_path else None
+        store = AssuranceStore(db_path=db_path)
+
+        project_id: str = arguments["project_id"]
+        optimiser = AssuranceOverheadOptimiser(store=store)
+        analysis = optimiser.analyse(project_id)
+
+        output: dict[str, Any] = {
+            "project_id": analysis.project_id,
+            "timestamp": analysis.timestamp.isoformat(),
+            "total_activities": analysis.total_activities,
+            "total_effort_hours": analysis.total_effort_hours,
+            "total_participants_hours": analysis.total_participants_hours,
+            "effort_by_type": analysis.effort_by_type,
+            "activities_with_findings": analysis.activities_with_findings,
+            "activities_without_findings": analysis.activities_without_findings,
+            "finding_rate": analysis.finding_rate,
+            "avg_confidence_lift": analysis.avg_confidence_lift,
+            "efficiency_rating": analysis.efficiency_rating.value,
+            "duplicate_checks": [
+                {
+                    "activity_id": d.activity_id,
+                    "duplicate_of": d.duplicate_of,
+                    "overlap_type": d.overlap_type,
+                    "detail": d.detail,
+                }
+                for d in analysis.duplicate_checks
+            ],
+            "recommendations": analysis.recommendations,
+            "message": analysis.message,
         }
 
         return [

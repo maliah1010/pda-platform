@@ -10,6 +10,9 @@ Tables:
 - ``divergence_snapshots``: AI confidence divergence records (P4).
 - ``review_schedule_recommendations``: Adaptive review scheduling history (P5).
 - ``override_decisions``: Governance override decision log (P6).
+- ``lessons_learned``: Lessons learned knowledge base (P7).
+- ``assurance_activities``: Assurance activity effort records (P8).
+- ``overhead_analyses``: Persisted overhead analysis results (P8).
 """
 
 from __future__ import annotations
@@ -141,6 +144,45 @@ class AssuranceStore:
                     outcome_date          TEXT,
                     outcome_notes         TEXT,
                     created_at            TEXT NOT NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS lessons_learned (
+                    id                 TEXT PRIMARY KEY,
+                    project_id         TEXT NOT NULL,
+                    title              TEXT NOT NULL,
+                    description        TEXT NOT NULL,
+                    category           TEXT NOT NULL,
+                    sentiment          TEXT NOT NULL,
+                    project_type       TEXT,
+                    project_phase      TEXT,
+                    department         TEXT,
+                    tags_json          TEXT NOT NULL,
+                    date_recorded      TEXT NOT NULL,
+                    recorded_by        TEXT,
+                    impact_description TEXT,
+                    created_at         TEXT NOT NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS assurance_activities (
+                    id                  TEXT PRIMARY KEY,
+                    project_id          TEXT NOT NULL,
+                    activity_type       TEXT NOT NULL,
+                    description         TEXT NOT NULL,
+                    date                TEXT NOT NULL,
+                    effort_hours        REAL NOT NULL,
+                    participants        INTEGER NOT NULL,
+                    artefacts_reviewed  TEXT NOT NULL,
+                    findings_count      INTEGER NOT NULL,
+                    confidence_before   REAL,
+                    confidence_after    REAL,
+                    created_at          TEXT NOT NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS overhead_analyses (
+                    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                    project_id      TEXT NOT NULL,
+                    timestamp       TEXT NOT NULL,
+                    analysis_json   TEXT NOT NULL
                 );
                 """
             )
@@ -605,3 +647,258 @@ class AssuranceStore:
             id=override_id,
             outcome=outcome,
         )
+
+    # ------------------------------------------------------------------
+    # Lessons learned (P7)
+    # ------------------------------------------------------------------
+
+    def upsert_lesson(self, data: dict[str, object]) -> None:
+        """Insert or replace a lessons learned record.
+
+        Args:
+            data: Dict with keys matching the ``lessons_learned`` table
+                columns.  Must include ``id``, ``project_id``, ``title``,
+                ``description``, ``category``, ``sentiment``,
+                ``tags_json``, ``date_recorded``, and ``created_at``.
+                All other fields are optional.
+        """
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO lessons_learned
+                    (id, project_id, title, description, category, sentiment,
+                     project_type, project_phase, department, tags_json,
+                     date_recorded, recorded_by, impact_description, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    data["id"],
+                    data["project_id"],
+                    data["title"],
+                    data["description"],
+                    data["category"],
+                    data["sentiment"],
+                    data.get("project_type"),
+                    data.get("project_phase"),
+                    data.get("department"),
+                    data["tags_json"],
+                    data["date_recorded"],
+                    data.get("recorded_by"),
+                    data.get("impact_description"),
+                    data["created_at"],
+                ),
+            )
+        logger.debug(
+            "lesson_persisted",
+            id=data["id"],
+            project_id=data["project_id"],
+        )
+
+    def get_lessons(
+        self,
+        project_id: Optional[str] = None,
+        category: Optional[str] = None,
+        sentiment: Optional[str] = None,
+    ) -> list[dict[str, object]]:
+        """Retrieve lessons, optionally filtered by project, category, and sentiment.
+
+        Args:
+            project_id: Optional project identifier filter.
+            category: Optional category string filter.
+            sentiment: Optional sentiment string filter (e.g. ``"NEGATIVE"``).
+
+        Returns:
+            List of row dicts ordered by ``date_recorded`` descending.
+        """
+        conditions: list[str] = []
+        params: list[object] = []
+
+        if project_id is not None:
+            conditions.append("project_id = ?")
+            params.append(project_id)
+        if category is not None:
+            conditions.append("category = ?")
+            params.append(category)
+        if sentiment is not None:
+            conditions.append("sentiment = ?")
+            params.append(sentiment)
+
+        where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+        sql = f"SELECT * FROM lessons_learned {where} ORDER BY date_recorded DESC"
+
+        with self._connect() as conn:
+            cursor = conn.execute(sql, params)
+            rows = cursor.fetchall()
+        return [dict(row) for row in rows]
+
+    def get_all_lessons(self) -> list[dict[str, object]]:
+        """Retrieve all lessons from the corpus, unfiltered.
+
+        Returns:
+            List of row dicts ordered by ``date_recorded`` descending.
+        """
+        with self._connect() as conn:
+            cursor = conn.execute(
+                "SELECT * FROM lessons_learned ORDER BY date_recorded DESC"
+            )
+            rows = cursor.fetchall()
+        return [dict(row) for row in rows]
+
+    def search_lessons_keyword(self, query: str) -> list[dict[str, object]]:
+        """SQL LIKE search across title, description, and tags_json.
+
+        Args:
+            query: The search string; matched case-insensitively via
+                SQLite's ``LIKE`` operator.
+
+        Returns:
+            Matching row dicts ordered by ``date_recorded`` descending.
+        """
+        like = f"%{query}%"
+        with self._connect() as conn:
+            cursor = conn.execute(
+                """
+                SELECT * FROM lessons_learned
+                WHERE title LIKE ? OR description LIKE ? OR tags_json LIKE ?
+                ORDER BY date_recorded DESC
+                """,
+                (like, like, like),
+            )
+            rows = cursor.fetchall()
+        return [dict(row) for row in rows]
+
+    # ------------------------------------------------------------------
+    # Assurance activities (P8)
+    # ------------------------------------------------------------------
+
+    def upsert_assurance_activity(self, data: dict[str, object]) -> None:
+        """Insert or replace an assurance activity record.
+
+        Args:
+            data: Dict with keys matching the ``assurance_activities`` table
+                columns.  Must include ``id``, ``project_id``,
+                ``activity_type``, ``description``, ``date``,
+                ``effort_hours``, ``participants``, ``artefacts_reviewed``,
+                ``findings_count``, and ``created_at``.
+                ``confidence_before`` and ``confidence_after`` are optional.
+        """
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO assurance_activities
+                    (id, project_id, activity_type, description, date,
+                     effort_hours, participants, artefacts_reviewed,
+                     findings_count, confidence_before, confidence_after,
+                     created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    data["id"],
+                    data["project_id"],
+                    data["activity_type"],
+                    data["description"],
+                    data["date"],
+                    data["effort_hours"],
+                    data["participants"],
+                    data["artefacts_reviewed"],
+                    data["findings_count"],
+                    data.get("confidence_before"),
+                    data.get("confidence_after"),
+                    data["created_at"],
+                ),
+            )
+        logger.debug(
+            "assurance_activity_persisted",
+            id=data["id"],
+            project_id=data["project_id"],
+        )
+
+    def get_assurance_activities(
+        self,
+        project_id: str,
+        activity_type: Optional[str] = None,
+    ) -> list[dict[str, object]]:
+        """Retrieve assurance activities for a project.
+
+        Args:
+            project_id: The project identifier.
+            activity_type: Optional activity type string to filter by.
+
+        Returns:
+            List of row dicts ordered by date ascending.
+        """
+        if activity_type is not None:
+            with self._connect() as conn:
+                cursor = conn.execute(
+                    """
+                    SELECT * FROM assurance_activities
+                    WHERE project_id = ? AND activity_type = ?
+                    ORDER BY date ASC
+                    """,
+                    (project_id, activity_type),
+                )
+                rows = cursor.fetchall()
+        else:
+            with self._connect() as conn:
+                cursor = conn.execute(
+                    """
+                    SELECT * FROM assurance_activities
+                    WHERE project_id = ?
+                    ORDER BY date ASC
+                    """,
+                    (project_id,),
+                )
+                rows = cursor.fetchall()
+        return [dict(row) for row in rows]
+
+    def insert_overhead_analysis(
+        self,
+        project_id: str,
+        timestamp: str,
+        analysis_json: str,
+    ) -> None:
+        """Persist a complete overhead analysis result.
+
+        Args:
+            project_id: The project identifier.
+            timestamp: ISO-8601 timestamp string of the analysis.
+            analysis_json: Full :class:`~pm_data_tools.assurance.overhead.OverheadAnalysis`
+                serialised as JSON.
+        """
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO overhead_analyses
+                    (project_id, timestamp, analysis_json)
+                VALUES (?, ?, ?)
+                """,
+                (project_id, timestamp, analysis_json),
+            )
+        logger.debug(
+            "overhead_analysis_persisted",
+            project_id=project_id,
+            timestamp=timestamp,
+        )
+
+    def get_overhead_history(self, project_id: str) -> list[dict[str, object]]:
+        """Retrieve all overhead analysis results for a project.
+
+        Args:
+            project_id: The project identifier.
+
+        Returns:
+            List of row dicts ordered by timestamp ascending.
+            ``analysis_json`` is returned as a raw JSON string.
+        """
+        with self._connect() as conn:
+            cursor = conn.execute(
+                """
+                SELECT id, project_id, timestamp, analysis_json
+                FROM overhead_analyses
+                WHERE project_id = ?
+                ORDER BY timestamp ASC
+                """,
+                (project_id,),
+            )
+            rows = cursor.fetchall()
+        return [dict(row) for row in rows]
