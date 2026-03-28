@@ -2,6 +2,14 @@
 
 All tables use CREATE TABLE IF NOT EXISTS so multiple features can initialise
 the store safely without conflicts.
+
+Tables:
+
+- ``confidence_scores``: NISTA compliance score history (P2).
+- ``recommendations``: Extracted review actions (P3).
+- ``divergence_snapshots``: AI confidence divergence records (P4).
+- ``review_schedule_recommendations``: Adaptive review scheduling history (P5).
+- ``override_decisions``: Governance override decision log (P6).
 """
 
 from __future__ import annotations
@@ -104,6 +112,35 @@ class AssuranceStore:
                     sample_scores    TEXT NOT NULL,
                     signal_type      TEXT NOT NULL,
                     timestamp        TEXT NOT NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS review_schedule_recommendations (
+                    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+                    project_id       TEXT    NOT NULL,
+                    timestamp        TEXT    NOT NULL,
+                    urgency          TEXT    NOT NULL,
+                    recommended_date TEXT    NOT NULL,
+                    composite_score  REAL    NOT NULL,
+                    signals_json     TEXT    NOT NULL,
+                    rationale        TEXT    NOT NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS override_decisions (
+                    id                    TEXT PRIMARY KEY,
+                    project_id            TEXT NOT NULL,
+                    override_type         TEXT NOT NULL,
+                    decision_date         TEXT NOT NULL,
+                    authoriser            TEXT NOT NULL,
+                    rationale             TEXT NOT NULL,
+                    overridden_finding_id TEXT,
+                    overridden_value      TEXT,
+                    override_value        TEXT,
+                    conditions_json       TEXT NOT NULL,
+                    evidence_refs_json    TEXT NOT NULL,
+                    outcome               TEXT NOT NULL,
+                    outcome_date          TEXT,
+                    outcome_notes         TEXT,
+                    created_at            TEXT NOT NULL
                 );
                 """
             )
@@ -364,3 +401,207 @@ class AssuranceStore:
             record["sample_scores"] = json.loads(raw) if isinstance(raw, str) else []
             result.append(record)
         return result
+
+    # ------------------------------------------------------------------
+    # Review schedule recommendations (P5)
+    # ------------------------------------------------------------------
+
+    def insert_schedule_recommendation(
+        self,
+        project_id: str,
+        timestamp: str,
+        urgency: str,
+        recommended_date: str,
+        composite_score: float,
+        signals_json: str,
+        rationale: str,
+    ) -> None:
+        """Persist an adaptive review scheduling recommendation.
+
+        Args:
+            project_id: The project identifier.
+            timestamp: ISO-8601 timestamp string of the recommendation.
+            urgency: Urgency classification (e.g. ``"IMMEDIATE"``).
+            recommended_date: ISO-8601 date string of the suggested review date.
+            composite_score: Weighted composite severity score (0–1).
+            signals_json: JSON-serialised list of contributing signals.
+            rationale: Human-readable explanation of the recommendation.
+        """
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO review_schedule_recommendations
+                    (project_id, timestamp, urgency, recommended_date,
+                     composite_score, signals_json, rationale)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    project_id,
+                    timestamp,
+                    urgency,
+                    recommended_date,
+                    composite_score,
+                    signals_json,
+                    rationale,
+                ),
+            )
+        logger.debug(
+            "schedule_recommendation_persisted",
+            project_id=project_id,
+            urgency=urgency,
+            recommended_date=recommended_date,
+        )
+
+    def get_schedule_history(self, project_id: str) -> list[dict[str, object]]:
+        """Retrieve all scheduling recommendations for a project, oldest first.
+
+        Args:
+            project_id: The project identifier.
+
+        Returns:
+            List of row dicts.  ``signals_json`` is returned as a raw string.
+        """
+        with self._connect() as conn:
+            cursor = conn.execute(
+                """
+                SELECT id, project_id, timestamp, urgency, recommended_date,
+                       composite_score, signals_json, rationale
+                FROM review_schedule_recommendations
+                WHERE project_id = ?
+                ORDER BY timestamp ASC
+                """,
+                (project_id,),
+            )
+            rows = cursor.fetchall()
+        return [dict(row) for row in rows]
+
+    # ------------------------------------------------------------------
+    # Override decisions (P6)
+    # ------------------------------------------------------------------
+
+    def upsert_override_decision(self, data: dict[str, object]) -> None:
+        """Insert or replace an override decision record.
+
+        Args:
+            data: Dict with keys matching the ``override_decisions`` table
+                columns.  Must include ``id``, ``project_id``,
+                ``override_type``, ``decision_date``, ``authoriser``,
+                ``rationale``, ``conditions_json``, ``evidence_refs_json``,
+                ``outcome``, ``created_at``.  All other fields are optional.
+        """
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO override_decisions
+                    (id, project_id, override_type, decision_date, authoriser,
+                     rationale, overridden_finding_id, overridden_value,
+                     override_value, conditions_json, evidence_refs_json,
+                     outcome, outcome_date, outcome_notes, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    data["id"],
+                    data["project_id"],
+                    data["override_type"],
+                    data["decision_date"],
+                    data["authoriser"],
+                    data["rationale"],
+                    data.get("overridden_finding_id"),
+                    data.get("overridden_value"),
+                    data.get("override_value"),
+                    data["conditions_json"],
+                    data["evidence_refs_json"],
+                    data["outcome"],
+                    data.get("outcome_date"),
+                    data.get("outcome_notes"),
+                    data["created_at"],
+                ),
+            )
+        logger.debug(
+            "override_decision_persisted",
+            id=data["id"],
+            project_id=data["project_id"],
+        )
+
+    def get_override_decisions(
+        self,
+        project_id: str,
+        override_type: Optional[str] = None,
+        outcome: Optional[str] = None,
+    ) -> list[dict[str, object]]:
+        """Retrieve override decisions, optionally filtered by type and/or outcome.
+
+        Args:
+            project_id: The project identifier.
+            override_type: Optional override type string to filter by.
+            outcome: Optional outcome string to filter by.
+
+        Returns:
+            List of row dicts ordered by decision_date ascending.  List fields
+            (``conditions_json``, ``evidence_refs_json``) are returned as raw
+            JSON strings.
+        """
+        if override_type is not None and outcome is not None:
+            sql = """
+                SELECT * FROM override_decisions
+                WHERE project_id = ? AND override_type = ? AND outcome = ?
+                ORDER BY decision_date ASC
+            """
+            params: tuple[object, ...] = (project_id, override_type, outcome)
+        elif override_type is not None:
+            sql = """
+                SELECT * FROM override_decisions
+                WHERE project_id = ? AND override_type = ?
+                ORDER BY decision_date ASC
+            """
+            params = (project_id, override_type)
+        elif outcome is not None:
+            sql = """
+                SELECT * FROM override_decisions
+                WHERE project_id = ? AND outcome = ?
+                ORDER BY decision_date ASC
+            """
+            params = (project_id, outcome)
+        else:
+            sql = """
+                SELECT * FROM override_decisions
+                WHERE project_id = ?
+                ORDER BY decision_date ASC
+            """
+            params = (project_id,)
+
+        with self._connect() as conn:
+            cursor = conn.execute(sql, params)
+            rows = cursor.fetchall()
+        return [dict(row) for row in rows]
+
+    def update_override_outcome(
+        self,
+        override_id: str,
+        outcome: str,
+        outcome_date: Optional[str] = None,
+        outcome_notes: Optional[str] = None,
+    ) -> None:
+        """Update the outcome of a previously logged override decision.
+
+        Args:
+            override_id: The override decision ``id``.
+            outcome: New outcome string (e.g. ``"SIGNIFICANT_IMPACT"``).
+            outcome_date: Optional ISO-8601 date string when the outcome
+                was observed.
+            outcome_notes: Optional human-readable notes about the outcome.
+        """
+        with self._connect() as conn:
+            conn.execute(
+                """
+                UPDATE override_decisions
+                SET outcome = ?, outcome_date = ?, outcome_notes = ?
+                WHERE id = ?
+                """,
+                (outcome, outcome_date, outcome_notes, override_id),
+            )
+        logger.debug(
+            "override_outcome_updated",
+            id=override_id,
+            outcome=outcome,
+        )

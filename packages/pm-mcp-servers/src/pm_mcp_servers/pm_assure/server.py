@@ -202,6 +202,151 @@ async def list_tools() -> list[Tool]:
                 "required": ["project_id", "review_id", "confidence_score", "sample_scores"],
             },
         ),
+        Tool(
+            name="recommend_review_schedule",
+            description=(
+                "Generate an adaptive review scheduling recommendation for a "
+                "project by analysing its P1–P4 assurance signals.  Returns "
+                "urgency, recommended date, composite score, and rationale."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "project_id": {
+                        "type": "string",
+                        "description": "Project identifier.",
+                    },
+                    "last_review_date": {
+                        "type": "string",
+                        "description": "ISO-8601 date of the most recent review (optional).",
+                    },
+                    "artefacts": {
+                        "type": "array",
+                        "description": (
+                            "Optional artefact list for P1 currency check.  "
+                            "Each requires ``id``, ``type``, ``last_modified``."
+                        ),
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {"type": "string"},
+                                "type": {"type": "string"},
+                                "last_modified": {"type": "string"},
+                            },
+                            "required": ["id", "type", "last_modified"],
+                        },
+                    },
+                    "gate_date": {
+                        "type": "string",
+                        "description": "ISO-8601 gate date for the P1 currency check.",
+                    },
+                    "db_path": {
+                        "type": "string",
+                        "description": (
+                            "Optional path to the SQLite store.  "
+                            "Defaults to ~/.pm_data_tools/store.db"
+                        ),
+                    },
+                },
+                "required": ["project_id"],
+            },
+        ),
+        Tool(
+            name="log_override_decision",
+            description=(
+                "Log a governance override decision — e.g. proceeding past a "
+                "failed gate, dismissing a recommendation, or accepting a risk.  "
+                "Captures the full context: authoriser, rationale, conditions, "
+                "and evidence references."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "project_id": {
+                        "type": "string",
+                        "description": "Project identifier.",
+                    },
+                    "override_type": {
+                        "type": "string",
+                        "enum": [
+                            "GATE_PROGRESSION",
+                            "RECOMMENDATION_DISMISSED",
+                            "RAG_OVERRIDE",
+                            "RISK_ACCEPTANCE",
+                            "SCHEDULE_OVERRIDE",
+                        ],
+                        "description": "Category of the override.",
+                    },
+                    "decision_date": {
+                        "type": "string",
+                        "description": "ISO-8601 date of the override decision.",
+                    },
+                    "authoriser": {
+                        "type": "string",
+                        "description": "Who authorised the override.",
+                    },
+                    "rationale": {
+                        "type": "string",
+                        "description": "Why the override was approved.",
+                    },
+                    "overridden_finding_id": {
+                        "type": "string",
+                        "description": "Optional link to a P3 ReviewAction id, gate, or RAG reference.",
+                    },
+                    "overridden_value": {
+                        "type": "string",
+                        "description": "What the assurance advice was (e.g. 'RED').",
+                    },
+                    "override_value": {
+                        "type": "string",
+                        "description": "What was decided instead (e.g. 'Proceed with conditions').",
+                    },
+                    "conditions": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Conditions attached to the override.",
+                    },
+                    "evidence_refs": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Document references supporting the decision.",
+                    },
+                    "db_path": {
+                        "type": "string",
+                        "description": "Optional path to the SQLite store.",
+                    },
+                },
+                "required": [
+                    "project_id",
+                    "override_type",
+                    "decision_date",
+                    "authoriser",
+                    "rationale",
+                ],
+            },
+        ),
+        Tool(
+            name="analyse_override_patterns",
+            description=(
+                "Analyse the governance override history for a project.  "
+                "Returns total overrides, breakdown by type and outcome, "
+                "impact rate, and top authorisers."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "project_id": {
+                        "type": "string",
+                        "description": "Project identifier.",
+                    },
+                    "db_path": {
+                        "type": "string",
+                        "description": "Optional path to the SQLite store.",
+                    },
+                },
+                "required": ["project_id"],
+            },
+        ),
     ]
 
 
@@ -223,6 +368,12 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
         return await _check_artefact_currency(arguments)
     if name == "check_confidence_divergence":
         return await _check_confidence_divergence(arguments)
+    if name == "recommend_review_schedule":
+        return await _recommend_review_schedule(arguments)
+    if name == "log_override_decision":
+        return await _log_override_decision(arguments)
+    if name == "analyse_override_patterns":
+        return await _analyse_override_patterns(arguments)
     return [TextContent(type="text", text=f"Unknown tool: {name}")]
 
 
@@ -368,6 +519,222 @@ async def _review_action_status(
             "status_filter": status_filter,
             "count": len(rows),
             "review_actions": rows,
+        }
+
+        return [
+            TextContent(
+                type="text",
+                text=json.dumps(output, indent=2, default=str),
+            )
+        ]
+
+    except Exception as exc:
+        return [TextContent(type="text", text=f"Error: {exc}")]
+
+
+async def _recommend_review_schedule(
+    arguments: dict[str, Any],
+) -> list[TextContent]:
+    """Generate an adaptive review scheduling recommendation."""
+    try:
+        from datetime import date, datetime, timezone
+        from pathlib import Path
+
+        from pm_data_tools.assurance.currency import ArtefactCurrencyValidator
+        from pm_data_tools.assurance.divergence import (
+            DivergenceResult,
+            DivergenceSignal,
+            SignalType,
+        )
+        from pm_data_tools.assurance.scheduler import AdaptiveReviewScheduler
+        from pm_data_tools.db.store import AssuranceStore
+        from pm_data_tools.schemas.nista.longitudinal import LongitudinalComplianceTracker
+
+        project_id: str = arguments["project_id"]
+        raw_db_path = arguments.get("db_path")
+        db_path = Path(raw_db_path) if raw_db_path else None
+        store = AssuranceStore(db_path=db_path)
+
+        # Parse optional last_review_date
+        last_review_date: date | None = None
+        raw_lrd = arguments.get("last_review_date")
+        if raw_lrd:
+            last_review_date = date.fromisoformat(str(raw_lrd))
+
+        # P1 — artefact currency
+        currency_scores = None
+        if arguments.get("artefacts") and arguments.get("gate_date"):
+            gate_date = datetime.fromisoformat(str(arguments["gate_date"]))
+            if gate_date.tzinfo is None:
+                gate_date = gate_date.replace(tzinfo=timezone.utc)
+            validator = ArtefactCurrencyValidator()
+            currency_scores = validator.check_batch(
+                artefacts=arguments["artefacts"],
+                gate_date=gate_date,
+            )
+
+        # P2 — compliance trend
+        tracker = LongitudinalComplianceTracker(store=store)
+        trend = tracker.compute_trend(project_id)
+        breaches = tracker.check_thresholds(project_id)
+
+        # P3 — review action counts
+        all_actions = store.get_recommendations(project_id=project_id)
+        total_actions = len(all_actions)
+        open_actions = sum(1 for a in all_actions if a.get("status") == "OPEN")
+        recurring_actions = sum(
+            1 for a in all_actions if a.get("status") == "RECURRING"
+        )
+
+        # P4 — latest divergence snapshot
+        divergence_result: DivergenceResult | None = None
+        snapshots = store.get_divergence_history(project_id)
+        if snapshots:
+            latest = snapshots[-1]
+            sig_type = SignalType(str(latest["signal_type"]))
+            divergence_result = DivergenceResult(
+                project_id=str(latest["project_id"]),
+                review_id=str(latest["review_id"]),
+                confidence_score=float(latest["confidence_score"]),  # type: ignore[arg-type]
+                sample_scores=latest["sample_scores"],  # type: ignore[arg-type]
+                signal=DivergenceSignal(
+                    signal_type=sig_type,
+                    project_id=str(latest["project_id"]),
+                    review_id=str(latest["review_id"]),
+                    confidence_score=float(latest["confidence_score"]),  # type: ignore[arg-type]
+                    spread=0.0,
+                    previous_confidence=None,
+                    message="",
+                ),
+                snapshot_id=str(latest["id"]),
+            )
+
+        scheduler = AdaptiveReviewScheduler(store=store)
+        rec = scheduler.recommend(
+            project_id=project_id,
+            last_review_date=last_review_date,
+            currency_scores=currency_scores,
+            trend=trend,
+            breaches=breaches,
+            open_actions=open_actions if total_actions > 0 else None,
+            total_actions=total_actions if total_actions > 0 else None,
+            recurring_actions=recurring_actions if total_actions > 0 else None,
+            divergence_result=divergence_result,
+        )
+
+        output: dict[str, Any] = {
+            "project_id": rec.project_id,
+            "urgency": rec.urgency.value,
+            "recommended_date": rec.recommended_date.isoformat(),
+            "days_until_review": rec.days_until_review,
+            "composite_score": rec.composite_score,
+            "rationale": rec.rationale,
+            "signals": [
+                {
+                    "source": s.source,
+                    "signal_name": s.signal_name,
+                    "severity": s.severity,
+                    "detail": s.detail,
+                }
+                for s in rec.signals
+            ],
+        }
+
+        return [
+            TextContent(
+                type="text",
+                text=json.dumps(output, indent=2, default=str),
+            )
+        ]
+
+    except Exception as exc:
+        return [TextContent(type="text", text=f"Error: {exc}")]
+
+
+async def _log_override_decision(
+    arguments: dict[str, Any],
+) -> list[TextContent]:
+    """Log a governance override decision."""
+    try:
+        from datetime import date
+        from pathlib import Path
+
+        from pm_data_tools.assurance.overrides import (
+            OverrideDecision,
+            OverrideDecisionLogger,
+            OverrideOutcome,
+            OverrideType,
+        )
+        from pm_data_tools.db.store import AssuranceStore
+
+        raw_db_path = arguments.get("db_path")
+        db_path = Path(raw_db_path) if raw_db_path else None
+        store = AssuranceStore(db_path=db_path)
+
+        decision = OverrideDecision(
+            project_id=arguments["project_id"],
+            override_type=OverrideType(arguments["override_type"]),
+            decision_date=date.fromisoformat(str(arguments["decision_date"])),
+            authoriser=arguments["authoriser"],
+            rationale=arguments["rationale"],
+            overridden_finding_id=arguments.get("overridden_finding_id"),
+            overridden_value=arguments.get("overridden_value"),
+            override_value=arguments.get("override_value"),
+            conditions=list(arguments.get("conditions", [])),
+            evidence_refs=list(arguments.get("evidence_refs", [])),
+        )
+
+        log_obj = OverrideDecisionLogger(store=store)
+        logged = log_obj.log_override(decision)
+
+        output: dict[str, Any] = {
+            "id": logged.id,
+            "project_id": logged.project_id,
+            "override_type": logged.override_type.value,
+            "decision_date": logged.decision_date.isoformat(),
+            "authoriser": logged.authoriser,
+            "outcome": logged.outcome.value,
+            "message": f"Override decision logged with id '{logged.id}'.",
+        }
+
+        return [
+            TextContent(
+                type="text",
+                text=json.dumps(output, indent=2, default=str),
+            )
+        ]
+
+    except Exception as exc:
+        return [TextContent(type="text", text=f"Error: {exc}")]
+
+
+async def _analyse_override_patterns(
+    arguments: dict[str, Any],
+) -> list[TextContent]:
+    """Return override pattern summary for a project."""
+    try:
+        from pathlib import Path
+
+        from pm_data_tools.assurance.overrides import OverrideDecisionLogger
+        from pm_data_tools.db.store import AssuranceStore
+
+        raw_db_path = arguments.get("db_path")
+        db_path = Path(raw_db_path) if raw_db_path else None
+        store = AssuranceStore(db_path=db_path)
+
+        project_id: str = arguments["project_id"]
+        log_obj = OverrideDecisionLogger(store=store)
+        summary = log_obj.analyse_patterns(project_id)
+
+        output: dict[str, Any] = {
+            "project_id": summary.project_id,
+            "total_overrides": summary.total_overrides,
+            "by_type": summary.by_type,
+            "by_outcome": summary.by_outcome,
+            "pending_outcomes": summary.pending_outcomes,
+            "impact_rate": summary.impact_rate,
+            "top_authorisers": summary.top_authorisers,
+            "message": summary.message,
         }
 
         return [

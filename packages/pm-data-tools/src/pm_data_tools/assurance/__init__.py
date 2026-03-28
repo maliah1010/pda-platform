@@ -58,7 +58,21 @@ from .models import (
     RecommendationExtractionResult,
     RecommendationStatus,
 )
+from .overrides import (
+    OverrideDecision,
+    OverrideDecisionLogger,
+    OverrideOutcome,
+    OverridePatternSummary,
+    OverrideType,
+)
 from .recurrence import RecurrenceDetector
+from .scheduler import (
+    AdaptiveReviewScheduler,
+    ReviewUrgency,
+    SchedulerConfig,
+    SchedulerRecommendation,
+    SchedulerSignal,
+)
 
 # Backward-compatibility alias for FindingAnalyzer
 RecommendationExtractor = FindingAnalyzer
@@ -82,6 +96,18 @@ __all__ = [
     "DivergenceSignal",
     "DivergenceSnapshot",
     "SignalType",
+    # P5 — Adaptive Review Scheduler
+    "AdaptiveReviewScheduler",
+    "ReviewUrgency",
+    "SchedulerConfig",
+    "SchedulerRecommendation",
+    "SchedulerSignal",
+    # P6 — Override Decision Logger
+    "OverrideDecision",
+    "OverrideDecisionLogger",
+    "OverrideOutcome",
+    "OverridePatternSummary",
+    "OverrideType",
     # Deprecated aliases — will be removed in v0.5.0
     "Recommendation",
     "RecommendationExtractionResult",

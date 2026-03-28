@@ -67,14 +67,27 @@ Update README with:
 - NISTA validation guide
 - Usage examples
 
-## Phase 3: pm-assure Server ✅ Complete (v0.3.0)
+## Phase 3: pm-assure Server ✅ Complete (v0.4.0)
 
 `src/pm_mcp_servers/pm_assure/server.py`
 
-**3 Tools:**
-1. `nista_longitudinal_trend` — compliance score history, trend direction, breaches
-2. `track_review_actions` — AI extraction + deduplication + cross-cycle recurrence
-3. `review_action_status` — retrieve actions by project and status
+**8 Tools (P1–P6):**
+1. `nista_longitudinal_trend` — P2: compliance score history, trend direction, breaches
+2. `track_review_actions` — P3: AI extraction + deduplication + cross-cycle recurrence
+3. `review_action_status` — P3: retrieve actions by project and status
+4. `check_artefact_currency` — P1: detect stale and last-minute artefact updates
+5. `check_confidence_divergence` — P4: detect AI extraction sample divergence
+6. `recommend_review_schedule` — P5: adaptive review timing from P1–P4 signals
+7. `log_override_decision` — P6: structured logging of governance override decisions
+8. `analyse_override_patterns` — P6: pattern analysis of override history
+
+**Features implemented:**
+- P1 — Artefact Currency Validator (`assurance/currency.py`) — 14 tests
+- P2 — Longitudinal Compliance Tracker (`schemas/nista/longitudinal.py`) — 12 tests
+- P3 — Cross-Cycle Finding Analyzer (`assurance/analyzer.py`) — 11 tests
+- P4 — Confidence Divergence Monitor (`assurance/divergence.py`) — 17 tests
+- P5 — Adaptive Review Scheduler (`assurance/scheduler.py`) — 18 tests
+- P6 — Override Decision Logger (`assurance/overrides.py`) — 15 tests
 
 See [`docs/assurance.md`](../../docs/assurance.md) for full reference.
 
@@ -83,7 +96,6 @@ See [`docs/assurance.md`](../../docs/assurance.md) for full reference.
 1. Complete Phase 2 (real parser integration for pm-data)
 2. Test with sample MSPDI/NISTA files
 3. Build Phase 4 (pm-validate with full NISTA v1.0 schema)
-4. Add P1 Artefact Currency Validator (`check_artefact_currency` MCP tool)
 
 ## Attribution
 

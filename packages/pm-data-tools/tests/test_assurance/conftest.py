@@ -19,6 +19,13 @@ from agent_planning.confidence.models import ConfidenceResult, ReviewLevel
 
 from pm_data_tools.assurance.currency import ArtefactCurrencyValidator, CurrencyConfig
 from pm_data_tools.assurance.divergence import DivergenceConfig, DivergenceMonitor
+from pm_data_tools.assurance.overrides import (
+    OverrideDecision,
+    OverrideDecisionLogger,
+    OverrideOutcome,
+    OverrideType,
+)
+from pm_data_tools.assurance.scheduler import AdaptiveReviewScheduler
 from pm_data_tools.db.store import AssuranceStore
 from pm_data_tools.schemas.nista.longitudinal import (
     ConfidenceScoreRecord,
@@ -156,6 +163,47 @@ def mock_extractor_low_confidence() -> MagicMock:
 def currency_validator() -> ArtefactCurrencyValidator:
     """ArtefactCurrencyValidator with default config."""
     return ArtefactCurrencyValidator()
+
+
+# ---------------------------------------------------------------------------
+# Adaptive review scheduler fixture (P5)
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture()
+def scheduler(store: AssuranceStore) -> AdaptiveReviewScheduler:
+    """AdaptiveReviewScheduler backed by the isolated temp store."""
+    return AdaptiveReviewScheduler(store=store)
+
+
+# ---------------------------------------------------------------------------
+# Override decision logger fixtures (P6)
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture()
+def override_logger(store: AssuranceStore) -> OverrideDecisionLogger:
+    """OverrideDecisionLogger backed by the isolated temp store."""
+    return OverrideDecisionLogger(store=store)
+
+
+def make_override(
+    project_id: str = "PROJ-001",
+    override_type: OverrideType = OverrideType.GATE_PROGRESSION,
+    decision_date: date | None = None,
+    authoriser: str = "Test User",
+    rationale: str = "Test rationale.",
+    **kwargs: object,
+) -> OverrideDecision:
+    """Helper to build an OverrideDecision with sensible defaults."""
+    return OverrideDecision(
+        project_id=project_id,
+        override_type=override_type,
+        decision_date=decision_date or date.today(),
+        authoriser=authoriser,
+        rationale=rationale,
+        **kwargs,
+    )
 
 
 # ---------------------------------------------------------------------------
