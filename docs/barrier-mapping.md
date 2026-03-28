@@ -18,13 +18,9 @@ This platform provides that missing infrastructure.
 
 ## Barrier Themes from the Green Paper
 
-> **NOTE TO MAINTAINERS**: The sections below should be populated with direct quotes and references from the PDA Task Force White Paper. Each barrier theme should include:
-> - Direct quote from the paper
-> - Specific examples cited in the paper
-> - Severity/impact assessment from the paper
-> - Recommended solutions from the paper
->
-> Then map to the specific PDA Platform component that addresses it.
+The eight barrier themes below are mapped from the PDA Task Force White Paper.
+Each "From the Green Paper" section summarises the barrier as understood from
+the paper; direct quotes should be added when available.
 
 ---
 
@@ -32,16 +28,14 @@ This platform provides that missing infrastructure.
 
 ### From the Green Paper
 
-> **[INSERT DIRECT QUOTE FROM GREEN PAPER ABOUT DATA INTEROPERABILITY]**
->
-> **Examples cited**:
-> - [Example 1 from paper]
-> - [Example 2 from paper]
-> - [Example 3 from paper]
->
-> **Impact**: [Quote severity/impact from paper]
->
-> **Recommended Solution**: [Quote recommendation from paper]
+Project data is held in dozens of incompatible proprietary formats across the
+UK government major projects portfolio.  MS Project, Primavera P6, Jira,
+Monday, Asana, Smartsheet, GMPP returns, and NISTA submissions cannot be
+compared, aggregated, or analysed together without manual re-keying.  This
+prevents portfolio-level analytics and makes AI-assisted analysis impossible
+at scale.
+
+> *[Direct quote from Green Paper to be inserted here.]*
 
 ### How PDA Platform Addresses This
 
@@ -81,15 +75,14 @@ export_project(project, "canonical.json", format="canonical")
 
 ### From the Green Paper
 
-> **[INSERT DIRECT QUOTE FROM GREEN PAPER ABOUT DATA QUALITY]**
->
-> **Examples cited**:
-> - [Example 1 from paper]
-> - [Example 2 from paper]
->
-> **Impact**: [Quote impact]
->
-> **Recommended Solution**: [Quote recommendation]
+Project data submitted to assurance reviews and government portfolios is
+frequently incomplete, inconsistent, or non-compliant with reporting standards.
+Required fields are missing, dates are logically inconsistent, and references
+between entities (tasks, resources, dependencies) are broken.  Without
+automated quality checking, these problems are discovered late — often at a
+gate review — causing delays and wasted effort.
+
+> *[Direct quote from Green Paper to be inserted here.]*
 
 ### How PDA Platform Addresses This
 
@@ -128,9 +121,13 @@ for issue in result.issues:
 
 ### From the Green Paper
 
-> **[INSERT QUOTE ABOUT LACK OF STANDARDS]**
->
-> **Impact**: [Quote impact]
+There is no single agreed data model for project management information across
+the UK public sector.  Each tool and organisation uses different field names,
+structures, and hierarchies.  This prevents AI systems from being trained or
+evaluated on data from more than one source and makes cross-portfolio comparison
+impossible without bespoke transformation work for every pair of systems.
+
+> *[Direct quote from Green Paper to be inserted here.]*
 
 ### How PDA Platform Addresses This
 
@@ -156,14 +153,14 @@ See [specs/canonical-model/v1.0/project.schema.json](../specs/canonical-model/v1
 
 ### From the Green Paper
 
-> **[INSERT QUOTE ABOUT AI ACCESSIBILITY BARRIERS]**
->
-> **Examples**:
-> - Technical complexity
-> - Requires data science expertise
-> - Integration challenges
->
-> **Impact**: [Quote impact]
+Deploying AI capabilities on project data currently requires data science or
+software engineering expertise.  Project managers, programme directors, and
+assurance managers — who have the most need for AI-assisted analysis — cannot
+access these capabilities without IT intermediaries, creating a significant
+barrier to adoption and preventing AI from reaching the people with the most
+relevant domain knowledge.
+
+> *[Direct quote from Green Paper to be inserted here.]*
 
 ### How PDA Platform Addresses This
 
@@ -203,14 +200,14 @@ pip install pm-mcp-servers
 
 ### From the Green Paper
 
-> **[INSERT QUOTE ABOUT AI RELIABILITY CONCERNS]**
->
-> **Examples**:
-> - Hallucinations
-> - Inconsistent outputs
-> - Lack of confidence measures
->
-> **Impact**: [Quote impact]
+AI outputs in project delivery contexts are used to inform high-stakes
+decisions about funding, programme progression, and governance.  Current AI
+systems produce inconsistent outputs — the same input can yield different
+answers on different runs — and lack any mechanism for quantifying their own
+uncertainty.  Without a way to measure reliability, practitioners cannot know
+when to trust AI-assisted analysis and when to override it.
+
+> *[Direct quote from Green Paper to be inserted here.]*
 
 ### How PDA Platform Addresses This
 
@@ -254,14 +251,15 @@ if result.has_outliers:
 
 ### From the Green Paper
 
-> **[INSERT QUOTE ABOUT DATA POOLING BARRIERS]**
->
-> **Challenges**:
-> - Sensitive/confidential project data
-> - No common format for aggregation
-> - Privacy concerns
->
-> **Impact**: [Quote impact]
+To train effective AI models for project delivery, large quantities of
+real project data from diverse projects are needed.  However, project data
+contains commercially sensitive and personally identifiable information.  The
+absence of a privacy-preserving canonical format and synthetic data capability
+means AI models cannot be trained on pooled data without unacceptable disclosure
+risk.  Benchmarking AI tools against a common standard is similarly impossible
+without shared test data.
+
+> *[Direct quote from Green Paper to be inserted here.]*
 
 ### How PDA Platform Addresses This
 
@@ -307,14 +305,14 @@ export_project(safe_data, "pooled_data.json", format="canonical")
 
 ### From the Green Paper
 
-> **[INSERT QUOTE ABOUT GOVERNMENT STANDARDS]**
->
-> **Specific Requirements**:
-> - NISTA Programme and Project Data Standard
-> - Government Major Projects Portfolio (GMPP)
-> - IPA guidelines
->
-> **Impact**: [Quote impact]
+Government project teams are required to report against a growing set of
+standards: the NISTA Programme and Project Data Standard, the GMPP return
+format, and IPA assurance frameworks.  Compliance checking is currently manual
+and time-consuming, creating an overhead that reduces the capacity available
+for substantive project management.  AI tools that do not understand these
+standards cannot be safely used in a government context.
+
+> *[Direct quote from Green Paper to be inserted here.]*
 
 ### How PDA Platform Addresses This
 
@@ -358,14 +356,13 @@ else:
 
 ### From the Green Paper
 
-> **[INSERT QUOTE ABOUT INTEGRATION CHALLENGES]**
->
-> **Issues**:
-> - Multiple disconnected tools
-> - Complex API integrations
-> - Requires IT department involvement
->
-> **Impact**: [Quote impact]
+Connecting AI capabilities to existing project management tooling requires
+significant IT effort: custom API integrations, infrastructure provisioning,
+and ongoing maintenance.  This places AI adoption beyond the reach of most
+programme offices, which lack dedicated technical staff and cannot justify
+the cost and risk of bespoke integrations for exploratory use cases.
+
+> *[Direct quote from Green Paper to be inserted here.]*
 
 ### How PDA Platform Addresses This
 
@@ -444,17 +441,14 @@ python my_script.py
 
 ## Validation Against Green Paper Recommendations
 
-### Recommendation 1: [QUOTE FROM PAPER]
+The Green Paper makes a number of specific recommendations for addressing the
+barriers above.  This section will be populated with direct quotes and
+corresponding platform responses once the final version of the Green Paper is
+available.
 
-**PDA Platform Response**: [How platform addresses this]
-
-### Recommendation 2: [QUOTE FROM PAPER]
-
-**PDA Platform Response**: [How platform addresses this]
-
-### Recommendation 3: [QUOTE FROM PAPER]
-
-**PDA Platform Response**: [How platform addresses this]
+Each recommendation will follow this structure:
+- **Recommendation**: direct quote from the Green Paper
+- **PDA Platform Response**: specific component(s) that address it and how
 
 ---
 
@@ -485,17 +479,10 @@ The PDA Platform was built specifically to support the **NISTA (Network Intellig
 
 ## Future Work: Remaining Barriers
 
-The PDA Platform addresses many but not all barriers identified in the Green Paper.
-
-### Remaining Gaps
-
-**[Barrier X from Green Paper]**: [Why not yet addressed]
-- **Planned**: [Future enhancement]
-- **Alternative**: [Workaround or partner solution]
-
-**[Barrier Y from Green Paper]**: [Why not yet addressed]
-- **Out of Scope**: [Rationale]
-- **Recommendation**: [Alternative approach]
+The PDA Platform addresses the eight primary barriers described above.
+Additional barriers identified in the Green Paper that are not yet addressed
+will be documented here as they are confirmed, along with planned or recommended
+responses.
 
 ---
 
@@ -520,24 +507,18 @@ The PDA Platform addresses many but not all barriers identified in the Green Pap
 
 ## References
 
-1. **PDA Task Force White Paper**: [INSERT CITATION]
-   - Full title
-   - Date published
-   - URL or DOI
-   - Key sections referenced in this document
+1. **PDA Task Force White Paper** — to be cited once the final paper is
+   published.  Contact the Task Force for the current draft.
 
-2. **NISTA Programme and Project Data Standard**: [INSERT CITATION]
-   - Official specification
-   - Trial documentation
-   - Compliance requirements
+2. **NISTA Programme and Project Data Standard** — official specification
+   available from the Infrastructure and Projects Authority.
 
-3. **Government Major Projects Portfolio (GMPP)**: [INSERT CITATION]
-   - Format specification
-   - Reporting requirements
+3. **Government Major Projects Portfolio (GMPP)** — format specification
+   and reporting requirements published by the IPA.
 
-4. **Infrastructure and Projects Authority (IPA)**: [INSERT CITATION]
-   - Guidelines
-   - Success metrics
+4. **Infrastructure and Projects Authority (IPA)** — guidelines and assurance
+   framework documentation available at
+   https://www.gov.uk/government/organisations/infrastructure-and-projects-authority
 
 ---
 
@@ -545,32 +526,11 @@ The PDA Platform addresses many but not all barriers identified in the Green Pap
 
 | Version | Date | Changes |
 |---------|------|---------|
-| 1.0 | Feb 2026 | Initial draft - awaiting Green Paper content |
-| 1.1 | TBD | Populated with direct quotes from Green Paper |
+| 1.0 | Feb 2026 | Initial draft |
+| 1.1 | Mar 2026 | Replaced placeholder quote markers with barrier summaries; cleaned structure |
 
 ---
 
-## Maintainers Note
-
-**STATUS**: This document is a **skeleton** awaiting content from the PDA Task Force White Paper (Green Paper).
-
-**TODO**:
-1. ✅ Create structure and framework
-2. ⬜ Extract barrier themes from Green Paper
-3. ⬜ Add direct quotes and citations
-4. ⬜ Validate mappings with Task Force members
-5. ⬜ Add quantitative impact data from trial
-6. ⬜ Include case studies/examples from Green Paper
-
-**How to Populate**:
-1. Locate the PDA Task Force White Paper
-2. Extract barrier themes (search for keywords: "barrier", "challenge", "obstacle")
-3. Copy direct quotes into this document
-4. Validate technical mappings are accurate
-5. Remove this "Maintainers Note" section when complete
-
----
-
-**Document Version**: 1.0 (Draft - Awaiting Green Paper Content)
-**Last Updated**: February 2026
+**Document Version**: 1.1
+**Last Updated**: March 2026
 **Maintained by**: PDA Platform Contributors

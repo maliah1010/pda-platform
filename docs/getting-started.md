@@ -35,7 +35,7 @@ pip install pm-mcp-servers
 
 ```bash
 # Clone the repository
-git clone https://github.com/antnewman/pda-platform.git
+git clone https://github.com/maliah1010/pda-platform.git
 cd pda-platform
 
 # Install pm-data-tools
@@ -453,8 +453,8 @@ for task in parser.parse_tasks("large_project.xml"):
 
 ## Getting Help
 
-- **Issues**: https://github.com/antnewman/pda-platform/issues
-- **Discussions**: https://github.com/antnewman/pda-platform/discussions
+- **Issues**: https://github.com/maliah1010/pda-platform/issues
+- **Discussions**: https://github.com/maliah1010/pda-platform/discussions
 - **Email**: Contact repository maintainer
 
 ## Contributing

@@ -214,10 +214,10 @@ openai         # Optional: GPT integration
 - Purpose: NISTA-specific operations
 
 **6. pm-assure-server**
-- Tools: `nista_longitudinal_trend`, `track_review_actions`, `review_action_status`
-- Purpose: Assurance quality tracking across review cycles
-  - P2: Longitudinal compliance score trend analysis and threshold alerting
-  - P3: Cross-cycle review action extraction, deduplication, and recurrence detection
+- Tools: 16 tools across P1–P10 (see [docs/assurance.md](./assurance.md))
+- Purpose: Full assurance quality lifecycle — artefact currency, compliance trends,
+  review action tracking, confidence monitoring, adaptive scheduling, override logging,
+  lessons learned, overhead optimisation, workflow orchestration, domain classification
 
 **Design Decisions**:
 - **Stateless**: Each request is independent
@@ -527,4 +527,4 @@ Phase 4: Cloud-native, auto-scaling
 
 **Architecture Version**: 1.1
 **Last Updated**: March 2026
-**Maintained by**: Ant Newman ([github.com/antnewman](https://github.com/antnewman))
+**Maintained by**: maliah1010 ([github.com/maliah1010](https://github.com/maliah1010))
