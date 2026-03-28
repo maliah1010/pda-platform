@@ -1,536 +1,394 @@
-# PDA Platform: Barrier Mapping Document
+# PDA Platform — Barrier Mapping
 
-## Purpose
-
-This document explicitly maps each component of the PDA Platform to the AI implementation barriers identified in the **PDA Task Force White Paper**. It demonstrates how the technical solutions address the specific challenges preventing AI adoption in UK project delivery.
-
----
-
-## Executive Summary
-
-The PDA Task Force White Paper identified fundamental barriers to AI implementation in UK infrastructure project delivery. The PDA Platform was built specifically to address these barriers through standardized data infrastructure, validated workflows, and accessible AI integration.
-
-**Key Finding from White Paper**: *"UK major infrastructure projects have a success rate of approximately 0.5%. The Government Major Projects Portfolio shows 84% of projects rated Amber or Red. AI has potential to help, but lacks standardised data infrastructure."*
-
-This platform provides that missing infrastructure.
+This document maps each component of the PDA Platform to the six systemic
+barrier themes identified in the PDATF Green Paper *Closing the Gap: A Practical
+Framework for Implementing Data and AI into the Built Environment* (June 2025)
+and developed further in *From Policy to Practice: An Open Framework for
+AI-Ready Project Delivery* (Newman, 2026).
 
 ---
 
-## Barrier Themes from the Green Paper
+## Background
 
-The eight barrier themes below are mapped from the PDA Task Force White Paper.
-Each "From the Green Paper" section summarises the barrier as understood from
-the paper; direct quotes should be added when available.
+In June 2025, the Project Data Analytics Task Force (PDATF) published its
+Green Paper, the product of several years of cross-sector collaboration
+involving government, industry, and academia.  It set out to answer a specific
+question: why, despite a strong national policy landscape, does the practical
+adoption of AI and data analytics in UK project delivery remain so inconsistent?
+
+The Green Paper's assessment was that "the gap between strategy and
+implementation remains wide" and that "structural challenges spanning data
+architecture, digital infrastructure, procurement frameworks, organisational
+capabilities, and governance were constraining progress not in isolation, but
+systemically" [1].
+
+The Government Major Projects Portfolio approaches £800 billion across over
+200 major projects, with over 26,000 civil servants in the project delivery
+function.  Despite robust policy architecture — the National Data Strategy,
+AI Opportunities Action Plan, 10-Year Infrastructure Strategy, Green Book,
+Magenta Book, Teal Book, GovS 002, and the Construction Playbook — the
+platform for AI-enabled delivery did not exist.  The PDA Platform is that
+platform.
 
 ---
 
-## Barrier 1: Data Interoperability
+## The Six Barrier Themes
+
+The Green Paper identified six barrier themes that "must be addressed in
+tandem" [1]:
+
+| # | Barrier | Core challenge |
+|---|---------|---------------|
+| 1 | Leadership and Alignment | AI adoption disconnected from strategic leadership |
+| 2 | Data Pooling and Interoperability | Siloed data, bespoke systems, incompatible formats |
+| 3 | Digital and Tech Constraints | Legacy systems, vendor lock-in, under-investment |
+| 4 | Skill and Culture Gaps | Technical talent shortage, limited AI fluency, cultural resistance |
+| 5 | Procurement and Commercial Models | Outcome blindness, IP ambiguity, vendor lock-in |
+| 6 | Risk, Ethics, and Assurance | Assurance frameworks not keeping pace with AI |
+
+---
+
+## Barrier 1: Leadership and Alignment
 
 ### From the Green Paper
 
-Project data is held in dozens of incompatible proprietary formats across the
-UK government major projects portfolio.  MS Project, Primavera P6, Jira,
-Monday, Asana, Smartsheet, GMPP returns, and NISTA submissions cannot be
-compared, aggregated, or analysed together without manual re-keying.  This
-prevents portfolio-level analytics and makes AI-assisted analysis impossible
-at scale.
+> "AI adoption in most organisations remains disconnected from strategic
+> leadership.  The green paper recommended naming an executive AI sponsor at
+> board level, shifting to value-creation metrics, funding foundational data
+> infrastructure before proofs of concept, and embedding meaningful human
+> oversight into stage-gate governance." [1]
 
-> *[Direct quote from Green Paper to be inserted here.]*
+The deeper analysis in *From Policy to Practice* confirms that "governance
+must be integrated into existing stage-gate processes, not bolted on as an
+additional layer" [2].  The ideal target state is one in which "AI adoption
+in major projects is sponsored from the boardroom, coordinated at programme
+level, and embedded in project delivery routines. Outcome-based measures
+(carbon, social value, schedule certainty) sit alongside financial ROI." [2]
 
-### How PDA Platform Addresses This
+### How the PDA Platform addresses this
 
-**Component**: `pm-data-tools` - Universal Parser and Canonical Model
+**Component**: `agent-task-planning` + `pm-assure` (P1–P10)
 
-**Solution**:
-- **8 Format Support**: Parses MS Project, Primavera P6, Jira, Monday, Asana, Smartsheet, GMPP, and NISTA
-- **Lossless Conversion**: Preserves all source data during format translation
-- **Canonical Model**: 12-entity JSON Schema provides common data structure
-- **Bidirectional**: Convert between any supported formats
+| Solution | How it helps |
+|----------|-------------|
+| Confidence scoring | Connects AI outputs to outcome-based measures, giving sponsors quantified evidence for stage-gate decisions |
+| Multi-sample consensus | Provides the "structured evidence base that stage-gate approvals need" [2] |
+| P9 — Assurance Workflow Engine | Produces a single `ProjectHealth` classification (HEALTHY / ATTENTION_NEEDED / AT_RISK / CRITICAL) that maps directly to governance escalation |
+| P10 — Domain Classifier | Tailors assurance intensity to project complexity, implementing the proportionate governance the Green Paper called for |
 
-**Technical Implementation**:
-```python
-# Before: Data locked in proprietary formats
-project_msp = "schedule.mpp"  # MS Project
-project_p6 = "schedule.xml"   # Primavera
-
-# After: Universal interoperability
-from pm_data_tools import parse_project, export_project
-
-# Parse from any format
-project = parse_project("schedule.mpp")
-
-# Export to any format
-export_project(project, "output.xml", format="p6_xml")
-export_project(project, "canonical.json", format="canonical")
-```
-
-**Measurable Outcomes**:
-- ✅ Zero manual data re-entry between systems
-- ✅ 100% data fidelity in conversions
-- ✅ Reduces migration time from weeks to hours
+**Measurable outcomes**:
+- ✅ Every AI-assisted analysis includes a confidence score and consensus measure
+- ✅ Single workflow run produces executive-ready health classification and recommended actions
+- ✅ Domain-appropriate review cadence (14–90 days) calibrated to actual project complexity
 
 ---
 
-## Barrier 2: Data Quality and Validation
+## Barrier 2: Data Pooling and Interoperability
 
 ### From the Green Paper
 
-Project data submitted to assurance reviews and government portfolios is
-frequently incomplete, inconsistent, or non-compliant with reporting standards.
-Required fields are missing, dates are logically inconsistent, and references
-between entities (tasks, resources, dependencies) are broken.  Without
-automated quality checking, these problems are discovered late — often at a
-gate review — causing delays and wasted effort.
+> "UK project delivery remains hampered by siloed data and bespoke systems.
+> The green paper pointed to the National Underground Asset Register (NUAR) as
+> a live blueprint and recommended mandating open, non-proprietary data
+> standards, establishing a sector data trust, and deploying common data
+> environments." [1]
+
+*From Policy to Practice* identifies three specific sub-barriers: "Incompatible
+data formats, where BIM, cost, and schedule data are held in closed or
+inconsistent schemas; Lack of a trusted sharing framework, where organisations
+are reluctant to share without legal protection; and Privacy and IP concerns,
+where data holders fear loss of control." [2]
+
+The ideal target state is "a trusted, standardised, and interoperable data
+ecosystem, mandating open, non-proprietary formats and progressively retiring
+legacy barriers." [2]
+
+### How the PDA Platform addresses this
+
+**Components**: `pm-data-tools` (canonical model + NISTA Validator)
+
+This is the direct response to Barrier 2.  *From Policy to Practice* maps the
+canonical model to Barrier 2 explicitly: it "provides the minimum data schema
+and agreed open format the green paper called for." [2]
+
+| Solution | How it helps |
+|----------|-------------|
+| 12-entity canonical model | Single open JSON Schema for project management information derived from the common denominator across all eight source formats |
+| 8-format parser | Parses MS Project, Primavera P6, Jira, Monday.com, Asana, Smartsheet, GMPP, and NISTA — eliminating incompatible format barriers |
+| Lossless conversion | Exports to any supported format without data loss, enabling genuine interoperability |
+| NISTA Validator | Automated compliance checking against the emerging government standard — "the green paper called for" [2] — producing a 0–100% compliance score |
 
-> *[Direct quote from Green Paper to be inserted here.]*
-
-### How PDA Platform Addresses This
-
-**Component**: `pm-data-tools` - Validation Framework + NISTA Compliance
-
-**Solution**:
-- **Structure Validator**: Checks data integrity (required fields, valid references, date logic)
-- **NISTA Validator**: Validates compliance with NISTA Programme and Project Data Standard
-- **Automated Checks**: Runs 50+ validation rules against project data
-- **Compliance Scoring**: Quantifies data quality (0-100% score)
-
-**Technical Implementation**:
-```python
-from pm_data_tools.validators import NISTAValidator
-
-validator = NISTAValidator()
-result = validator.validate(project)
-
-print(f"Compliance Score: {result.compliance_score}%")
-print(f"Status: {result.status}")
-
-# Review specific issues
-for issue in result.issues:
-    print(f"{issue.severity}: {issue.message}")
-    print(f"Suggestion: {issue.suggestion}")
-```
-
-**Measurable Outcomes**:
-- ✅ Automated validation replaces manual checks
-- ✅ Consistent quality standards across projects
-- ✅ Early detection of data issues before AI processing
-
----
-
-## Barrier 3: Lack of Standardized Data Models
-
-### From the Green Paper
-
-There is no single agreed data model for project management information across
-the UK public sector.  Each tool and organisation uses different field names,
-structures, and hierarchies.  This prevents AI systems from being trained or
-evaluated on data from more than one source and makes cross-portfolio comparison
-impossible without bespoke transformation work for every pair of systems.
-
-> *[Direct quote from Green Paper to be inserted here.]*
-
-### How PDA Platform Addresses This
-
-**Component**: `pm-data-tools` - Canonical Model Specification
-
-**Solution**:
-- **JSON Schema Standard**: Formal, versioned schema definition
-- **12 Core Entities**: Project, Task, Resource, Assignment, Dependency, Calendar, Baseline, Risk, Issue, Change, Cost, Milestone
-- **NISTA Alignment**: Supports NISTA Programme and Project Data Standard
-- **Extensible**: Custom fields via metadata without breaking compatibility
-
-**Technical Implementation**:
-See [specs/canonical-model/v1.0/project.schema.json](../specs/canonical-model/v1.0/project.schema.json)
-
-**Measurable Outcomes**:
-- ✅ Single source of truth for PM data structure
-- ✅ Enables data pooling across projects
-- ✅ Foundation for AI training data
-
----
-
-## Barrier 4: AI Accessibility for Project Teams
-
-### From the Green Paper
-
-Deploying AI capabilities on project data currently requires data science or
-software engineering expertise.  Project managers, programme directors, and
-assurance managers — who have the most need for AI-assisted analysis — cannot
-access these capabilities without IT intermediaries, creating a significant
-barrier to adoption and preventing AI from reaching the people with the most
-relevant domain knowledge.
-
-> *[Direct quote from Green Paper to be inserted here.]*
-
-### How PDA Platform Addresses This
-
-**Component**: `pm-mcp-servers` - Claude Desktop Integration
-
-**Solution**:
-- **No-Code AI Access**: Works through Claude Desktop (familiar chat interface)
-- **Natural Language**: "Analyze my project for risks" instead of Python code
-- **19 Tools**: Pre-built capabilities (parse, validate, analyze, benchmark, export)
-- **Zero Setup**: Install via pip, configure once in Claude
-
-**Technical Implementation**:
-```bash
-# Install
-pip install pm-mcp-servers
-
-# Configure in Claude Desktop
-# Add to claude_desktop_config.json:
-{
-  "mcpServers": {
-    "pm-data": {"command": "pm-data-server"}
-  }
-}
-
-# Use
-# In Claude: "Read my schedule.mpp and find the critical path"
-```
-
-**Measurable Outcomes**:
-- ✅ Non-technical users can leverage AI on PM data
-- ✅ Reduces "time to first insight" from hours to seconds
-- ✅ No coding or data science skills required
-
----
-
-## Barrier 5: AI Reliability and Trust
-
-### From the Green Paper
-
-AI outputs in project delivery contexts are used to inform high-stakes
-decisions about funding, programme progression, and governance.  Current AI
-systems produce inconsistent outputs — the same input can yield different
-answers on different runs — and lack any mechanism for quantifying their own
-uncertainty.  Without a way to measure reliability, practitioners cannot know
-when to trust AI-assisted analysis and when to override it.
-
-> *[Direct quote from Green Paper to be inserted here.]*
-
-### How PDA Platform Addresses This
-
-**Component**: `agent-task-planning` - AI Reliability Framework
-
-**Solution**:
-- **Multi-Sample Consensus**: Generate 5+ responses, measure agreement
-- **Confidence Extraction**: Quantify certainty (0-100%)
-- **Outlier Detection**: Flag inconsistent/divergent responses
-- **Structured Outputs**: Pydantic validation ensures type safety
-
-**Technical Implementation**:
-```python
-from agent_planning import create_agent
-from agent_planning.confidence import ConfidenceExtractor
-
-# Generate multiple samples
-responses = await agent.generate_multiple(prompt, n=5)
-
-# Extract confidence
-extractor = ConfidenceExtractor()
-result = extractor.analyze(responses)
-
-print(f"Consensus Score: {result.consensus_score}")
-print(f"Confidence Level: {result.confidence_level}")
-
-if result.has_outliers:
-    print("Warning: Inconsistent responses detected")
-    for outlier in result.outliers:
-        print(f"- {outlier}")
-```
-
-**Measurable Outcomes**:
-- ✅ Quantifiable AI reliability (not subjective "feels right")
-- ✅ Early warning for low-confidence outputs
-- ✅ Human-in-the-loop for edge cases
-
----
-
-## Barrier 6: Data Pooling and Benchmarking
-
-### From the Green Paper
-
-To train effective AI models for project delivery, large quantities of
-real project data from diverse projects are needed.  However, project data
-contains commercially sensitive and personally identifiable information.  The
-absence of a privacy-preserving canonical format and synthetic data capability
-means AI models cannot be trained on pooled data without unacceptable disclosure
-risk.  Benchmarking AI tools against a common standard is similarly impossible
-without shared test data.
-
-> *[Direct quote from Green Paper to be inserted here.]*
-
-### How PDA Platform Addresses This
-
-**Component**: Multiple - Canonical Model + Synthetic Data + Benchmarks
-
-**Solution**:
-- **Privacy-Preserving Export**: Strip sensitive data, keep structure
-- **Synthetic Data Generator**: Create realistic training data without real projects
-- **Benchmark Suite**: 5 standardized evaluation tasks for PM AI
-- **Canonical Format**: Enables cross-project comparison
-
-**Technical Implementation**:
-```python
-# Anonymize real project data
-from pm_data_tools.privacy import anonymize_project
-
-safe_data = anonymize_project(
-    project,
-    remove=["manager", "resource_names", "costs"]
-)
-
-# Or generate synthetic data
-from pm_data_tools.synthetic import generate_project
-
-synthetic = generate_project(
-    num_tasks=100,
-    complexity="medium",
-    domain="infrastructure"
-)
-
-# Export for pooling
-export_project(safe_data, "pooled_data.json", format="canonical")
-```
-
-**Measurable Outcomes**:
-- ✅ Enables industry-wide data pooling without privacy risk
-- ✅ AI can be trained on diverse project types
-- ✅ Benchmarking across organisations becomes possible
-
----
-
-## Barrier 7: Lack of Government Standards Compliance
-
-### From the Green Paper
-
-Government project teams are required to report against a growing set of
-standards: the NISTA Programme and Project Data Standard, the GMPP return
-format, and IPA assurance frameworks.  Compliance checking is currently manual
-and time-consuming, creating an overhead that reduces the capacity available
-for substantive project management.  AI tools that do not understand these
-standards cannot be safely used in a government context.
-
-> *[Direct quote from Green Paper to be inserted here.]*
-
-### How PDA Platform Addresses This
-
-**Component**: `pm-data-tools` - NISTA Support + GMPP Parser
-
-**Solution**:
-- **NISTA Validator**: Full compliance checking
-- **NISTA Export**: Generate compliant data exports
-- **GMPP Parser**: Import government project data
-- **Audit Trail**: Track validation history
-
-**Technical Implementation**:
 ```python
 from pm_data_tools import parse_project
 from pm_data_tools.validators import NISTAValidator
 
-# Parse project
+# Parse from any format
 project = parse_project("schedule.mpp")
 
-# Validate NISTA compliance
-validator = NISTAValidator()
-result = validator.validate(project)
-
-if result.is_compliant:
-    # Export in NISTA format
-    export_project(project, "nista_submission.json", format="nista")
-else:
-    # Fix issues
-    for issue in result.issues:
-        print(f"Fix required: {issue.message}")
+# Validate against NISTA standard
+result = NISTAValidator().validate(project)
+print(f"Compliance: {result.compliance_score}%")
 ```
 
-**Measurable Outcomes**:
-- ✅ Automated NISTA compliance (replaces manual checks)
-- ✅ Government projects can adopt AI with confidence
-- ✅ Audit trail for regulatory requirements
+**Measurable outcomes**:
+- ✅ 8 formats supported — zero manual re-keying between systems
+- ✅ 100% data fidelity in round-trip conversions
+- ✅ Automated NISTA compliance score replaces manual checking
 
 ---
 
-## Barrier 8: Integration Complexity
+## Barrier 3: Digital and Tech Constraints
 
 ### From the Green Paper
 
-Connecting AI capabilities to existing project management tooling requires
-significant IT effort: custom API integrations, infrastructure provisioning,
-and ongoing maintenance.  This places AI adoption beyond the reach of most
-programme offices, which lack dedicated technical staff and cannot justify
-the cost and risk of bespoke integrations for exploratory use cases.
+> "A significant portion of central government IT is legacy.  The Public
+> Accounts Committee estimated that around 28 per cent of central government
+> systems were classified as legacy." [2, citing 20]
 
-> *[Direct quote from Green Paper to be inserted here.]*
+The Green Paper recommended "auditing legacy systems, wrapping high-priority
+systems with APIs, and pursuing incremental modernisation." [1]
 
-### How PDA Platform Addresses This
+The ideal target state is "modern, interoperable digital foundations.  Legacy
+systems remediated or wrapped with open APIs.  AI tools deployed as force
+multipliers for project professionals." [2]
 
-**Component**: All packages - Simple Installation + MCP Protocol
+### How the PDA Platform addresses this
 
-**Solution**:
-- **Single Command Install**: `pip install pm-data-tools`
-- **No Infrastructure**: Works locally, no servers/databases required
-- **Standard Protocol**: MCP (Model Context Protocol) for AI integration
-- **Composable Tools**: Mix and match capabilities as needed
+**Components**: `pm-data-tools` + `pm-mcp-servers`
 
-**Technical Implementation**:
+*From Policy to Practice* maps pm-data-tools to Barrier 3 directly: it
+"wraps legacy PM tools with a programmatic interface, the API-wrapping approach
+the green paper recommended." [2]
+
+| Solution | How it helps |
+|----------|-------------|
+| Format parsers | Reads data from legacy PM tools without requiring those tools to be replaced or modified |
+| Auto format detection | Identifies file format automatically — no configuration or IT involvement needed |
+| MCP servers | Cloud-native, API-first architecture enabling AI access to project data without bespoke integration work |
+| Local operation | Runs entirely on existing hardware — no new infrastructure, no server provisioning |
+
 ```bash
-# Install everything
-pip install pm-data-tools agent-task-planning pm-mcp-servers
+# Install — no infrastructure required
+pip install pm-data-tools pm-mcp-servers
 
-# Use in Python (developer integration)
-python my_script.py
-
-# Or via Claude Desktop (end-user integration)
-# Zero code required
+# Reads legacy MS Project files without MS Project installed
+python -c "from pm_data_tools import parse_project; p = parse_project('legacy.mpp'); print(p.name)"
 ```
 
-**Measurable Outcomes**:
-- ✅ Installation in < 5 minutes
-- ✅ No IT approval required for pilot
-- ✅ Works with existing PM tools (no replacement)
+**Measurable outcomes**:
+- ✅ Legacy PM files readable without replacing source systems
+- ✅ Installation time under 5 minutes
+- ✅ No IT department involvement required for pilot adoption
 
 ---
 
-## Cross-Cutting Solutions
+## Barrier 4: Skill and Culture Gaps
 
-### Open Source + MIT License
+### From the Green Paper
 
-**Addresses**: Vendor lock-in, cost barriers, customization needs
+> "In RICS' 2023 digitalisation survey, shortage of skilled persons ranked as
+> the second-highest blocker, flagged as high by 50 per cent of global
+> respondents." [2, citing 5]
 
-- Free to use, modify, distribute
-- No per-seat licensing
-- Source code available for audit/customization
-- Community-driven improvements
+> "Specific barriers: Technical talent shortages; Limited AI fluency in
+> delivery roles; Cultural resistance and fear of displacement; and Fragmented
+> CPD pathways." [2]
 
-### Comprehensive Documentation
+The ideal target state is one in which "every role has a defined baseline of
+AI literacy.  Safe sandboxes available.  Continuous learning incentivised.
+Change champions celebrated." [2]
 
-**Addresses**: Knowledge barriers, training costs
+*From Policy to Practice* maps pm-mcp-servers to Barrier 4: "natural-language
+interaction with project data, lowering the technical barrier." [2]
 
-- Getting started guide ([getting-started.md](./getting-started.md))
-- Architecture overview ([architecture-overview.md](./architecture-overview.md))
-- Full specifications in `specs/` directory
-- Working examples in `examples/` directory
+### How the PDA Platform addresses this
 
-### Modular Design
+**Components**: `pm-mcp-servers` + assurance practitioner documentation
 
-**Addresses**: "All or nothing" adoption, customization
+| Solution | How it helps |
+|----------|-------------|
+| Natural language interface via MCP | Project managers ask questions in plain English — no Python, no data science skills required |
+| Claude Desktop integration | Works through a familiar chat interface that delivery professionals already use |
+| Practitioner guide | `docs/assurance-for-practitioners.md` explains all ten assurance features without technical background, aligned with the Green Paper's call for "more practitioner-friendly" guidance [1] |
+| Pre-built MCP tools | 16 ready-to-use tools in pm-assure — no custom development needed |
 
-- Use just the parser (no AI required)
-- Use just the validator (no parsing required)
-- Use all three packages together
-- Extend with custom components
+```
+# No code required — ask Claude directly:
+"Show me the NISTA compliance trend for PROJ-001"
+"When should the next review be scheduled for PROJ-001?"
+"What is the overall health of PROJ-001?"
+```
 
----
-
-## Impact Summary
-
-| Barrier (from Green Paper) | PDA Platform Component | Impact Metric |
-|---------------------------|------------------------|---------------|
-| Data Interoperability | pm-data-tools (parsers) | 8 formats, lossless conversion |
-| Data Quality | pm-data-tools (validators) | 0-100% compliance score |
-| Lack of Standards | Canonical Model + NISTA | JSON Schema standard |
-| AI Accessibility | pm-mcp-servers | Natural language interface |
-| AI Reliability | agent-task-planning | Quantified confidence |
-| Data Pooling | Synthetic data + privacy | Safe aggregation |
-| Gov't Compliance | NISTA support | Automated validation |
-| Integration | Simple install + MCP | < 5 min setup |
+**Measurable outcomes**:
+- ✅ Non-technical users can run compliance checks and assurance workflows through natural language
+- ✅ Time from question to insight: seconds rather than hours
+- ✅ Full practitioner documentation covering all ten features without technical prerequisites
 
 ---
 
-## Validation Against Green Paper Recommendations
+## Barrier 5: Procurement and Commercial Models
 
-The Green Paper makes a number of specific recommendations for addressing the
-barriers above.  This section will be populated with direct quotes and
-corresponding platform responses once the final version of the Green Paper is
-available.
+### From the Green Paper
 
-Each recommendation will follow this structure:
-- **Recommendation**: direct quote from the Green Paper
-- **PDA Platform Response**: specific component(s) that address it and how
+> "Four interlocking barriers: Outcome blindness, where transactional contracts
+> leave no budget for data pipelines, model retraining, or cloud inference
+> costs; IP and liability ambiguity around AI-generated outputs; Vendor lock-in
+> through closed architectures; and Absence of transparency requirements for
+> AI-assisted procurement decisions." [2]
 
----
+The ideal target state is "outcome-based, data-friendly contracts.  AI-ready
+clauses.  Shared-savings models routine.  Procurement encourages competition
+and avoids lock-in." [2]
 
-## NISTA Trial Connection
+### How the PDA Platform addresses this
 
-The PDA Platform was built specifically to support the **NISTA (Network Intelligence for Situation and Threat Awareness) Programme and Project Data Standard 12-month trial**.
+**Component**: MIT licence + open-source architecture
 
-**Trial Objectives** (as understood):
-1. Establish standardized PM data format for UK government projects
-2. Enable data pooling across projects without privacy concerns
-3. Create foundation for AI-enabled project analytics
-4. Demonstrate feasibility of automated compliance checking
+The platform's response to Barrier 5 is structural.  Proprietary tools create
+the very lock-in the Green Paper identifies as a barrier.  The PDA Platform
+eliminates that barrier at source.
 
-**PDA Platform Contributions**:
-- ✅ NISTA parser and validator (full standard support)
-- ✅ Conversion from legacy formats to NISTA
-- ✅ Synthetic data generation for testing
-- ✅ MCP servers for AI access to NISTA data
-- ✅ Benchmark suite for evaluating NISTA-compliant tools
+| Solution | How it helps |
+|----------|-------------|
+| MIT licence | Free to use, modify, and distribute — no per-seat cost, no vendor negotiations |
+| Open-source | Source code available for audit, customisation, and contribution |
+| Provider-agnostic AI | `agent-task-planning` supports Anthropic, OpenAI, Google AI, and Ollama — no lock-in to a single AI vendor |
+| Standard protocols | MCP (Model Context Protocol) is an open standard, not a proprietary integration |
+| Composable components | Organisations can adopt pm-data-tools without pm-mcp-servers, or use the canonical model without the parser — no bundled purchase required |
 
-**Trial Deliverables Enabled**:
-- Reference implementation of NISTA parser
-- Validation suite for compliance testing
-- AI integration examples
-- Documentation and examples
-
----
-
-## Future Work: Remaining Barriers
-
-The PDA Platform addresses the eight primary barriers described above.
-Additional barriers identified in the Green Paper that are not yet addressed
-will be documented here as they are confirmed, along with planned or recommended
-responses.
+**Measurable outcomes**:
+- ✅ Zero licensing cost
+- ✅ No vendor lock-in — replace any component or AI provider without rewriting
+- ✅ Full source code available for public sector audit and transparency requirements
 
 ---
 
-## How to Use This Mapping
+## Barrier 6: Risk, Ethics, and Assurance
 
-### For Stakeholders
-- Review barrier themes from Green Paper (left column)
-- See technical solution (middle column)
-- Assess impact metrics (right column)
+### From the Green Paper
 
-### For Implementers
-- Identify which barriers affect your organisation
-- Deploy corresponding PDA Platform component
-- Measure outcome against baseline
+> "The green paper found that assurance frameworks had not kept pace with AI
+> capabilities.  It recommended establishing ethics and assurance boards,
+> mandating AI safety case templates, and working towards proportionate
+> assurance." [1]
 
-### For Researchers
-- Map platform capabilities to academic literature
-- Identify evaluation opportunities
-- Propose enhancements for unaddressed barriers
+> "Specific barriers: Fragmented governance and unclear accountability;
+> Insufficient use of HM Treasury guidance; Absence of embedded ethical
+> processes; Lack of structured assurance mechanisms; and Innovation
+> bottlenecks through over-regulation." [2]
+
+The ideal target state is "risk, ethics, and assurance embedded seamlessly
+across all levels.  Proportionate, risk-based checks.  Ethics-by-design.
+Clear accountability and transparency." [2]
+
+*From Policy to Practice* maps agent-task-planning to Barrier 6: "confidence
+scoring, consensus, and human review, implementing proportionate assurance." [2]
+
+### How the PDA Platform addresses this
+
+**Components**: `agent-task-planning` + `pm-assure` (P1–P10)
+
+This barrier receives the deepest treatment in the platform.  The ten assurance
+features in pm-assure are a direct implementation of the structured assurance
+mechanisms the Green Paper called for.
+
+| Feature | How it addresses Barrier 6 |
+|---------|---------------------------|
+| P1 — Artefact Currency Validator | Detects stale or anomalously refreshed evidence artefacts before a gate — implements the evidence quality checks missing from current assurance practice |
+| P2 — Longitudinal Compliance Tracker | Persists NISTA compliance scores over time; alerts on drops and floor breaches — the continuous monitoring the Green Paper called for |
+| P3 — Cross-Cycle Finding Analyzer | Tracks whether assurance recommendations are acted on across review cycles — addresses the "fragmented governance" sub-barrier directly |
+| P4 — Confidence Divergence Monitor | Detects when AI extraction is unreliable — implements the human review workflow called for in the Green Paper's "proportionate assurance" principle |
+| P5 — Adaptive Review Scheduler | Calibrates review frequency to actual project risk signals rather than fixed calendar intervals — proportionate assurance in practice |
+| P6 — Override Decision Logger | Structured logging and pattern analysis for governance decisions that proceed against assurance advice — addresses "unclear accountability" sub-barrier |
+| P7 — Lessons Learned Knowledge Engine | Surfaces relevant lessons at the point of decision — implements the organisational learning dimension of risk management |
+| P8 — Assurance Overhead Optimiser | Measures whether assurance effort is proportionate to outcomes — prevents "innovation bottlenecks through over-regulation" by identifying redundant checks |
+| P9 — Assurance Workflow Engine | Deterministic multi-step orchestrator: runs P1–P8 in sequence, produces a single `ProjectHealth` classification and executive summary |
+| P10 — Domain Classifier | Classifies project complexity (CLEAR / COMPLICATED / COMPLEX / CHAOTIC) and returns a tailored assurance profile — the risk-tiered approach the Green Paper explicitly recommended |
+| Confidence extraction | Every AI-generated analysis includes a consensus score, sample spread, and human review flag — "confidence scoring, consensus, and human review, implementing proportionate assurance" [2] |
+
+```python
+from pm_data_tools.assurance.workflows import AssuranceWorkflowEngine, WorkflowType
+from pm_data_tools.db.store import AssuranceStore
+
+store = AssuranceStore()
+engine = AssuranceWorkflowEngine(store=store)
+result = engine.execute(
+    project_id="PROJ-001",
+    workflow_type=WorkflowType.FULL_ASSURANCE,
+)
+# result.health → ProjectHealth.HEALTHY / AT_RISK / CRITICAL …
+print(result.executive_summary)
+```
+
+**Measurable outcomes**:
+- ✅ 10 structured assurance capabilities, 16 MCP tools, 198 tests
+- ✅ Every AI analysis includes quantified confidence and human review flag
+- ✅ Override decisions logged, tracked, and pattern-analysed
+- ✅ Assurance overhead measured — redundant effort identified and eliminated
+
+---
+
+## Platform–Barrier Mapping Summary
+
+Adapted from Table 11 of *From Policy to Practice* [2], extended to include
+pm-assure (P1–P10):
+
+| Component | Primary Barrier | Secondary Barrier |
+|-----------|----------------|-------------------|
+| Canonical model (12 entities) | 2 — Data Pooling and Interoperability | — |
+| pm-data-tools (8-format parser) | 3 — Digital and Tech Constraints | 2 — Data Pooling |
+| NISTA Validator | 2 — Data Pooling and Interoperability | — |
+| pm-mcp-servers | 4 — Skill and Culture Gaps | 3 — Digital and Tech |
+| agent-task-planning | 6 — Risk, Ethics, and Assurance | 1 — Leadership |
+| pm-assure (P1–P10) | 6 — Risk, Ethics, and Assurance | 1 — Leadership |
+| MIT licence + open source | 5 — Procurement and Commercial | 3 — Digital and Tech |
+| Practitioner documentation | 4 — Skill and Culture Gaps | — |
+
+---
+
+## Cross-cutting: Indicative Principles
+
+*From Policy to Practice* distils six indicative principles — one per barrier
+— that describe what must be true for adoption to succeed [2].  The platform
+implements each:
+
+| Barrier | Indicative Principle | Platform implementation |
+|---------|---------------------|------------------------|
+| Leadership and Alignment | Business-led with executive sponsorship; governance integrated into stage-gates | P9 health classification → stage-gate evidence; P10 domain profile → governance intensity |
+| Data Pooling and Interoperability | Open standards mandatory; shared environments the norm | 12-entity canonical model published under MIT; 8-format interoperability |
+| Digital and Tech Constraints | API-first and cloud-ready; vendor lock-in actively avoided | MCP servers (open protocol); runs locally on existing hardware |
+| Skill and Culture Gaps | Defined baseline AI literacy per role; sandbox environments available | Natural language MCP interface; practitioner guide requires no technical background |
+| Procurement and Commercial Models | Outcome-based and data-friendly; procurement encourages competition | MIT licence; provider-agnostic AI framework; composable components |
+| Risk, Ethics, and Assurance | Proportionate assurance embedded; accountability clear and traceable | 10 assurance features; override logging; confidence scoring on all AI outputs |
 
 ---
 
 ## References
 
-1. **PDA Task Force White Paper** — to be cited once the final paper is
-   published.  Contact the Task Force for the current draft.
+[1] PDATF (June 2025) *Closing the Gap: A Practical Framework for Implementing
+Data and AI into the Built Environment*. London: PDA Task Force.
 
-2. **NISTA Programme and Project Data Standard** — official specification
-   available from the Infrastructure and Projects Authority.
+[2] Newman, A. (February 2026) *From Policy to Practice: An Open Framework for
+AI-Ready Project Delivery*. London: Tortoise AI. CC BY 4.0.
+DOI: [to be assigned on publication].
 
-3. **Government Major Projects Portfolio (GMPP)** — format specification
-   and reporting requirements published by the IPA.
+[3] Infrastructure and Projects Authority (2024) *Annual Report 2023–24*.
+https://www.gov.uk/government/publications/infrastructure-and-projects-authority-annual-report-2023-24
 
-4. **Infrastructure and Projects Authority (IPA)** — guidelines and assurance
-   framework documentation available at
-   https://www.gov.uk/government/organisations/infrastructure-and-projects-authority
+[4] RICS (June 2023) *Digitalisation in Construction Report 2023*. London: RICS.
+
+[5] EY and FIDIC (September 2024) *How Artificial Intelligence Can Unlock a New
+Future for Infrastructure*. London/Geneva.
+https://www.ey.com/en_uk/insights/infrastructure/how-artificial-intelligence-can-unlock-a-new-future-for-infrastructure
+
+[6] House of Commons Committee of Public Accounts (March 2025) *Use of AI in
+Government: 18th Report of Sessions 2024–25*. London: House of Commons.
+https://committees.parliament.uk/publications/47199/documents/244683/default/
+
+[7] NISTA (2025) *Programme and Project Data Standard — Trial Version*.
 
 ---
 
-## Changelog
-
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0 | Feb 2026 | Initial draft |
-| 1.1 | Mar 2026 | Replaced placeholder quote markers with barrier summaries; cleaned structure |
-
----
-
-**Document Version**: 1.1
+**Document Version**: 2.0
 **Last Updated**: March 2026
 **Maintained by**: PDA Platform Contributors
