@@ -343,6 +343,57 @@ pm-assure (P1–P10):
 | pm-assure (P1–P10) | 6 — Risk, Ethics, and Assurance | 1 — Leadership |
 | MIT licence + open source | 5 — Procurement and Commercial | 3 — Digital and Tech |
 | Practitioner documentation | 4 — Skill and Culture Gaps | — |
+| Project Delivery Toolkit | 4 — Skill and Culture Gaps | 1 — Leadership |
+
+---
+
+## The Project Delivery Toolkit
+
+> "The toolkit complements the paper: the paper provides narrative and evidence;
+> the toolkit provides the reference interface.  It is maintained as an open
+> resource and will be updated as implementation experience accumulates.  Each
+> barrier theme page links to the relevant pda-platform component, ARMM
+> dimension, and UDS specification, shortening the distance between
+> understanding a barrier and doing something about it." [2]
+
+The **Project Delivery Toolkit** (`projects-toolkit.netlify.app`) is the
+interactive companion to this barrier mapping document.  Built with React,
+Vite, and Recharts, it provides a navigable, filterable interface to the
+framework content.
+
+### What it does
+
+| Feature | Description |
+|---------|-------------|
+| Donut chart visualisation | Six outer barrier themes with sub-barriers as an interactive ring — click any segment to filter resources |
+| Persona filtering | Filter resources by role: Project Lead, Programme Lead, Business Lead |
+| Search | Filter by title, description, and tags across all resources |
+| Resource cards | Each resource links directly to the relevant pda-platform component, ARMM assessment, or UDS specification |
+
+### Which barriers it addresses
+
+The toolkit is primarily a response to **Barrier 4 (Skill and Culture Gaps)** —
+it lowers the literacy barrier by presenting the framework in a visual,
+navigable format that does not require reading the full paper.  It also
+supports **Barrier 1 (Leadership and Alignment)** by providing the persona-
+based action model in a format programme and business leads can engage with
+directly.
+
+*From Policy to Practice* describes the ideal target state for Barrier 4 as
+one in which "every role has a defined baseline of AI literacy" and "safe
+sandboxes [are] available." [2]  The toolkit operationalises the literacy
+dimension: a programme lead can filter to their role and see exactly which
+actions apply to them, without navigating the full analytical framework.
+
+### How to use it alongside this document
+
+This document explains *what* the platform does and *why* it addresses each
+barrier.  The toolkit provides the *reference interface* — use it to:
+
+- Explore sub-barriers and their recommended actions by persona
+- Navigate from a barrier to the specific pda-platform component that addresses it
+- Self-assess against the Indicative Questions (Section 3.3 of the paper)
+- Share with colleagues who need a visual rather than a document
 
 ---
 
