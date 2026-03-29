@@ -1312,6 +1312,116 @@ def verify(db_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
+# P11: Assumption data
+# ---------------------------------------------------------------------------
+
+_ASSUMPTION_TEMPLATES: list[dict] = [
+    {"text": "Annual inflation rate will not exceed 3%", "category": "COST", "baseline": 2.5, "unit": "%", "ext": "ONS_CPI"},
+    {"text": "Contractor day rates within 10% of current levels", "category": "COST", "baseline": 850.0, "unit": "GBP"},
+    {"text": "Planning approval granted within 12 weeks", "category": "SCHEDULE", "baseline": 12.0, "unit": "weeks"},
+    {"text": "Delivery milestone dates will not slip more than 4 weeks", "category": "SCHEDULE", "baseline": 4.0, "unit": "weeks"},
+    {"text": "Senior developer availability >= 3 FTE through delivery", "category": "RESOURCE", "baseline": 3.0, "unit": "FTE"},
+    {"text": "Specialist contractor supply remains stable", "category": "RESOURCE", "baseline": 1.0, "unit": "score"},
+    {"text": "API response times will remain under 200ms", "category": "TECHNICAL", "baseline": 200.0, "unit": "ms"},
+    {"text": "Cloud platform SLA stays at 99.9%", "category": "TECHNICAL", "baseline": 99.9, "unit": "%"},
+    {"text": "Primary supplier remains financially viable", "category": "COMMERCIAL", "baseline": 1.0, "unit": "score"},
+    {"text": "GDPR requirements will not change materially", "category": "REGULATORY", "baseline": 1.0, "unit": "score"},
+    {"text": "Ministerial priorities will remain aligned", "category": "STAKEHOLDER", "baseline": 1.0, "unit": "score"},
+    {"text": "GBP/EUR exchange rate stays within 5% of current", "category": "EXTERNAL", "baseline": 1.17, "unit": "ratio", "ext": "BoE_FX"},
+]
+
+_DOMAIN_ASSUMPTION_COUNTS = {"CLEAR": 5, "COMPLICATED": 7, "COMPLEX": 9, "CHAOTIC": 10}
+
+_DOMAIN_DRIFT_SCALE = {"CLEAR": 0.02, "COMPLICATED": 0.08, "COMPLEX": 0.25, "CHAOTIC": 0.50}
+
+
+def generate_assumptions(store: "AssuranceStore", project_id: str, domain: str, months: int = 12) -> None:
+    """Generate P11 assumption data for a project.
+
+    Args:
+        store: The AssuranceStore instance.
+        project_id: The project identifier.
+        domain: Complexity domain (CLEAR/COMPLICATED/COMPLEX/CHAOTIC).
+        months: Number of months in the history window.
+    """
+    from pm_data_tools.assurance.assumptions import (
+        Assumption,
+        AssumptionCategory,
+        AssumptionSource,
+        AssumptionTracker,
+    )
+    from datetime import date, timedelta
+
+    n_assumptions = _DOMAIN_ASSUMPTION_COUNTS.get(domain, 5)
+    drift_scale = _DOMAIN_DRIFT_SCALE.get(domain, 0.05)
+    tracker = AssumptionTracker(store=store)
+
+    templates = _ASSUMPTION_TEMPLATES[:n_assumptions]
+    assumption_ids: list[str] = []
+
+    # Create dependency chains for COMPLEX/CHAOTIC
+    dep_chains: dict[int, list[int]] = {}
+    if domain in ("COMPLEX", "CHAOTIC"):
+        # indices 2→0, 3→1 (schedule depends on cost), 6→4 (tech on resource)
+        dep_chains = {2: [0], 3: [1], 6: [4]}
+
+    base_date = date(2025, 4, 1)
+    for i, tmpl in enumerate(templates):
+        deps = [assumption_ids[d] for d in dep_chains.get(i, []) if d < len(assumption_ids)]
+        cat = AssumptionCategory(tmpl["category"])
+        src = AssumptionSource.EXTERNAL_API if tmpl.get("ext") else AssumptionSource.MANUAL
+        a = Assumption(
+            project_id=project_id,
+            text=tmpl["text"],
+            category=cat,
+            baseline_value=tmpl["baseline"],
+            unit=tmpl.get("unit", ""),
+            tolerance_pct=15.0 if domain in ("COMPLEX", "CHAOTIC") else 10.0,
+            source=src,
+            external_ref=tmpl.get("ext"),
+            dependencies=deps,
+            owner="SRO" if i == 0 else ("Finance Lead" if cat == AssumptionCategory.COST else "PM"),
+            created_date=base_date,
+        )
+        tracker.ingest(a)
+        assumption_ids.append(a.id)
+
+    # Generate validations across 12 months
+    n_validations = {"CLEAR": 2, "COMPLICATED": 3, "COMPLEX": 3, "CHAOTIC": 4}.get(domain, 2)
+    staleness_days = {"CLEAR": 0, "COMPLICATED": 0, "COMPLEX": 1, "CHAOTIC": 2}.get(domain, 0)
+
+    for idx, assumption_id in enumerate(assumption_ids):
+        row = store.get_assumption_by_id(assumption_id)
+        if row is None:
+            continue
+        baseline = float(row["baseline_value"])
+
+        # For CHAOTIC, last few assumptions get no validations (stale)
+        effective_validations = n_validations
+        if idx >= len(assumption_ids) - staleness_days:
+            effective_validations = 0
+
+        for v in range(effective_validations):
+            # Each validation adds cumulative drift
+            months_elapsed = int((v + 1) * (months / effective_validations)) if effective_validations else 0
+            val_date = base_date + timedelta(days=months_elapsed * 30)
+
+            drift_factor = 1.0 + drift_scale * (v + 1) * random.uniform(0.5, 1.5)
+            # Some assumptions drift down (costs rise, timelines slip)
+            if idx % 3 == 0:
+                new_val = round(baseline * drift_factor, 3)
+            else:
+                new_val = round(baseline / drift_factor, 3) if baseline > 0 else round(baseline - drift_scale * (v + 1), 3)
+
+            tracker.update_value(
+                assumption_id=assumption_id,
+                new_value=new_val,
+                source=AssumptionSource.EXTERNAL_API if idx % 2 == 0 else AssumptionSource.MANUAL,
+                notes=f"Periodic review month {months_elapsed}",
+            )
+
+
+# ---------------------------------------------------------------------------
 # Main generation loop
 # ---------------------------------------------------------------------------
 
@@ -1332,6 +1442,7 @@ def generate(output: Path) -> None:
         generate_schedule_recommendations(store, project_id, domain)
         generate_overrides(store, project_id, domain)
         generate_activities(store, project_id, domain, scores)
+        generate_assumptions(store, project_id, domain)
         generate_workflow_executions(store, project_id, domain)
         generate_domain_classifications(store, project_id)
 
