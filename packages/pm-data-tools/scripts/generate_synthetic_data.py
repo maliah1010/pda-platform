@@ -1266,7 +1266,7 @@ def build_artefacts() -> dict[str, list[dict[str, str]]]:
 
 
 def verify(db_path: Path) -> None:
-    """Print record counts for all 10 tables."""
+    """Print record counts for all tables."""
     import sqlite3
 
     size_mb = db_path.stat().st_size / (1024 * 1024)
@@ -1284,6 +1284,8 @@ def verify(db_path: Path) -> None:
         "domain_classifications",
         "assumptions",
         "assumption_validations",
+        "armm_assessments",
+        "armm_criterion_results",
     ]
 
     print("\n=== Synthetic Data Summary ===")
@@ -1424,6 +1426,129 @@ def generate_assumptions(store: "AssuranceStore", project_id: str, domain: str, 
 
 
 # ---------------------------------------------------------------------------
+# P12: ARMM assessment data
+# ---------------------------------------------------------------------------
+
+# Per-dimension criteria-met rates by project complexity domain.
+# These drive the synthetic ARMM scoring (weakest-link per dimension/topic).
+_ARMM_DOMAIN_PCT: dict[str, dict[str, float]] = {
+    "CLEAR":       {"TC": 0.82, "OR": 0.78, "GA": 0.75, "CC": 0.70},
+    "COMPLICATED": {"TC": 0.58, "OR": 0.52, "GA": 0.55, "CC": 0.45},
+    "COMPLEX":     {"TC": 0.30, "OR": 0.22, "GA": 0.35, "CC": 0.28},
+    "CHAOTIC":     {"TC": 0.12, "OR": 0.08, "GA": 0.18, "CC": 0.10},
+}
+
+# Which topic within each dimension is deliberately weakest (weakest-link model).
+_ARMM_WEAKEST_TOPIC: dict[str, dict[str, str]] = {
+    "CLEAR":       {"TC": "TC-SC", "OR": "OR-DR", "GA": "GA-EA", "CC": "CC-CI"},
+    "COMPLICATED": {"TC": "TC-RT", "OR": "OR-BC", "GA": "GA-EA", "CC": "CC-CM"},
+    "COMPLEX":     {"TC": "TC-SC", "OR": "OR-BC", "GA": "GA-ER", "CC": "CC-SK"},
+    "CHAOTIC":     {"TC": "TC-IV", "OR": "OR-BC", "GA": "GA-PF", "CC": "CC-LC"},
+}
+
+_ARMM_ASSESSORS: list[str] = [
+    "Assurance Lead",
+    "Senior Responsible Owner",
+    "Portfolio Manager",
+    "IPA Reviewer",
+    "Programme Director",
+]
+
+
+def generate_armm_assessments(
+    store: "AssuranceStore", project_id: str, domain: str, months: int = 12
+) -> None:
+    """Generate P12 ARMM assessment data for a project.
+
+    Creates 2–3 historical assessments using the real ARMMScorer (weakest-link
+    scoring across 28 topics, 251 criteria, 4 dimensions).
+
+    Args:
+        store: The AssuranceStore instance.
+        project_id: The project identifier.
+        domain: Complexity domain (CLEAR/COMPLICATED/COMPLEX/CHAOTIC).
+        months: History window in months.
+    """
+    from datetime import date, timedelta
+    from pm_data_tools.assurance.armm import (
+        ARMMScorer,
+        ARMMTopic,
+        CriterionResult,
+        TOPIC_CRITERIA_COUNT,
+        TOPIC_DIMENSION,
+    )
+
+    scorer = ARMMScorer(store=store)
+    pct_profile = _ARMM_DOMAIN_PCT.get(domain, _ARMM_DOMAIN_PCT["COMPLICATED"])
+    weakest = _ARMM_WEAKEST_TOPIC.get(domain, {})
+
+    n_assessments = {"CLEAR": 3, "COMPLICATED": 3, "COMPLEX": 2, "CHAOTIC": 2}.get(domain, 2)
+    base_date = date(2025, 4, 1)
+
+    for assessment_idx in range(n_assessments):
+        months_offset = int(assessment_idx * months / n_assessments)
+        assessment_date = (base_date + timedelta(days=months_offset * 30)).isoformat()
+
+        # Small improvement between assessments for non-CHAOTIC
+        improvement_bonus = 0.0
+        if assessment_idx > 0 and domain != "CHAOTIC":
+            improvement_bonus = 0.06 * assessment_idx
+
+        criterion_results: list[CriterionResult] = []
+        for topic in ARMMTopic:
+            dim_code = TOPIC_DIMENSION[topic].value
+            n_criteria = TOPIC_CRITERIA_COUNT[topic]
+            base_pct = pct_profile.get(dim_code, 0.3) + improvement_bonus
+
+            # Weakest topic gets deliberately lower rate
+            is_weakest = weakest.get(dim_code) == topic.value
+            topic_pct = max(0.0, min(1.0, base_pct - 0.25 if is_weakest else base_pct))
+
+            for i in range(1, n_criteria + 1):
+                criterion_id = f"{topic.value}-{i}"
+                met = (i / n_criteria) <= topic_pct
+                evidence_ref = f"DOC-{project_id}-{topic.value}-{i}" if met else None
+                criterion_results.append(
+                    CriterionResult(
+                        criterion_id=criterion_id,
+                        met=met,
+                        evidence_ref=evidence_ref,
+                    )
+                )
+
+        assessor = _ARMM_ASSESSORS[assessment_idx % len(_ARMM_ASSESSORS)]
+        assessment = scorer.assess(
+            project_id=project_id,
+            criterion_results=criterion_results,
+            assessed_by=assessor,
+            notes=f"Periodic assessment {assessment_idx + 1} of {n_assessments}",
+        )
+
+        # Override assessed_at to reflect historical date
+        with store._connect() as conn:
+            conn.execute(
+                "UPDATE armm_assessments SET assessed_at = ? WHERE id = ?",
+                (assessment_date + "T09:00:00+00:00", assessment.id),
+            )
+
+        # Persist criterion-level results for drill-through
+        store.insert_armm_criterion_results(
+            assessment_id=assessment.id,
+            project_id=project_id,
+            results=[
+                {
+                    "criterion_id": r.criterion_id,
+                    "topic_code": "-".join(r.criterion_id.split("-")[:2]),
+                    "dimension_code": r.criterion_id.split("-")[0],
+                    "met": r.met,
+                    "evidence_ref": r.evidence_ref or "",
+                    "notes": r.notes or "",
+                }
+                for r in criterion_results
+            ],
+        )
+
+# ---------------------------------------------------------------------------
 # Main generation loop
 # ---------------------------------------------------------------------------
 
@@ -1445,6 +1570,7 @@ def generate(output: Path) -> None:
         generate_overrides(store, project_id, domain)
         generate_activities(store, project_id, domain, scores)
         generate_assumptions(store, project_id, domain)
+        generate_armm_assessments(store, project_id, domain)
         generate_workflow_executions(store, project_id, domain)
         generate_domain_classifications(store, project_id)
 
@@ -1493,7 +1619,7 @@ def main() -> None:
 
     output: Path = args.output.resolve()
     print(f"Generating synthetic data → {output}")
-    print(f"15 projects  |  12 months  |  12 tables (P1–P11)\n")
+    print(f"15 projects  |  12 months  |  14 tables (P1–P12)\n")
 
     generate(output)
 

@@ -15,6 +15,10 @@ Tables:
 - ``overhead_analyses``: Persisted overhead analysis results (P8).
 - ``workflow_executions``: Assurance workflow execution results (P9).
 - ``domain_classifications``: Project domain classification results (P10).
+- ``assumptions``: Project assumptions with baseline and current values (P11).
+- ``assumption_validations``: Assumption validation history (P11).
+- ``armm_assessments``: ARMM maturity assessment records per project (P12).
+- ``armm_criterion_results``: Per-criterion assessment results (P12).
 """
 
 from __future__ import annotations
@@ -236,6 +240,36 @@ class AssuranceStore:
                     severity        TEXT NOT NULL,
                     notes           TEXT,
                     FOREIGN KEY (assumption_id) REFERENCES assumptions(id)
+                );
+
+                CREATE TABLE IF NOT EXISTS armm_assessments (
+                    id                      TEXT PRIMARY KEY,
+                    project_id              TEXT NOT NULL,
+                    assessed_at             TEXT NOT NULL,
+                    assessed_by             TEXT NOT NULL,
+                    overall_level           INTEGER NOT NULL,
+                    overall_score_pct       REAL NOT NULL,
+                    criteria_total          INTEGER NOT NULL,
+                    criteria_met            INTEGER NOT NULL,
+                    topic_scores_json       TEXT NOT NULL,
+                    topic_levels_json       TEXT NOT NULL,
+                    dimension_scores_json   TEXT NOT NULL,
+                    dimension_levels_json   TEXT NOT NULL,
+                    dimension_blocking_json TEXT NOT NULL,
+                    notes                   TEXT
+                );
+
+                CREATE TABLE IF NOT EXISTS armm_criterion_results (
+                    id              TEXT PRIMARY KEY,
+                    assessment_id   TEXT NOT NULL,
+                    project_id      TEXT NOT NULL,
+                    criterion_id    TEXT NOT NULL,
+                    topic_code      TEXT NOT NULL,
+                    dimension_code  TEXT NOT NULL,
+                    met             INTEGER NOT NULL,
+                    evidence_ref    TEXT,
+                    notes           TEXT,
+                    FOREIGN KEY (assessment_id) REFERENCES armm_assessments(id)
                 );
                 """
             )
@@ -1300,6 +1334,167 @@ class AssuranceStore:
                 ORDER BY validated_at ASC
                 """,
                 (assumption_id,),
+            )
+            rows = cursor.fetchall()
+        return [dict(row) for row in rows]
+
+    # ------------------------------------------------------------------
+    # ARMM Assessment — P12
+    # ------------------------------------------------------------------
+
+    def upsert_armm_assessment(self, data: dict[str, object]) -> None:
+        """Persist an ARMM assessment record (insert or replace).
+
+        Args:
+            data: Dict with keys ``id``, ``project_id``, ``assessed_at``,
+                ``assessed_by``, ``overall_level``, ``overall_score_pct``,
+                ``criteria_total``, ``criteria_met``, ``topic_scores_json``,
+                ``topic_levels_json``, ``dimension_scores_json``,
+                ``dimension_levels_json``, ``dimension_blocking_json``,
+                ``notes``.
+        """
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO armm_assessments (
+                    id, project_id, assessed_at, assessed_by,
+                    overall_level, overall_score_pct, criteria_total, criteria_met,
+                    topic_scores_json, topic_levels_json,
+                    dimension_scores_json, dimension_levels_json,
+                    dimension_blocking_json, notes
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    data["id"],
+                    data["project_id"],
+                    data["assessed_at"],
+                    data.get("assessed_by", ""),
+                    data["overall_level"],
+                    data["overall_score_pct"],
+                    data["criteria_total"],
+                    data["criteria_met"],
+                    data["topic_scores_json"],
+                    data["topic_levels_json"],
+                    data["dimension_scores_json"],
+                    data["dimension_levels_json"],
+                    data["dimension_blocking_json"],
+                    data.get("notes", ""),
+                ),
+            )
+        logger.debug("armm_assessment_upserted", id=data["id"], project_id=data["project_id"])
+
+    def insert_armm_criterion_results(
+        self, assessment_id: str, project_id: str, results: list[dict[str, object]]
+    ) -> None:
+        """Persist criterion-level results for an ARMM assessment.
+
+        Args:
+            assessment_id: Parent assessment ID.
+            project_id: Project the assessment belongs to.
+            results: List of dicts with keys ``criterion_id``, ``topic_code``,
+                ``dimension_code``, ``met``, ``evidence_ref``, ``notes``.
+        """
+        import uuid as _uuid
+
+        with self._connect() as conn:
+            for r in results:
+                conn.execute(
+                    """
+                    INSERT OR IGNORE INTO armm_criterion_results (
+                        id, assessment_id, project_id, criterion_id,
+                        topic_code, dimension_code, met, evidence_ref, notes
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        str(_uuid.uuid4()),
+                        assessment_id,
+                        project_id,
+                        r["criterion_id"],
+                        r["topic_code"],
+                        r["dimension_code"],
+                        int(r["met"]),
+                        r.get("evidence_ref") or "",
+                        r.get("notes") or "",
+                    ),
+                )
+        logger.debug(
+            "armm_criterion_results_inserted",
+            assessment_id=assessment_id,
+            count=len(results),
+        )
+
+    def get_armm_assessments(self, project_id: str) -> list[dict[str, object]]:
+        """Return all ARMM assessments for a project, oldest first.
+
+        Args:
+            project_id: Unique project identifier.
+
+        Returns:
+            List of row dicts ordered by ``assessed_at`` ascending.
+        """
+        with self._connect() as conn:
+            cursor = conn.execute(
+                """
+                SELECT * FROM armm_assessments
+                WHERE project_id = ?
+                ORDER BY assessed_at ASC
+                """,
+                (project_id,),
+            )
+            rows = cursor.fetchall()
+        return [dict(row) for row in rows]
+
+    def get_armm_project_ids(self) -> list[str]:
+        """Return distinct project IDs that have ARMM assessment data.
+
+        Returns:
+            Sorted list of project ID strings.
+        """
+        with self._connect() as conn:
+            cursor = conn.execute(
+                "SELECT DISTINCT project_id FROM armm_assessments ORDER BY project_id"
+            )
+            rows = cursor.fetchall()
+        return [row["project_id"] for row in rows]
+
+    def get_armm_criterion_results(
+        self,
+        assessment_id: Optional[str] = None,
+        project_id: Optional[str] = None,
+        dimension_code: Optional[str] = None,
+        topic_code: Optional[str] = None,
+    ) -> list[dict[str, object]]:
+        """Retrieve criterion-level results with optional filters.
+
+        Args:
+            assessment_id: Filter by assessment.
+            project_id: Filter by project.
+            dimension_code: Filter by dimension code (e.g. ``"TC"``).
+            topic_code: Filter by topic code (e.g. ``"TC-IV"``).
+
+        Returns:
+            List of row dicts ordered by ``criterion_id`` ascending.
+        """
+        clauses: list[str] = []
+        params: list[object] = []
+        if assessment_id:
+            clauses.append("assessment_id = ?")
+            params.append(assessment_id)
+        if project_id:
+            clauses.append("project_id = ?")
+            params.append(project_id)
+        if dimension_code:
+            clauses.append("dimension_code = ?")
+            params.append(dimension_code)
+        if topic_code:
+            clauses.append("topic_code = ?")
+            params.append(topic_code)
+
+        where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+        with self._connect() as conn:
+            cursor = conn.execute(
+                f"SELECT * FROM armm_criterion_results {where} ORDER BY criterion_id ASC",
+                params,
             )
             rows = cursor.fetchall()
         return [dict(row) for row in rows]

@@ -1,34 +1,38 @@
 # PDA Platform: ARMM Assessment Dashboard
-# Assurance and Review Maturity Model (ARMM) — organisational maturity view.
+# Agent Readiness Maturity Model (ARMM) — organisational maturity view.
 # Three tabs: Maturity Overview / Evidence Tracker / Improvement Roadmap.
-# Data sources: armm-api/assessment, armm-api/evidence
+# Data sources: /api/armm/ (live) — P12 ARMMScorer backed by AssuranceStore.
 #
-# NOTE: ARMM API endpoints are placeholders. Data will be populated when the
-#       armm-api package is implemented. Static/fixture data is used here.
+# Four dimensions: Technical Controls (TC) · Operational Resilience (OR)
+#                  Governance & Accountability (GA) · Capability & Culture (CC)
+# Five levels: 0-EXPERIMENTING · 1-SUPERVISED · 2-RELIABLE · 3-RESILIENT · 4-MISSION_CRITICAL
+# Scoring: weakest-link — overall = min of dimension levels;
+#          dimension level = min of 7 constituent topic levels.
+# Total: 28 topics, 251 criteria.
 
 uds: "0.1.0"
 
 metadata:
   id: "pda-armm-assessment-v1"
   name: "armm-assessment"
-  version: "0.1.0"
+  version: "0.2.0"
   created_at: "2026-03-29T00:00:00Z"
   authors:
     - name: "PDA Task Force"
       email: "pda@tortoiseai.co.uk"
-  tags: ["armm", "maturity", "assurance", "evidence", "improvement"]
+  tags: ["armm", "maturity", "assurance", "ai-readiness", "agent"]
 
 dashboard:
-  title: "ARMM Assessment — Assurance and Review Maturity Model"
-  description: "Organisational maturity assessment for project assurance and review practices. Covers six ARMM domains across five maturity levels."
-  intent: "Enable assurance leads and senior programme managers to assess maturity across ARMM domains, track evidence, and plan improvement activities aligned to maturity targets"
+  title: "ARMM Assessment — Agent Readiness Maturity Model"
+  description: "Organisational readiness assessment for deploying AI agents in government project delivery. Four dimensions, 28 topics, 251 criteria — weakest-link scoring."
+  intent: "Enable assurance leads and programme managers to assess AI agent readiness across four ARMM dimensions, identify blocking topics, track evidence, and prioritise improvement to reach Mission-Critical maturity."
 
   decisions:
-    - "What is the current maturity level across each ARMM domain?"
-    - "Which domains have the largest gap between current and target maturity?"
-    - "What evidence has been submitted and what gaps remain?"
+    - "What is the current ARMM maturity level and which dimension is the weakest link?"
+    - "Which topics within each dimension are blocking progression to the next level?"
+    - "What evidence has been submitted and what criteria gaps remain?"
     - "Which improvement activities should be prioritised this quarter?"
-    - "Is maturity improving over time?"
+    - "Is maturity improving across assessment cycles?"
 
   persona:
     type: executive
@@ -41,37 +45,40 @@ dashboard:
   semantic_sources:
     - id: armm-api
       label: "ARMM Assessment API"
-      type: custom
-      endpoint: "${ARMM_API_URL}"
+      type: rest
+      endpoint: "${PDA_API_URL}"
       authentication:
         type: bearer
         token_env: "PDA_API_TOKEN"
       capabilities:
         metrics: true
         dimensions: true
-        filters: false
-        time_grains: ["month", "quarter", "year"]
+        filters: true
+        time_grains: ["month", "quarter"]
 
   variables:
-    - id: department
-      label: "Department"
+    - id: project_id
+      label: "Project"
+      type: string
+      default: "PROJ-001"
+      source:
+        type: api
+        ref: "armm-api./api/projects"
+        value_field: "id"
+        label_field: "name"
+
+    - id: dimension_filter
+      label: "Dimension"
       type: string
       default: ""
       source:
-        type: dimension
-        ref: "armm-api.department"
-
-    - id: assessment_cycle
-      label: "Assessment Cycle"
-      type: string
-      default: "2026-Q1"
-      source:
         type: static
         values:
-          - "2025-Q2"
-          - "2025-Q3"
-          - "2025-Q4"
-          - "2026-Q1"
+          - { value: "", label: "All Dimensions" }
+          - { value: "TC", label: "Technical Controls" }
+          - { value: "OR", label: "Operational Resilience" }
+          - { value: "GA", label: "Governance & Accountability" }
+          - { value: "CC", label: "Capability & Culture" }
 
   time_context:
     default_range: "last_4_quarters"
@@ -87,7 +94,7 @@ dashboard:
     # =========================================================================
     - id: maturity_overview
       title: "Maturity Overview"
-      description: "Current ARMM maturity scores across all six domains with gap analysis."
+      description: "Overall ARMM maturity level with weakest-link dimension and topic breakdown."
       icon: "bar-chart"
       layout:
         type: grid
@@ -99,7 +106,7 @@ dashboard:
     # =========================================================================
     - id: evidence_tracker
       title: "Evidence Tracker"
-      description: "Evidence submissions by domain, status, and reviewer."
+      description: "Criterion-level evidence and gap analysis by dimension and topic."
       icon: "file-check"
       layout:
         type: grid
@@ -111,7 +118,7 @@ dashboard:
     # =========================================================================
     - id: improvement_roadmap
       title: "Improvement Roadmap"
-      description: "Prioritised improvement activities aligned to ARMM maturity targets."
+      description: "Prioritised improvement activities targeting blocking topics."
       icon: "map"
       layout:
         type: grid
@@ -124,325 +131,372 @@ dashboard:
     # MATURITY OVERVIEW PANELS
     # =========================================================================
 
-    - id: overall_maturity_score
+    - id: overall_maturity_level
       type: gauge
       title: "Overall ARMM Maturity"
-      description: "Composite maturity score across all six ARMM domains. Scale: 1 (Initial) to 5 (Optimising)."
+      description: "Weakest-link composite maturity level. Scale: 0 (Experimenting) to 4 (Mission-Critical). Overall = minimum of all four dimension levels."
       tab: maturity_overview
       position:
         row: 1
         column: 1
         width: 3
-        height: 2
+        height: 3
       data:
         source: armm-api
-        endpoint: "/assessment/summary"
+        endpoint: "/api/armm/${project_id}"
         metrics:
-          - id: overall_maturity
-            label: "Overall Maturity"
-        time_range: "current"
+          - id: overall_level
+            label: "Overall Level"
         fixture:
-          overall_maturity: 2.8
+          overall_level: 1
       options:
-        min: 1
-        max: 5
+        min: 0
+        max: 4
         thresholds:
-          - value: 1.0
+          - value: 0
             color: "#EF4444"
-            label: "1 — Initial"
-          - value: 2.0
+            label: "0 — Experimenting"
+          - value: 1
             color: "#F59E0B"
-            label: "2 — Repeatable"
-          - value: 3.0
+            label: "1 — Supervised"
+          - value: 2
             color: "#EAB308"
-            label: "3 — Defined"
-          - value: 4.0
+            label: "2 — Reliable"
+          - value: 3
             color: "#22C55E"
-            label: "4 — Managed"
-          - value: 5.0
+            label: "3 — Resilient"
+          - value: 4
             color: "#10B981"
-            label: "5 — Optimising"
+            label: "4 — Mission-Critical"
         show_value: true
-        format: decimal
-        precision: 1
+        format: integer
       accessibility:
-        alt_text: "Gauge showing overall ARMM maturity score on a scale of 1 to 5"
+        alt_text: "Gauge showing overall ARMM maturity level on a scale of 0 to 4"
 
-    - id: target_maturity
+    - id: overall_score_pct
       type: kpi
-      title: "Target Maturity"
-      description: "Target maturity level for the current assessment cycle."
+      title: "Criteria Met"
+      description: "Percentage of all 251 ARMM criteria assessed as met in the latest assessment."
       tab: maturity_overview
       position:
         row: 1
         column: 4
         width: 2
-        height: 2
+        height: 3
       data:
         source: armm-api
-        endpoint: "/assessment/summary"
+        endpoint: "/api/armm/${project_id}"
         metrics:
-          - id: target_maturity
-            label: "Target"
+          - id: overall_score_pct
+            label: "% Met"
         fixture:
-          target_maturity: 3.5
+          overall_score_pct: 38.4
       options:
-        value_field: target_maturity
-        icon: "target"
+        value_field: overall_score_pct
+        suffix: "%"
         format: decimal
         precision: 1
+        icon: "check-circle"
       accessibility:
-        alt_text: "KPI showing target ARMM maturity score for this assessment cycle"
+        alt_text: "KPI showing percentage of ARMM criteria assessed as met"
 
-    - id: maturity_gap
+    - id: blocking_dimension_kpi
       type: kpi
-      title: "Maturity Gap"
-      description: "Gap between current and target maturity scores. Smaller is better."
+      title: "Blocking Dimension"
+      description: "The weakest dimension driving the overall ARMM level. This is the priority area for improvement."
       tab: maturity_overview
       position:
         row: 1
         column: 6
-        width: 2
-        height: 2
-      data:
-        source: armm-api
-        endpoint: "/assessment/summary"
-        metrics:
-          - id: maturity_gap
-            label: "Gap"
-        fixture:
-          maturity_gap: 0.7
-      options:
-        value_field: maturity_gap
-        comparison:
-          type: threshold
-          warn: 0.5
-          critical: 1.0
-        icon: "arrow-up"
-        format: decimal
-        precision: 1
-        invert_status: true
-      accessibility:
-        alt_text: "KPI showing gap between current and target ARMM maturity"
-
-    - id: domains_at_target
-      type: kpi
-      title: "Domains at Target"
-      description: "Number of ARMM domains that have reached or exceeded their target maturity level."
-      tab: maturity_overview
-      position:
-        row: 1
-        column: 8
-        width: 2
-        height: 2
-      data:
-        source: armm-api
-        endpoint: "/assessment/summary"
-        metrics:
-          - id: domains_at_target
-            label: "At Target"
-        fixture:
-          domains_at_target: 2
-      options:
-        value_field: domains_at_target
-        suffix: "/6"
-        icon: "check-circle"
-        format: integer
-      accessibility:
-        alt_text: "KPI showing how many of the six ARMM domains have reached their target maturity"
-
-    - id: last_assessment_date
-      type: kpi
-      title: "Last Assessment"
-      description: "Date of the most recent ARMM assessment cycle."
-      tab: maturity_overview
-      position:
-        row: 1
-        column: 10
         width: 3
-        height: 2
+        height: 3
       data:
         source: armm-api
-        endpoint: "/assessment/summary"
+        endpoint: "/api/armm/${project_id}"
         metrics:
-          - id: last_assessment_date
-            label: "Last Assessment"
+          - id: blocking_dimension
+            label: "Blocking"
         fixture:
-          last_assessment_date: "2026-Q1"
+          blocking_dimension: "OR"
       options:
-        value_field: last_assessment_date
-        icon: "calendar"
+        value_field: blocking_dimension
         format: text
+        icon: "alert-triangle"
+        status: warn
       accessibility:
-        alt_text: "KPI showing the date of the most recent ARMM assessment"
+        alt_text: "KPI showing the dimension that is blocking overall ARMM maturity progression"
 
-    - id: domain_radar
-      type: bar
-      title: "Maturity by ARMM Domain"
-      description: "Current and target maturity scores across all six ARMM domains: Governance, Methodology, Tooling, People, Data, and Continuous Improvement."
+    - id: criteria_progress_kpi
+      type: kpi
+      title: "Criteria Met / Total"
+      description: "Raw count of criteria assessed as met out of 251 total."
       tab: maturity_overview
       position:
-        row: 3
+        row: 1
+        column: 9
+        width: 2
+        height: 3
+      data:
+        source: armm-api
+        endpoint: "/api/armm/${project_id}"
+        metrics:
+          - id: criteria_met
+            label: "Met"
+          - id: criteria_total
+            label: "Total"
+        fixture:
+          criteria_met: 96
+          criteria_total: 251
+      options:
+        value_field: criteria_met
+        suffix_field: criteria_total
+        suffix_format: "/ {value}"
+        format: integer
+        icon: "clipboard-check"
+      accessibility:
+        alt_text: "KPI showing number of ARMM criteria met out of 251 total"
+
+    - id: maturity_trend_kpi
+      type: kpi
+      title: "Trend"
+      description: "Maturity trend compared to previous assessment cycle."
+      tab: maturity_overview
+      position:
+        row: 1
+        column: 11
+        width: 2
+        height: 3
+      data:
+        source: armm-api
+        endpoint: "/api/armm/${project_id}"
+        metrics:
+          - id: maturity_trend
+            label: "Trend"
+        fixture:
+          maturity_trend: "improving"
+      options:
+        value_field: maturity_trend
+        format: text
+        icon: "trending-up"
+        status_map:
+          improving: ok
+          stable: neutral
+          declining: critical
+      accessibility:
+        alt_text: "KPI showing whether ARMM maturity is improving, stable, or declining"
+
+    - id: dimension_bar_chart
+      type: bar
+      title: "Maturity Level by Dimension"
+      description: "Current ARMM maturity level (0–4) for each of the four dimensions. The lowest bar determines the overall level — weakest-link scoring."
+      tab: maturity_overview
+      position:
+        row: 4
         column: 1
-        width: 8
+        width: 7
         height: 5
       data:
         source: armm-api
-        endpoint: "/assessment/domains"
+        endpoint: "/api/armm/${project_id}/dimensions"
         metrics:
-          - id: current_maturity
-            label: "Current"
-          - id: target_maturity
-            label: "Target"
+          - id: level
+            label: "Current Level"
         dimensions:
-          - id: domain
-            label: "Domain"
+          - id: label
+            label: "Dimension"
         fixture:
           rows:
-            - domain: "Governance"
-              current_maturity: 3.2
-              target_maturity: 4.0
-            - domain: "Methodology"
-              current_maturity: 2.5
-              target_maturity: 3.5
-            - domain: "Tooling"
-              current_maturity: 3.8
-              target_maturity: 4.0
-            - domain: "People"
-              current_maturity: 2.1
-              target_maturity: 3.0
-            - domain: "Data"
-              current_maturity: 2.6
-              target_maturity: 3.5
-            - domain: "Continuous Improvement"
-              current_maturity: 2.6
-              target_maturity: 4.0
+            - label: "Technical Controls"
+              dimension_code: "TC"
+              level: 2
+            - label: "Operational Resilience"
+              dimension_code: "OR"
+              level: 1
+            - label: "Governance & Accountability"
+              dimension_code: "GA"
+              level: 2
+            - label: "Capability & Culture"
+              dimension_code: "CC"
+              level: 1
       options:
         orientation: horizontal
-        stacked: false
         series:
-          - id: current_maturity
-            color: "#1F4E79"
-            label: "Current"
-          - id: target_maturity
-            color: "#94A3B8"
-            label: "Target"
-            style: outline
+          - id: level
+            color_by_value: true
+            thresholds:
+              - value: 0
+                color: "#EF4444"
+              - value: 1
+                color: "#F59E0B"
+              - value: 2
+                color: "#EAB308"
+              - value: 3
+                color: "#22C55E"
+              - value: 4
+                color: "#10B981"
         x_axis:
           min: 0
-          max: 5
+          max: 4
           label: "Maturity Level"
-        show_legend: true
+          reference_lines:
+            - value: 2.0
+              color: "#94A3B8"
+              label: "Reliable threshold"
         show_values: true
+        show_legend: false
       accessibility:
-        alt_text: "Grouped horizontal bar chart showing current versus target maturity by ARMM domain"
+        alt_text: "Horizontal bar chart showing ARMM maturity level for each of the four dimensions"
 
     - id: maturity_level_definitions
       type: text
       title: "ARMM Maturity Levels"
-      description: "Reference card for ARMM maturity level definitions."
+      description: "Reference card for ARMM level definitions (0–4)."
       tab: maturity_overview
       position:
-        row: 3
-        column: 9
-        width: 4
+        row: 4
+        column: 8
+        width: 5
         height: 5
       data:
         source: static
         content: |
-          **Level 1 — Initial**
-          Ad hoc processes. Success depends on individual effort. No repeatability.
+          **Level 0 — Experimenting**
+          Ad hoc and reactive. No formal controls. High individual dependency. AI agent use is exploratory.
 
-          **Level 2 — Repeatable**
-          Basic processes established. Some documentation. Inconsistent application.
+          **Level 1 — Supervised**
+          Basic controls and human oversight established. AI agents operate under active supervision with manual output review.
 
-          **Level 3 — Defined**
-          Standardised processes documented and trained. Consistent across teams.
+          **Level 2 — Reliable**
+          Documented processes and technical safeguards consistently applied. Agents operate predictably within defined boundaries.
 
-          **Level 4 — Managed**
-          Quantitatively managed. Metrics drive decisions. Continuous monitoring.
+          **Level 3 — Resilient**
+          Quantitatively managed. Organisation detects, responds to, and recovers from AI failures with minimal disruption.
 
-          **Level 5 — Optimising**
-          Focus on continuous improvement. Data-driven refinement. Innovation embedded.
+          **Level 4 — Mission-Critical**
+          AI agents support critical services. Full auditability, proactive risk management, continuous improvement embedded.
+
+          ---
+          *Scoring rule: overall level = minimum of all four dimension levels.*
       options:
         display: markdown
         background_color: "#F8FAFC"
         border: true
       accessibility:
-        alt_text: "Reference text panel describing ARMM maturity levels 1 through 5"
+        alt_text: "Reference text panel describing ARMM maturity levels 0 through 4"
 
-    - id: maturity_trend
-      type: trend
-      title: "Maturity Score Trend — Last 4 Quarters"
-      description: "Quarter-on-quarter overall maturity progression. Shows whether improvement activities are having effect."
+    - id: topic_heatmap
+      type: table
+      title: "28-Topic Maturity Heatmap"
+      description: "Maturity level (0–4) for each of the 28 ARMM topics across four dimensions. Red = Experimenting, Green = Mission-Critical. Weakest topics highlighted."
       tab: maturity_overview
       position:
-        row: 8
+        row: 9
         column: 1
         width: 12
-        height: 4
+        height: 8
       data:
         source: armm-api
-        endpoint: "/assessment/trend"
-        metrics:
-          - id: overall_maturity
-            label: "Overall Maturity"
+        endpoint: "/api/armm/${project_id}/dimensions"
         dimensions:
-          - id: domain
-            label: "Domain"
-        time_range: "last_4_quarters"
-        time_grain: quarter
+          - id: dimension_code
+            label: "Dim."
+          - id: topic_code
+            label: "Topic"
+          - id: label
+            label: "Topic Name"
+          - id: level
+            label: "Level"
+          - id: level_label
+            label: "Status"
+          - id: score_pct
+            label: "% Criteria Met"
+          - id: is_blocking
+            label: "Blocking?"
         fixture:
           rows:
-            - quarter: "2025-Q2"
-              Governance: 2.8
-              Methodology: 2.1
-              Tooling: 3.2
-              People: 1.8
-              Data: 2.0
-              "Continuous Improvement": 1.9
-            - quarter: "2025-Q3"
-              Governance: 2.9
-              Methodology: 2.2
-              Tooling: 3.5
-              People: 1.9
-              Data: 2.2
-              "Continuous Improvement": 2.1
-            - quarter: "2025-Q4"
-              Governance: 3.0
-              Methodology: 2.3
-              Tooling: 3.6
-              People: 2.0
-              Data: 2.4
-              "Continuous Improvement": 2.3
-            - quarter: "2026-Q1"
-              Governance: 3.2
-              Methodology: 2.5
-              Tooling: 3.8
-              People: 2.1
-              Data: 2.6
-              "Continuous Improvement": 2.6
+            - dimension_code: "TC"
+              topic_code: "TC-IV"
+              label: "Input Validation"
+              level: 2
+              level_label: "Reliable"
+              score_pct: 60.0
+              is_blocking: false
+            - dimension_code: "TC"
+              topic_code: "TC-SC"
+              label: "Security Controls"
+              level: 2
+              level_label: "Reliable"
+              score_pct: 55.0
+              is_blocking: true
+            - dimension_code: "OR"
+              topic_code: "OR-BC"
+              label: "Business Continuity"
+              level: 1
+              level_label: "Supervised"
+              score_pct: 28.0
+              is_blocking: true
+            - dimension_code: "OR"
+              topic_code: "OR-IR"
+              label: "Incident Response"
+              level: 1
+              level_label: "Supervised"
+              score_pct: 35.0
+              is_blocking: false
+            - dimension_code: "GA"
+              topic_code: "GA-PF"
+              label: "Policy Framework"
+              level: 2
+              level_label: "Reliable"
+              score_pct: 55.0
+              is_blocking: false
+            - dimension_code: "GA"
+              topic_code: "GA-EA"
+              label: "External Audit"
+              level: 1
+              level_label: "Supervised"
+              score_pct: 30.0
+              is_blocking: true
+            - dimension_code: "CC"
+              topic_code: "CC-SK"
+              label: "Skills & Training"
+              level: 1
+              level_label: "Supervised"
+              score_pct: 32.0
+              is_blocking: true
+            - dimension_code: "CC"
+              topic_code: "CC-CI"
+              label: "Continuous Improvement"
+              level: 1
+              level_label: "Supervised"
+              score_pct: 25.0
+              is_blocking: false
+        sort:
+          - field: dimension_code
+            direction: asc
+          - field: level
+            direction: asc
       options:
-        series_by: domain
-        series_colors:
-          Governance: "#1F4E79"
-          Methodology: "#3B82F6"
-          Tooling: "#10B981"
-          People: "#F59E0B"
-          Data: "#8B5CF6"
-          "Continuous Improvement": "#EF4444"
-        y_axis:
-          min: 1
-          max: 5
-          label: "Maturity Level"
-          reference_lines:
-            - value: 3.0
-              color: "#94A3B8"
-              label: "Level 3 threshold"
-        show_legend: true
-        smooth: true
+        row_highlight:
+          field: level
+          rules:
+            - value: 0
+              color: "#FEE2E2"
+            - value: 1
+              color: "#FEF3C7"
+            - value: 2
+              color: "#FEF9C3"
+            - value: 3
+              color: "#DCFCE7"
+            - value: 4
+              color: "#D1FAE5"
+        conditional_formatting:
+          - column: is_blocking
+            value: true
+            badge: "Blocking"
+            badge_color: "#EF4444"
+        sticky_header: true
       accessibility:
-        alt_text: "Line chart showing maturity trend by ARMM domain across the last four quarters"
+        alt_text: "Table showing maturity level and percentage criteria met for all 28 ARMM topics"
 
     # =========================================================================
     # EVIDENCE TRACKER PANELS
@@ -450,8 +504,8 @@ dashboard:
 
     - id: evidence_summary_kpis
       type: scorecard
-      title: "Evidence Submission Status"
-      description: "Overview of evidence submissions for the current assessment cycle."
+      title: "Criteria Evidence Summary"
+      description: "High-level summary of criteria evidence status across all 251 criteria in the latest assessment."
       tab: evidence_tracker
       position:
         row: 1
@@ -460,311 +514,297 @@ dashboard:
         height: 2
       data:
         source: armm-api
-        endpoint: "/evidence/summary"
+        endpoint: "/api/armm/${project_id}/criteria"
         metrics:
-          - id: total_required
-            label: "Required"
-          - id: submitted
-            label: "Submitted"
-          - id: accepted
-            label: "Accepted"
-          - id: under_review
-            label: "Under Review"
-          - id: rejected
-            label: "Rejected"
-          - id: outstanding
-            label: "Outstanding"
+          - id: total
+            label: "Total Criteria"
+          - id: met_count
+            label: "Met"
         fixture:
-          total_required: 48
-          submitted: 35
-          accepted: 28
-          under_review: 7
-          rejected: 3
-          outstanding: 13
+          total: 251
+          met_count: 96
       options:
         layout: horizontal
+        derived_metrics:
+          - id: not_met
+            label: "Not Met"
+            formula: "total - met_count"
+          - id: pct_met
+            label: "% Met"
+            formula: "met_count / total * 100"
+            format: decimal
+            precision: 1
+            suffix: "%"
         card_colors:
-          total_required: "#1F4E79"
-          submitted: "#3B82F6"
-          accepted: "#10B981"
-          under_review: "#F59E0B"
-          rejected: "#EF4444"
-          outstanding: "#6366F1"
+          total: "#1F4E79"
+          met_count: "#10B981"
+          not_met: "#EF4444"
+          pct_met: "#3B82F6"
       accessibility:
-        alt_text: "Scorecard showing evidence submission status for the current ARMM assessment cycle"
+        alt_text: "Scorecard showing total ARMM criteria, criteria met, and percentage met"
 
-    - id: evidence_by_domain
+    - id: evidence_by_dimension
       type: bar
-      title: "Evidence Completeness by Domain"
-      description: "Proportion of required evidence submitted and accepted per ARMM domain."
+      title: "Criteria Met by Dimension"
+      description: "Percentage of criteria assessed as met within each of the four ARMM dimensions. Dimensions with <25% met are at Experimenting level."
       tab: evidence_tracker
       position:
         row: 3
         column: 1
-        width: 7
+        width: 6
         height: 5
       data:
         source: armm-api
-        endpoint: "/evidence/by-domain"
+        endpoint: "/api/armm/${project_id}/dimensions"
         metrics:
-          - id: accepted
-            label: "Accepted"
-          - id: under_review
-            label: "Under Review"
-          - id: outstanding
-            label: "Outstanding"
+          - id: score_pct
+            label: "% Criteria Met"
         dimensions:
-          - id: domain
-            label: "Domain"
+          - id: label
+            label: "Dimension"
         fixture:
           rows:
-            - domain: "Governance"
-              accepted: 7
-              under_review: 1
-              outstanding: 0
-            - domain: "Methodology"
-              accepted: 4
-              under_review: 2
-              outstanding: 3
-            - domain: "Tooling"
-              accepted: 6
-              under_review: 1
-              outstanding: 1
-            - domain: "People"
-              accepted: 3
-              under_review: 1
-              outstanding: 4
-            - domain: "Data"
-              accepted: 5
-              under_review: 2
-              outstanding: 2
-            - domain: "Continuous Improvement"
-              accepted: 3
-              under_review: 0
-              outstanding: 3
+            - label: "Technical Controls"
+              score_pct: 58.0
+            - label: "Operational Resilience"
+              score_pct: 22.0
+            - label: "Governance & Accountability"
+              score_pct: 45.0
+            - label: "Capability & Culture"
+              score_pct: 35.0
       options:
         orientation: horizontal
-        stacked: true
         series:
-          - id: accepted
-            color: "#10B981"
-            label: "Accepted"
-          - id: under_review
-            color: "#F59E0B"
-            label: "Under Review"
-          - id: outstanding
-            color: "#EF4444"
-            label: "Outstanding"
-        show_legend: true
+          - id: score_pct
+            color: "#1F4E79"
+            label: "% Criteria Met"
+        x_axis:
+          min: 0
+          max: 100
+          label: "% Criteria Met"
+          reference_lines:
+            - value: 25
+              color: "#F59E0B"
+              label: "Supervised threshold (25%)"
+            - value: 50
+              color: "#22C55E"
+              label: "Reliable threshold (50%)"
         show_values: true
       accessibility:
-        alt_text: "Stacked horizontal bar chart showing evidence completeness by ARMM domain"
+        alt_text: "Horizontal bar chart showing percentage of ARMM criteria met by dimension"
 
-    - id: evidence_submission_trend
-      type: trend
-      title: "Evidence Submissions Over Time"
-      description: "Cumulative evidence submissions and acceptances over the assessment cycle."
+    - id: blocking_topics_table
+      type: table
+      title: "Blocking Topics — Improvement Priorities"
+      description: "Topics that are currently preventing progression to the next maturity level (weakest-link blockers)."
       tab: evidence_tracker
       position:
         row: 3
-        column: 8
-        width: 5
+        column: 7
+        width: 6
         height: 5
       data:
         source: armm-api
-        endpoint: "/evidence/trend"
-        metrics:
-          - id: cumulative_submitted
-            label: "Submitted"
-          - id: cumulative_accepted
-            label: "Accepted"
-        time_range: "current_cycle"
-        time_grain: week
+        endpoint: "/api/armm/${project_id}/dimensions"
+        dimensions:
+          - id: dimension_code
+            label: "Dimension"
+          - id: topic_code
+            label: "Topic Code"
+          - id: label
+            label: "Topic"
+          - id: score_pct
+            label: "% Met"
+          - id: level_label
+            label: "Current Level"
+        filter:
+          field: is_blocking
+          value: true
         fixture:
           rows:
-            - week: "W1"
-              cumulative_submitted: 5
-              cumulative_accepted: 3
-            - week: "W2"
-              cumulative_submitted: 12
-              cumulative_accepted: 8
-            - week: "W3"
-              cumulative_submitted: 20
-              cumulative_accepted: 15
-            - week: "W4"
-              cumulative_submitted: 28
-              cumulative_accepted: 21
-            - week: "W5"
-              cumulative_submitted: 35
-              cumulative_accepted: 28
+            - dimension_code: "OR"
+              topic_code: "OR-BC"
+              label: "Business Continuity"
+              score_pct: 28.0
+              level_label: "Supervised"
+            - dimension_code: "GA"
+              topic_code: "GA-EA"
+              label: "External Audit"
+              score_pct: 30.0
+              level_label: "Supervised"
+            - dimension_code: "CC"
+              topic_code: "CC-SK"
+              label: "Skills & Training"
+              score_pct: 32.0
+              level_label: "Supervised"
       options:
-        series:
-          - id: cumulative_submitted
-            color: "#3B82F6"
-            style: line
-            label: "Submitted"
-          - id: cumulative_accepted
-            color: "#10B981"
-            style: area
-            label: "Accepted"
-        y_axis:
-          label: "Cumulative Count"
-        show_legend: true
+        row_highlight:
+          field: score_pct
+          rules:
+            - max: 25
+              color: "#FEE2E2"
+            - min: 25
+              max: 50
+              color: "#FEF3C7"
+        sticky_header: true
       accessibility:
-        alt_text: "Line chart showing cumulative evidence submission and acceptance over the current assessment cycle"
+        alt_text: "Table listing ARMM topics that are currently blocking maturity progression"
 
-    - id: evidence_detail_table
+    - id: criterion_detail_table
       type: table
-      title: "Evidence Detail Register"
-      description: "Full register of evidence items for the current assessment cycle with status and reviewer."
+      title: "Criterion Detail Register"
+      description: "Full register of individual criteria results for the latest assessment. Filter by dimension or topic using the dropdowns."
       tab: evidence_tracker
       position:
         row: 8
         column: 1
         width: 12
-        height: 6
+        height: 7
       data:
         source: armm-api
-        endpoint: "/evidence/detail"
+        endpoint: "/api/armm/${project_id}/criteria"
+        params:
+          dimension: "${dimension_filter}"
         dimensions:
-          - id: evidence_id
-            label: "Ref"
-          - id: domain
-            label: "Domain"
-          - id: criterion
-            label: "Criterion"
-          - id: evidence_title
-            label: "Evidence Title"
-          - id: status
-            label: "Status"
-          - id: submitted_by
-            label: "Submitted By"
-          - id: submitted_date
-            label: "Submitted"
-          - id: reviewer
-            label: "Reviewer"
+          - id: criterion_id
+            label: "Criterion ID"
+          - id: topic_code
+            label: "Topic"
+          - id: dimension_code
+            label: "Dimension"
+          - id: met
+            label: "Met?"
+          - id: evidence_ref
+            label: "Evidence Ref"
           - id: notes
             label: "Notes"
         fixture:
           rows:
-            - evidence_id: "E-GOV-001"
-              domain: "Governance"
-              criterion: "Programme board established and meeting regularly"
-              evidence_title: "Programme Board Terms of Reference v2"
-              status: "ACCEPTED"
-              submitted_by: "PMO"
-              submitted_date: "2026-01-15"
-              reviewer: "IPA Lead"
+            - criterion_id: "TC-IV-1"
+              topic_code: "TC-IV"
+              dimension_code: "TC"
+              met: true
+              evidence_ref: "DOC-PROJ001-TC-IV-1"
               notes: ""
-            - evidence_id: "E-GOV-002"
-              domain: "Governance"
-              criterion: "Assurance strategy agreed by SRO"
-              evidence_title: "Assurance Strategy 2026"
-              status: "ACCEPTED"
-              submitted_by: "SRO"
-              submitted_date: "2026-01-20"
-              reviewer: "IPA Lead"
+            - criterion_id: "TC-SC-3"
+              topic_code: "TC-SC"
+              dimension_code: "TC"
+              met: false
+              evidence_ref: null
+              notes: "Penetration test not yet completed"
+            - criterion_id: "OR-BC-3"
+              topic_code: "OR-BC"
+              dimension_code: "OR"
+              met: false
+              evidence_ref: null
+              notes: "BCP not tested against AI agent failure scenario"
+            - criterion_id: "GA-PF-8"
+              topic_code: "GA-PF"
+              dimension_code: "GA"
+              met: true
+              evidence_ref: "DOC-PROJ001-GA-PF-8"
               notes: ""
-            - evidence_id: "E-METH-001"
-              domain: "Methodology"
-              criterion: "Standard assurance methodology applied to all gates"
-              evidence_title: "Gate Review Methodology Playbook v1"
-              status: "UNDER_REVIEW"
-              submitted_by: "PMO"
-              submitted_date: "2026-02-10"
-              reviewer: "Assurance Lead"
-              notes: "Awaiting sign-off on section 4"
-            - evidence_id: "E-METH-002"
-              domain: "Methodology"
-              criterion: "Lessons learned process documented and operational"
-              evidence_title: "Lessons Learned SOP"
-              status: "OUTSTANDING"
-              submitted_by: ""
-              submitted_date: ""
-              reviewer: ""
-              notes: "Not yet submitted — due 2026-04-01"
-            - evidence_id: "E-TOOL-001"
-              domain: "Tooling"
-              criterion: "Assurance platform in use for all projects"
-              evidence_title: "PDA Platform Adoption Report"
-              status: "ACCEPTED"
-              submitted_by: "Tech Lead"
-              submitted_date: "2026-01-18"
-              reviewer: "IPA Lead"
-              notes: ""
-            - evidence_id: "E-PEOP-001"
-              domain: "People"
-              criterion: "Assurance leads trained to required level"
-              evidence_title: "Training Completion Log Q1 2026"
-              status: "UNDER_REVIEW"
-              submitted_by: "HR Lead"
-              submitted_date: "2026-02-28"
-              reviewer: "Assurance Lead"
-              notes: "2 of 8 staff still to complete module 3"
-            - evidence_id: "E-DATA-001"
-              domain: "Data"
-              criterion: "Data quality framework applied to all assurance evidence"
-              evidence_title: "Data Quality Framework v2"
-              status: "ACCEPTED"
-              submitted_by: "Data Lead"
-              submitted_date: "2026-01-25"
-              reviewer: "IPA Lead"
-              notes: ""
+            - criterion_id: "GA-EA-4"
+              topic_code: "GA-EA"
+              dimension_code: "GA"
+              met: false
+              evidence_ref: null
+              notes: "External audit schedule not agreed"
+            - criterion_id: "CC-SK-2"
+              topic_code: "CC-SK"
+              dimension_code: "CC"
+              met: false
+              evidence_ref: null
+              notes: "AI literacy training not completed for all staff"
         sort:
-          - field: domain
+          - field: dimension_code
             direction: asc
-          - field: status
+          - field: met
             direction: asc
       options:
         row_highlight:
-          field: status
+          field: met
           rules:
-            - value: "OUTSTANDING"
+            - value: false
               color: "#FEF2F2"
-            - value: "UNDER_REVIEW"
-              color: "#FEFCE8"
-            - value: "ACCEPTED"
+            - value: true
               color: "#F0FDF4"
         sticky_header: true
         pagination:
-          page_size: 20
+          page_size: 25
       accessibility:
-        alt_text: "Full evidence register table showing all ARMM evidence items with status and reviewer for the current cycle"
+        alt_text: "Full register of ARMM criterion assessment results with evidence references"
 
     # =========================================================================
     # IMPROVEMENT ROADMAP PANELS
     # =========================================================================
 
-    - id: roadmap_summary
-      type: scorecard
-      title: "Improvement Activity Summary"
-      description: "Status of all improvement activities across ARMM domains."
+    - id: roadmap_priority_actions
+      type: text
+      title: "Priority Improvement Actions"
+      description: "Top improvement actions targeting the current blocking topics — sorted by maturity gain per effort."
       tab: improvement_roadmap
       position:
         row: 1
         column: 1
-        width: 12
-        height: 2
+        width: 6
+        height: 7
       data:
-        source: armm-api
-        endpoint: "/improvement/summary"
-        metrics:
-          - id: total_activities
-            label: "Total Activities"
-          - id: completed
-            label: "Completed"
-          - id: in_progress
-            label: "In Progress"
-          - id: planned
-            label: "Planned"
-          - id: overdue
-            label: "Overdue"
+        source: static
+        content: |
+          **Operational Resilience — Business Continuity (OR-BC)**
+          Gap: 22 criteria not met. Target: Level 2 (Reliable) requires 50% criteria met.
+
+          Priority criteria:
+          - OR-BC-3: Test BCP against AI agent failure scenario (Owner: Tech Lead)
+          - OR-BC-5: Document recovery time objective for each AI agent service (Owner: Ops Lead)
+          - OR-BC-7: Establish manual override procedures for all agent-automated decisions (Owner: PMO)
+
+          **Operational Resilience — Incident Response (OR-IR)**
+          Gap: 16 criteria not met. Current: Supervised (35% met).
+
+          Priority criteria:
+          - OR-IR-4: Define AI-specific incident severity taxonomy (Owner: Assurance Lead)
+          - OR-IR-6: Establish 24hr on-call rota for AI agent failures (Owner: Ops Lead)
+
+          **Governance & Accountability — External Audit (GA-EA)**
+          Gap: 18 criteria not met. Blocking GA dimension at Level 1.
+
+          Priority criteria:
+          - GA-EA-4: Agree external audit schedule with IPA for AI agent use (Owner: SRO)
+          - GA-EA-8: Publish AI agent audit trail specification (Owner: Assurance Lead)
+
+          **Capability & Culture — Skills & Training (CC-SK)**
+          Gap: 14 criteria not met. Blocking CC dimension at Level 1.
+
+          Priority criteria:
+          - CC-SK-2: Complete AI literacy training for all assurance staff (Owner: HR Lead)
+          - CC-SK-5: Certify assurance leads in responsible AI deployment (Owner: HR Lead)
+      options:
+        display: markdown
+        background_color: "#F8FAFC"
+        border: true
+      accessibility:
+        alt_text: "Priority improvement actions for the current blocking ARMM topics with criterion IDs and owners"
+
+    - id: roadmap_activity_summary
+      type: scorecard
+      title: "Improvement Activity Status"
+      description: "Status of current improvement activities targeting ARMM blocking topics."
+      tab: improvement_roadmap
+      position:
+        row: 1
+        column: 7
+        width: 6
+        height: 3
+      data:
+        source: static
         fixture:
-          total_activities: 24
-          completed: 8
-          in_progress: 6
-          planned: 7
-          overdue: 3
+          total_activities: 18
+          completed: 5
+          in_progress: 7
+          planned: 4
+          overdue: 2
       options:
         layout: horizontal
         card_colors:
@@ -774,65 +814,42 @@ dashboard:
           planned: "#94A3B8"
           overdue: "#EF4444"
       accessibility:
-        alt_text: "Scorecard showing the status of all ARMM improvement activities"
+        alt_text: "Scorecard showing status of ARMM improvement activities"
 
-    - id: roadmap_by_domain
+    - id: roadmap_by_dimension
       type: bar
-      title: "Improvement Activities by Domain"
-      description: "Distribution of improvement activities by ARMM domain and status."
+      title: "Activities by Dimension"
+      description: "Distribution of improvement activities by ARMM dimension and status."
       tab: improvement_roadmap
       position:
-        row: 3
-        column: 1
+        row: 4
+        column: 7
         width: 6
-        height: 5
+        height: 4
       data:
-        source: armm-api
-        endpoint: "/improvement/by-domain"
-        metrics:
-          - id: completed
-            label: "Completed"
-          - id: in_progress
-            label: "In Progress"
-          - id: planned
-            label: "Planned"
-          - id: overdue
-            label: "Overdue"
-        dimensions:
-          - id: domain
-            label: "Domain"
+        source: static
         fixture:
           rows:
-            - domain: "Governance"
+            - dimension: "Technical Controls"
               completed: 3
-              in_progress: 1
+              in_progress: 2
               planned: 1
               overdue: 0
-            - domain: "Methodology"
+            - dimension: "Operational Resilience"
               completed: 1
-              in_progress: 2
+              in_progress: 3
+              planned: 1
+              overdue: 1
+            - dimension: "Governance & Accountability"
+              completed: 1
+              in_progress: 1
               planned: 2
-              overdue: 1
-            - domain: "Tooling"
-              completed: 2
-              in_progress: 0
-              planned: 1
               overdue: 0
-            - domain: "People"
-              completed: 1
-              in_progress: 2
-              planned: 1
-              overdue: 1
-            - domain: "Data"
-              completed: 1
-              in_progress: 1
-              planned: 1
-              overdue: 1
-            - domain: "Continuous Improvement"
+            - dimension: "Capability & Culture"
               completed: 0
-              in_progress: 0
-              planned: 1
-              overdue: 0
+              in_progress: 1
+              planned: 0
+              overdue: 1
       options:
         orientation: horizontal
         stacked: true
@@ -852,174 +869,124 @@ dashboard:
         show_legend: true
         show_values: true
       accessibility:
-        alt_text: "Stacked horizontal bar chart showing improvement activities by ARMM domain and status"
-
-    - id: roadmap_priority_matrix
-      type: text
-      title: "Priority Actions This Quarter"
-      description: "Top improvement actions requiring attention in Q1 2026, ranked by gap-to-target and effort."
-      tab: improvement_roadmap
-      position:
-        row: 3
-        column: 7
-        width: 6
-        height: 5
-      data:
-        source: static
-        content: |
-          **High Priority — Complete by 2026-04-30**
-
-          1. **People / Training**: Complete module 3 for remaining 2 assurance leads.
-             Owner: HR Lead. Gap to Level 3: 0.9.
-
-          2. **Methodology / Lessons SOP**: Publish Lessons Learned Standard Operating Procedure.
-             Owner: PMO. Gap to Level 3: 0.8.
-
-          3. **Continuous Improvement / Review cadence**: Establish quarterly ARMM self-assessment cadence.
-             Owner: Assurance Lead. Gap to Level 4: 1.4.
-
-          **Medium Priority — Complete by 2026-06-30**
-
-          4. **Data / Quality framework**: Extend data quality framework to cover assumption validation data.
-             Owner: Data Lead. Gap to Level 3: 0.5.
-
-          5. **Methodology / AI tooling**: Formalise AI extraction confidence thresholds in methodology.
-             Owner: Tech Lead + PMO.
-      options:
-        display: markdown
-        background_color: "#F8FAFC"
-        border: true
-      accessibility:
-        alt_text: "Priority improvement actions for Q1 2026 with owners and gap-to-target information"
+        alt_text: "Stacked horizontal bar chart showing improvement activities by ARMM dimension and status"
 
     - id: roadmap_activities_table
       type: table
       title: "Full Improvement Roadmap"
-      description: "All improvement activities with owner, target date, maturity gain, and status."
+      description: "All improvement activities targeting ARMM blocking criteria, with owners and due dates."
       tab: improvement_roadmap
       position:
         row: 8
         column: 1
         width: 12
-        height: 6
+        height: 7
       data:
-        source: armm-api
-        endpoint: "/improvement/activities"
-        dimensions:
-          - id: activity_id
-            label: "Ref"
-          - id: domain
-            label: "Domain"
-          - id: activity_title
-            label: "Activity"
-          - id: target_level
-            label: "Target Level"
-          - id: maturity_gain
-            label: "Maturity Gain"
-          - id: owner
-            label: "Owner"
-          - id: due_date
-            label: "Due Date"
-          - id: status
-            label: "Status"
-          - id: notes
-            label: "Notes"
+        source: static
         fixture:
           rows:
-            - activity_id: "IMP-GOV-001"
-              domain: "Governance"
-              activity_title: "Formalise programme board TOR and meeting cadence"
-              target_level: 4
-              maturity_gain: 0.8
+            - ref: "IMP-OR-BC-001"
+              dimension: "OR"
+              topic: "OR-BC"
+              criterion_id: "OR-BC-3"
+              activity: "Test BCP against AI agent failure scenario"
+              owner: "Tech Lead"
+              due_date: "2026-04-30"
+              status: "IN_PROGRESS"
+              maturity_gain: "Level 1 → 2"
+              notes: "Tabletop exercise scheduled for 2026-04-15"
+            - ref: "IMP-OR-BC-002"
+              dimension: "OR"
+              topic: "OR-BC"
+              criterion_id: "OR-BC-5"
+              activity: "Document RTO for each AI agent service"
+              owner: "Ops Lead"
+              due_date: "2026-04-15"
+              status: "IN_PROGRESS"
+              maturity_gain: "Level 1 → 2"
+              notes: "Draft RTO register in review"
+            - ref: "IMP-OR-IR-001"
+              dimension: "OR"
+              topic: "OR-IR"
+              criterion_id: "OR-IR-4"
+              activity: "Define AI incident severity taxonomy"
+              owner: "Assurance Lead"
+              due_date: "2026-05-01"
+              status: "PLANNED"
+              maturity_gain: "Level 1 → 2"
+              notes: "Template from IPA guidance available"
+            - ref: "IMP-GA-EA-001"
+              dimension: "GA"
+              topic: "GA-EA"
+              criterion_id: "GA-EA-4"
+              activity: "Agree external audit schedule with IPA for AI agent use"
               owner: "SRO"
-              due_date: "2026-03-31"
-              status: "COMPLETED"
-              notes: "TOR v2 accepted as evidence"
-            - activity_id: "IMP-GOV-002"
-              domain: "Governance"
-              activity_title: "Embed assurance strategy in programme governance framework"
-              target_level: 4
-              maturity_gain: 0.6
-              owner: "Assurance Lead"
-              due_date: "2026-03-31"
-              status: "COMPLETED"
-              notes: ""
-            - activity_id: "IMP-METH-001"
-              domain: "Methodology"
-              activity_title: "Publish Lessons Learned Standard Operating Procedure"
-              target_level: 3
-              maturity_gain: 0.8
-              owner: "PMO"
-              due_date: "2026-04-01"
-              status: "OUTSTANDING"
-              notes: "Draft in progress — missed original deadline"
-            - activity_id: "IMP-METH-002"
-              domain: "Methodology"
-              activity_title: "Formalise AI extraction confidence thresholds in methodology"
-              target_level: 3
-              maturity_gain: 0.5
-              owner: "Tech Lead"
-              due_date: "2026-06-30"
+              due_date: "2026-04-30"
               status: "IN_PROGRESS"
-              notes: "Under review with assurance team"
-            - activity_id: "IMP-TOOL-001"
-              domain: "Tooling"
-              activity_title: "Deploy PDA Platform to all 15 portfolio projects"
-              target_level: 4
-              maturity_gain: 1.0
-              owner: "Tech Lead"
-              due_date: "2026-01-31"
-              status: "COMPLETED"
-              notes: ""
-            - activity_id: "IMP-PEOP-001"
-              domain: "People"
-              activity_title: "Complete assurance lead training programme (all 8 leads)"
-              target_level: 3
-              maturity_gain: 0.9
+              maturity_gain: "Level 1 → 2"
+              notes: "IPA meeting confirmed 2026-04-20"
+            - ref: "IMP-GA-EA-002"
+              dimension: "GA"
+              topic: "GA-EA"
+              criterion_id: "GA-EA-8"
+              activity: "Publish AI agent audit trail specification"
+              owner: "Assurance Lead"
+              due_date: "2026-05-31"
+              status: "PLANNED"
+              maturity_gain: "Level 1 → 2"
+              notes: "Dependent on GA-EA-4 completion"
+            - ref: "IMP-CC-SK-001"
+              dimension: "CC"
+              topic: "CC-SK"
+              criterion_id: "CC-SK-2"
+              activity: "Complete AI literacy training for all assurance staff"
               owner: "HR Lead"
-              due_date: "2026-03-31"
+              due_date: "2026-05-31"
               status: "IN_PROGRESS"
-              notes: "6/8 complete. 2 remaining: module 3 outstanding."
-            - activity_id: "IMP-DATA-001"
-              domain: "Data"
-              activity_title: "Extend data quality framework to assumption validation data (P11)"
-              target_level: 3
-              maturity_gain: 0.5
-              owner: "Data Lead"
+              maturity_gain: "Level 1 → 2"
+              notes: "6/12 staff complete"
+            - ref: "IMP-CC-SK-002"
+              dimension: "CC"
+              topic: "CC-SK"
+              criterion_id: "CC-SK-5"
+              activity: "Certify assurance leads in responsible AI deployment"
+              owner: "HR Lead"
               due_date: "2026-06-30"
               status: "PLANNED"
-              notes: "Dependent on P11 rollout completion"
-            - activity_id: "IMP-CI-001"
-              domain: "Continuous Improvement"
-              activity_title: "Establish quarterly ARMM self-assessment cadence"
-              target_level: 4
-              maturity_gain: 1.4
-              owner: "Assurance Lead"
-              due_date: "2026-06-30"
-              status: "PLANNED"
-              notes: "First cycle planned for 2026-Q2"
+              maturity_gain: "Level 1 → 2"
+              notes: "Course identified — enrolment pending budget approval"
+            - ref: "IMP-TC-SC-001"
+              dimension: "TC"
+              topic: "TC-SC"
+              criterion_id: "TC-SC-3"
+              activity: "Complete penetration test of AI agent integration layer"
+              owner: "Tech Lead"
+              due_date: "2026-04-01"
+              status: "OVERDUE"
+              maturity_gain: "Level 2 → 3"
+              notes: "Delayed — rescheduled to 2026-05-01"
         sort:
-          - field: domain
-            direction: asc
           - field: status
+            direction: asc
+          - field: due_date
             direction: asc
       options:
         row_highlight:
           field: status
           rules:
-            - value: "OUTSTANDING"
-              color: "#FEF2F2"
             - value: "OVERDUE"
               color: "#FEF2F2"
             - value: "IN_PROGRESS"
               color: "#EFF6FF"
+            - value: "PLANNED"
+              color: "#F8FAFC"
             - value: "COMPLETED"
               color: "#F0FDF4"
         sticky_header: true
         pagination:
           page_size: 20
       accessibility:
-        alt_text: "Full ARMM improvement roadmap table showing all activities with owners, due dates, and status"
+        alt_text: "Full ARMM improvement roadmap table with criterion IDs, owners, due dates, and status"
 
   theme:
     mode: light
