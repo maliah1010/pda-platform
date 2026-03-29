@@ -356,7 +356,7 @@ pm-assure (P1–P10):
 > dimension, and UDS specification, shortening the distance between
 > understanding a barrier and doing something about it." [2]
 
-The **Project Delivery Toolkit** (`projects-toolkit.netlify.app`) is the
+The **Project Delivery Toolkit** (`https://project-delivery-toolkit.tortoiseai.co.uk/`) is the
 interactive companion to this barrier mapping document.  Built with React,
 Vite, and Recharts, it provides a navigable, filterable interface to the
 framework content.
