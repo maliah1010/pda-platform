@@ -1,0 +1,152 @@
+{
+  "PROJ-001": {
+    "name": "Digital ID Verification Service",
+    "department": "Home Office",
+    "category": "ICT",
+    "sro": "Sarah Chen",
+    "start_date": "2025-04-01",
+    "end_date": "2026-09-30",
+    "whole_life_cost_m": 12.5,
+    "domain": "CLEAR"
+  },
+  "PROJ-002": {
+    "name": "Estate Rationalisation Programme",
+    "department": "MoJ",
+    "category": "Property",
+    "sro": "James Whitfield",
+    "start_date": "2025-04-01",
+    "end_date": "2027-03-31",
+    "whole_life_cost_m": 45.0,
+    "domain": "CLEAR"
+  },
+  "PROJ-003": {
+    "name": "Network Refresh Phase 2",
+    "department": "HMRC",
+    "category": "ICT",
+    "sro": "Diana Okafor",
+    "start_date": "2025-05-01",
+    "end_date": "2026-06-30",
+    "whole_life_cost_m": 8.2,
+    "domain": "CLEAR"
+  },
+  "PROJ-004": {
+    "name": "ERP Modernisation",
+    "department": "DWP",
+    "category": "ICT",
+    "sro": "Robert Singh",
+    "start_date": "2025-04-01",
+    "end_date": "2027-09-30",
+    "whole_life_cost_m": 110.0,
+    "domain": "COMPLICATED"
+  },
+  "PROJ-005": {
+    "name": "Citizen Portal Redesign",
+    "department": "HMRC",
+    "category": "Digital",
+    "sro": "Emma Hastings",
+    "start_date": "2025-06-01",
+    "end_date": "2026-12-31",
+    "whole_life_cost_m": 22.0,
+    "domain": "COMPLICATED"
+  },
+  "PROJ-006": {
+    "name": "Border Systems Integration",
+    "department": "Home Office",
+    "category": "ICT",
+    "sro": "Marcus Levy",
+    "start_date": "2025-04-01",
+    "end_date": "2027-03-31",
+    "whole_life_cost_m": 78.5,
+    "domain": "COMPLICATED"
+  },
+  "PROJ-007": {
+    "name": "Court Scheduling Platform",
+    "department": "MoJ",
+    "category": "Digital",
+    "sro": "Priya Nair",
+    "start_date": "2025-07-01",
+    "end_date": "2026-12-31",
+    "whole_life_cost_m": 18.0,
+    "domain": "COMPLICATED"
+  },
+  "PROJ-008": {
+    "name": "Tax Credits Migration",
+    "department": "HMRC",
+    "category": "ICT",
+    "sro": "Kevin O'Brien",
+    "start_date": "2025-04-01",
+    "end_date": "2027-06-30",
+    "whole_life_cost_m": 145.0,
+    "domain": "COMPLICATED"
+  },
+  "PROJ-009": {
+    "name": "Cross-Government Data Platform",
+    "department": "CDDO",
+    "category": "Transformation",
+    "sro": "Amara Diallo",
+    "start_date": "2025-04-01",
+    "end_date": "2027-09-30",
+    "whole_life_cost_m": 62.0,
+    "domain": "COMPLEX"
+  },
+  "PROJ-010": {
+    "name": "Defence Logistics Overhaul",
+    "department": "MoD",
+    "category": "Transformation",
+    "sro": "Colonel Peter Nash",
+    "start_date": "2025-04-01",
+    "end_date": "2028-03-31",
+    "whole_life_cost_m": 320.0,
+    "domain": "COMPLEX"
+  },
+  "PROJ-011": {
+    "name": "NHS Referral Pathway",
+    "department": "DHSC",
+    "category": "Digital",
+    "sro": "Dr Claire Moss",
+    "start_date": "2025-05-01",
+    "end_date": "2027-04-30",
+    "whole_life_cost_m": 55.0,
+    "domain": "COMPLEX"
+  },
+  "PROJ-012": {
+    "name": "Smart Motorways Monitoring",
+    "department": "DfT",
+    "category": "Infrastructure",
+    "sro": "Alan Griffiths",
+    "start_date": "2025-04-01",
+    "end_date": "2028-09-30",
+    "whole_life_cost_m": 890.0,
+    "domain": "COMPLEX"
+  },
+  "PROJ-013": {
+    "name": "Universal Credit Next Gen",
+    "department": "DWP",
+    "category": "Transformation",
+    "sro": "Natasha Patel",
+    "start_date": "2025-04-01",
+    "end_date": "2029-03-31",
+    "whole_life_cost_m": 1200.0,
+    "domain": "COMPLEX"
+  },
+  "PROJ-014": {
+    "name": "Emergency Response Coordination",
+    "department": "Cabinet Office",
+    "category": "Transformation",
+    "sro": "Sir Douglas Hale",
+    "start_date": "2025-04-01",
+    "end_date": "2027-03-31",
+    "whole_life_cost_m": 180.0,
+    "domain": "CHAOTIC"
+  },
+  "PROJ-015": {
+    "name": "AI-Assisted Casework System",
+    "department": "Home Office",
+    "category": "AI/ICT",
+    "sro": "Fiona Campbell",
+    "start_date": "2025-06-01",
+    "end_date": "2027-06-30",
+    "whole_life_cost_m": 95.0,
+    "domain": "CHAOTIC"
+  }
+}

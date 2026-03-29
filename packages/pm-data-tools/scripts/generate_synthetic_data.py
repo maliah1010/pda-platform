@@ -1618,8 +1618,8 @@ def main() -> None:
     args = parser.parse_args()
 
     output: Path = args.output.resolve()
-    print(f"Generating synthetic data → {output}")
-    print(f"15 projects  |  12 months  |  14 tables (P1–P12)\n")
+    print(f"Generating synthetic data -> {output}")
+    print(f"15 projects  |  12 months  |  14 tables (P1-P12)\n")
 
     generate(output)
 

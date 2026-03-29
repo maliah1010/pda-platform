@@ -1,0 +1,437 @@
+{
+  "PROJ-001": [
+    {
+      "id": "proj-001-business-case-v2",
+      "type": "business_case",
+      "last_modified": "2026-03-21"
+    },
+    {
+      "id": "proj-001-risk-register-v4",
+      "type": "risk_register",
+      "last_modified": "2026-03-15"
+    },
+    {
+      "id": "proj-001-benefits-realisation-plan-v3",
+      "type": "benefits_plan",
+      "last_modified": "2026-03-21"
+    },
+    {
+      "id": "proj-001-project-initiation-document-v2",
+      "type": "pid",
+      "last_modified": "2026-02-27"
+    }
+  ],
+  "PROJ-002": [
+    {
+      "id": "proj-002-business-case-v2",
+      "type": "business_case",
+      "last_modified": "2026-03-21"
+    },
+    {
+      "id": "proj-002-risk-register-v4",
+      "type": "risk_register",
+      "last_modified": "2026-03-09"
+    },
+    {
+      "id": "proj-002-benefits-realisation-plan-v3",
+      "type": "benefits_plan",
+      "last_modified": "2026-03-18"
+    },
+    {
+      "id": "proj-002-project-initiation-document-v2",
+      "type": "pid",
+      "last_modified": "2026-03-05"
+    }
+  ],
+  "PROJ-003": [
+    {
+      "id": "proj-003-business-case-v2",
+      "type": "business_case",
+      "last_modified": "2026-03-18"
+    },
+    {
+      "id": "proj-003-risk-register-v4",
+      "type": "risk_register",
+      "last_modified": "2026-02-28"
+    },
+    {
+      "id": "proj-003-benefits-realisation-plan-v3",
+      "type": "benefits_plan",
+      "last_modified": "2026-03-16"
+    },
+    {
+      "id": "proj-003-project-initiation-document-v2",
+      "type": "pid",
+      "last_modified": "2026-03-08"
+    }
+  ],
+  "PROJ-004": [
+    {
+      "id": "proj-004-business-case-v2",
+      "type": "business_case",
+      "last_modified": "2026-03-07"
+    },
+    {
+      "id": "proj-004-risk-register-v3",
+      "type": "risk_register",
+      "last_modified": "2026-02-25"
+    },
+    {
+      "id": "proj-004-benefits-realisation-plan-v2",
+      "type": "benefits_plan",
+      "last_modified": "2026-02-21"
+    },
+    {
+      "id": "proj-004-project-initiation-document-v1",
+      "type": "pid",
+      "last_modified": "2025-12-11"
+    },
+    {
+      "id": "proj-004-architecture-decision-record-v2",
+      "type": "adr",
+      "last_modified": "2025-12-19"
+    }
+  ],
+  "PROJ-005": [
+    {
+      "id": "proj-005-business-case-v2",
+      "type": "business_case",
+      "last_modified": "2026-03-17"
+    },
+    {
+      "id": "proj-005-risk-register-v3",
+      "type": "risk_register",
+      "last_modified": "2026-02-12"
+    },
+    {
+      "id": "proj-005-benefits-realisation-plan-v2",
+      "type": "benefits_plan",
+      "last_modified": "2026-02-16"
+    },
+    {
+      "id": "proj-005-project-initiation-document-v1",
+      "type": "pid",
+      "last_modified": "2025-11-01"
+    },
+    {
+      "id": "proj-005-architecture-decision-record-v2",
+      "type": "adr",
+      "last_modified": "2025-12-16"
+    }
+  ],
+  "PROJ-006": [
+    {
+      "id": "proj-006-business-case-v2",
+      "type": "business_case",
+      "last_modified": "2026-02-17"
+    },
+    {
+      "id": "proj-006-risk-register-v3",
+      "type": "risk_register",
+      "last_modified": "2026-02-26"
+    },
+    {
+      "id": "proj-006-benefits-realisation-plan-v2",
+      "type": "benefits_plan",
+      "last_modified": "2026-03-04"
+    },
+    {
+      "id": "proj-006-project-initiation-document-v1",
+      "type": "pid",
+      "last_modified": "2025-12-29"
+    },
+    {
+      "id": "proj-006-architecture-decision-record-v2",
+      "type": "adr",
+      "last_modified": "2025-12-29"
+    }
+  ],
+  "PROJ-007": [
+    {
+      "id": "proj-007-business-case-v2",
+      "type": "business_case",
+      "last_modified": "2026-03-14"
+    },
+    {
+      "id": "proj-007-risk-register-v3",
+      "type": "risk_register",
+      "last_modified": "2026-03-12"
+    },
+    {
+      "id": "proj-007-benefits-realisation-plan-v2",
+      "type": "benefits_plan",
+      "last_modified": "2026-02-16"
+    },
+    {
+      "id": "proj-007-project-initiation-document-v1",
+      "type": "pid",
+      "last_modified": "2025-12-20"
+    },
+    {
+      "id": "proj-007-architecture-decision-record-v2",
+      "type": "adr",
+      "last_modified": "2025-10-30"
+    }
+  ],
+  "PROJ-008": [
+    {
+      "id": "proj-008-business-case-v2",
+      "type": "business_case",
+      "last_modified": "2026-03-14"
+    },
+    {
+      "id": "proj-008-risk-register-v3",
+      "type": "risk_register",
+      "last_modified": "2026-02-15"
+    },
+    {
+      "id": "proj-008-benefits-realisation-plan-v2",
+      "type": "benefits_plan",
+      "last_modified": "2026-03-15"
+    },
+    {
+      "id": "proj-008-project-initiation-document-v1",
+      "type": "pid",
+      "last_modified": "2025-11-13"
+    },
+    {
+      "id": "proj-008-architecture-decision-record-v2",
+      "type": "adr",
+      "last_modified": "2025-11-13"
+    }
+  ],
+  "PROJ-009": [
+    {
+      "id": "proj-009-business-case-v1",
+      "type": "business_case",
+      "last_modified": "2026-03-26"
+    },
+    {
+      "id": "proj-009-risk-register-v2",
+      "type": "risk_register",
+      "last_modified": "2026-01-30"
+    },
+    {
+      "id": "proj-009-benefits-realisation-plan-v1",
+      "type": "benefits_plan",
+      "last_modified": "2026-02-19"
+    },
+    {
+      "id": "proj-009-project-initiation-document-v1",
+      "type": "pid",
+      "last_modified": "2025-10-31"
+    },
+    {
+      "id": "proj-009-architecture-decision-record-v1",
+      "type": "adr",
+      "last_modified": "2025-10-02"
+    },
+    {
+      "id": "proj-009-dependency-map-v1",
+      "type": "dependency_map",
+      "last_modified": "2025-10-23"
+    }
+  ],
+  "PROJ-010": [
+    {
+      "id": "proj-010-business-case-v1",
+      "type": "business_case",
+      "last_modified": "2026-03-24"
+    },
+    {
+      "id": "proj-010-risk-register-v2",
+      "type": "risk_register",
+      "last_modified": "2026-02-13"
+    },
+    {
+      "id": "proj-010-benefits-realisation-plan-v1",
+      "type": "benefits_plan",
+      "last_modified": "2026-02-26"
+    },
+    {
+      "id": "proj-010-project-initiation-document-v1",
+      "type": "pid",
+      "last_modified": "2025-11-17"
+    },
+    {
+      "id": "proj-010-architecture-decision-record-v1",
+      "type": "adr",
+      "last_modified": "2025-11-07"
+    },
+    {
+      "id": "proj-010-dependency-map-v1",
+      "type": "dependency_map",
+      "last_modified": "2025-11-24"
+    }
+  ],
+  "PROJ-011": [
+    {
+      "id": "proj-011-business-case-v1",
+      "type": "business_case",
+      "last_modified": "2026-03-24"
+    },
+    {
+      "id": "proj-011-risk-register-v2",
+      "type": "risk_register",
+      "last_modified": "2026-02-16"
+    },
+    {
+      "id": "proj-011-benefits-realisation-plan-v1",
+      "type": "benefits_plan",
+      "last_modified": "2026-02-02"
+    },
+    {
+      "id": "proj-011-project-initiation-document-v1",
+      "type": "pid",
+      "last_modified": "2025-10-20"
+    },
+    {
+      "id": "proj-011-architecture-decision-record-v1",
+      "type": "adr",
+      "last_modified": "2025-10-06"
+    },
+    {
+      "id": "proj-011-dependency-map-v1",
+      "type": "dependency_map",
+      "last_modified": "2025-11-15"
+    }
+  ],
+  "PROJ-012": [
+    {
+      "id": "proj-012-business-case-v1",
+      "type": "business_case",
+      "last_modified": "2026-03-26"
+    },
+    {
+      "id": "proj-012-risk-register-v2",
+      "type": "risk_register",
+      "last_modified": "2026-01-31"
+    },
+    {
+      "id": "proj-012-benefits-realisation-plan-v1",
+      "type": "benefits_plan",
+      "last_modified": "2026-02-03"
+    },
+    {
+      "id": "proj-012-project-initiation-document-v1",
+      "type": "pid",
+      "last_modified": "2025-11-24"
+    },
+    {
+      "id": "proj-012-architecture-decision-record-v1",
+      "type": "adr",
+      "last_modified": "2025-11-28"
+    },
+    {
+      "id": "proj-012-dependency-map-v1",
+      "type": "dependency_map",
+      "last_modified": "2025-11-12"
+    }
+  ],
+  "PROJ-013": [
+    {
+      "id": "proj-013-business-case-v1",
+      "type": "business_case",
+      "last_modified": "2026-03-25"
+    },
+    {
+      "id": "proj-013-risk-register-v2",
+      "type": "risk_register",
+      "last_modified": "2026-02-17"
+    },
+    {
+      "id": "proj-013-benefits-realisation-plan-v1",
+      "type": "benefits_plan",
+      "last_modified": "2026-02-16"
+    },
+    {
+      "id": "proj-013-project-initiation-document-v1",
+      "type": "pid",
+      "last_modified": "2025-10-04"
+    },
+    {
+      "id": "proj-013-architecture-decision-record-v1",
+      "type": "adr",
+      "last_modified": "2025-09-11"
+    },
+    {
+      "id": "proj-013-dependency-map-v1",
+      "type": "dependency_map",
+      "last_modified": "2025-10-26"
+    }
+  ],
+  "PROJ-014": [
+    {
+      "id": "proj-014-business-case-v1",
+      "type": "business_case",
+      "last_modified": "2026-03-27"
+    },
+    {
+      "id": "proj-014-risk-register-v1",
+      "type": "risk_register",
+      "last_modified": "2026-03-25"
+    },
+    {
+      "id": "proj-014-benefits-realisation-plan-v1",
+      "type": "benefits_plan",
+      "last_modified": "2025-04-05"
+    },
+    {
+      "id": "proj-014-project-initiation-document-v1",
+      "type": "pid",
+      "last_modified": "2025-08-04"
+    },
+    {
+      "id": "proj-014-architecture-decision-record-v1",
+      "type": "adr",
+      "last_modified": "2025-09-14"
+    },
+    {
+      "id": "proj-014-dependency-map-v1",
+      "type": "dependency_map",
+      "last_modified": "2025-10-01"
+    },
+    {
+      "id": "proj-014-recovery-plan-v1",
+      "type": "recovery_plan",
+      "last_modified": "2025-07-20"
+    }
+  ],
+  "PROJ-015": [
+    {
+      "id": "proj-015-business-case-v1",
+      "type": "business_case",
+      "last_modified": "2026-03-24"
+    },
+    {
+      "id": "proj-015-risk-register-v1",
+      "type": "risk_register",
+      "last_modified": "2026-03-24"
+    },
+    {
+      "id": "proj-015-benefits-realisation-plan-v1",
+      "type": "benefits_plan",
+      "last_modified": "2025-08-22"
+    },
+    {
+      "id": "proj-015-project-initiation-document-v1",
+      "type": "pid",
+      "last_modified": "2025-03-31"
+    },
+    {
+      "id": "proj-015-architecture-decision-record-v1",
+      "type": "adr",
+      "last_modified": "2025-07-24"
+    },
+    {
+      "id": "proj-015-dependency-map-v1",
+      "type": "dependency_map",
+      "last_modified": "2025-05-07"
+    },
+    {
+      "id": "proj-015-recovery-plan-v1",
+      "type": "recovery_plan",
+      "last_modified": "2025-06-30"
+    }
+  ]
+}
