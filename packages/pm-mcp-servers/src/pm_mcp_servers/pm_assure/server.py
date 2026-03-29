@@ -827,6 +827,173 @@ async def list_tools() -> list[Tool]:
                 "required": ["assumption_id"],
             },
         ),
+        # =================================================================
+        # Hackathon tools: project creation + dashboard export
+        # =================================================================
+        Tool(
+            name="create_project_from_profile",
+            description=(
+                "Create a full assurance project from a Claude-extracted PDF profile.  "
+                "Generates 12 months of P1–P12 data (compliance scores, review actions, "
+                "divergence snapshots, schedule recommendations, overrides, activities, "
+                "assumptions, ARMM assessments, workflow executions, domain classification) "
+                "calibrated to the project's complexity domain and indicators.  "
+                "Returns the project_id and an executive summary."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "project_id": {
+                        "type": "string",
+                        "description": "Desired project identifier (e.g. 'PROJ-HACKATHON-001').",
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Project name.",
+                    },
+                    "department": {
+                        "type": "string",
+                        "description": "UK government department.",
+                    },
+                    "category": {
+                        "type": "string",
+                        "description": "Project category (ICT, Digital, Infrastructure, etc.).",
+                    },
+                    "domain": {
+                        "type": "string",
+                        "enum": ["CLEAR", "COMPLICATED", "COMPLEX", "CHAOTIC"],
+                        "description": "Cynefin complexity domain.",
+                    },
+                    "sro": {
+                        "type": "string",
+                        "description": "Senior Responsible Owner title.",
+                    },
+                    "technical_complexity": {
+                        "type": "number",
+                        "description": "0.0–1.0 technical complexity indicator.",
+                    },
+                    "stakeholder_complexity": {
+                        "type": "number",
+                        "description": "0.0–1.0 stakeholder complexity.",
+                    },
+                    "requirement_clarity": {
+                        "type": "number",
+                        "description": "0.0–1.0 requirement clarity (1 = very clear).",
+                    },
+                    "delivery_track_record": {
+                        "type": "number",
+                        "description": "0.0–1.0 prior delivery success rate.",
+                    },
+                    "organisational_change": {
+                        "type": "number",
+                        "description": "0.0–1.0 degree of org change required.",
+                    },
+                    "regulatory_exposure": {
+                        "type": "number",
+                        "description": "0.0–1.0 regulatory/compliance risk.",
+                    },
+                    "dependency_count": {
+                        "type": "number",
+                        "description": "0.0–1.0 normalised dependency count.",
+                    },
+                    "whole_life_cost_m": {
+                        "type": "number",
+                        "description": "Whole life cost in GBP millions.",
+                    },
+                    "summary": {
+                        "type": "string",
+                        "description": "Executive summary of the project.",
+                    },
+                    "key_risks": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Key risks identified from the document.",
+                    },
+                    "db_path": {
+                        "type": "string",
+                        "description": "Optional path to the SQLite store.",
+                    },
+                },
+                "required": ["project_id", "name", "department", "domain"],
+            },
+        ),
+        Tool(
+            name="export_dashboard_data",
+            description=(
+                "Export all assurance data for a project as a static JSON file "
+                "that the UDS Renderer can consume directly.  The JSON maps panel "
+                "IDs to their data payloads (value, rows, text).  Write to a "
+                "specified output directory."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "project_id": {
+                        "type": "string",
+                        "description": "Project identifier.",
+                    },
+                    "output_dir": {
+                        "type": "string",
+                        "description": (
+                            "Directory to write the JSON file to "
+                            "(e.g. path to uds-renderer/public/data)."
+                        ),
+                    },
+                    "db_path": {
+                        "type": "string",
+                        "description": "Optional path to the SQLite store.",
+                    },
+                },
+                "required": ["project_id", "output_dir"],
+            },
+        ),
+        Tool(
+            name="export_dashboard_html",
+            description=(
+                "Generate a self-contained HTML dashboard file for a project.  "
+                "The HTML includes Tailwind CSS, Chart.js, and Inter font via CDN, "
+                "all data embedded inline, TortoiseAI branding, and works offline.  "
+                "Can be emailed, deployed, or printed."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "project_id": {
+                        "type": "string",
+                        "description": "Project identifier.",
+                    },
+                    "project_name": {
+                        "type": "string",
+                        "description": "Human-readable project name.",
+                    },
+                    "department": {
+                        "type": "string",
+                        "description": "Government department.",
+                    },
+                    "domain": {
+                        "type": "string",
+                        "description": "Complexity domain.",
+                    },
+                    "key_risks": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Key risks from the document.",
+                    },
+                    "output_dir": {
+                        "type": "string",
+                        "description": (
+                            "Directory to save the HTML file.  "
+                            "Defaults to ~/Desktop/pda-dashboards/."
+                        ),
+                    },
+                    "db_path": {
+                        "type": "string",
+                        "description": "Optional path to the SQLite store.",
+                    },
+                },
+                "required": ["project_id", "project_name"],
+            },
+        ),
     ]
 
 
@@ -878,6 +1045,12 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
         return await _get_assumption_drift(arguments)
     if name == "get_cascade_impact":
         return await _get_cascade_impact(arguments)
+    if name == "create_project_from_profile":
+        return await _create_project_from_profile(arguments)
+    if name == "export_dashboard_data":
+        return await _export_dashboard_data(arguments)
+    if name == "export_dashboard_html":
+        return await _export_dashboard_html(arguments)
     return [TextContent(type="text", text=f"Unknown tool: {name}")]
 
 
@@ -2015,6 +2188,396 @@ async def _get_cascade_impact(arguments: dict[str, Any]) -> list[TextContent]:
 
     except Exception as exc:
         return [TextContent(type="text", text=f"Error: {exc}")]
+
+
+# ---------------------------------------------------------------------------
+# Hackathon: create_project_from_profile
+# ---------------------------------------------------------------------------
+
+
+async def _create_project_from_profile(arguments: dict[str, Any]) -> list[TextContent]:
+    """Create a full P1-P12 project from a Claude-extracted profile."""
+    try:
+        from pm_data_tools.db.store import AssuranceStore
+        from pm_data_tools.assurance.generator import generate_single_project
+        from pm_data_tools.assurance.classifier import ClassificationInput
+
+        project_id: str = arguments["project_id"]
+        name: str = arguments["name"]
+        department: str = arguments["department"]
+        domain: str = arguments["domain"]
+        sro: str = arguments.get("sro", "Programme Director")
+
+        raw_db_path = arguments.get("db_path")
+        db_path = Path(raw_db_path) if raw_db_path else None
+        store = AssuranceStore(db_path=db_path)
+
+        # Build ClassificationInput from profile indicators
+        classifier_input = ClassificationInput(
+            project_id=project_id,
+            technical_complexity=arguments.get("technical_complexity", 0.5),
+            stakeholder_complexity=arguments.get("stakeholder_complexity", 0.5),
+            requirement_clarity=arguments.get("requirement_clarity", 0.5),
+            delivery_track_record=arguments.get("delivery_track_record", 0.5),
+            organisational_change=arguments.get("organisational_change", 0.5),
+            regulatory_exposure=arguments.get("regulatory_exposure", 0.3),
+            dependency_count=arguments.get("dependency_count", 0.5),
+            notes=arguments.get("summary", ""),
+        )
+
+        meta = {"name": name, "sro": sro}
+
+        # Run the full P1-P12 pipeline
+        generate_single_project(
+            store=store,
+            project_id=project_id,
+            domain=domain,
+            meta=meta,
+            classifier_input=classifier_input,
+        )
+
+        # Gather summary stats
+        scores = store.get_confidence_scores(project_id)
+        latest_score = scores[-1]["score"] if scores else None
+        recs = store.get_recommendations(project_id)
+        open_actions = sum(1 for r in recs if r.get("status") in ("OPEN", "RECURRING"))
+        armm = store.get_armm_assessments(project_id)
+        armm_level = None
+        if armm:
+            last_a = armm[-1]
+            armm_level = last_a.get("overall_level")
+        workflows = store.get_workflow_history(project_id)
+        latest_health = None
+        if workflows:
+            latest_health = workflows[-1].get("health")
+
+        record_count = (
+            len(scores) + len(recs) + len(store.get_divergence_history(project_id))
+            + len(store.get_schedule_history(project_id))
+            + len(store.get_override_decisions(project_id))
+            + len(store.get_assurance_activities(project_id))
+            + len(store.get_assumptions(project_id))
+            + len(armm) + len(workflows)
+            + len(store.get_domain_classifications(project_id))
+        )
+
+        output: dict[str, Any] = {
+            "project_id": project_id,
+            "name": name,
+            "department": department,
+            "domain": domain,
+            "latest_compliance_score": latest_score,
+            "open_actions": open_actions,
+            "armm_level": armm_level,
+            "latest_health": latest_health,
+            "records_created": record_count,
+            "message": (
+                f"Project '{name}' created with {record_count} assurance records.  "
+                f"Domain: {domain}.  Compliance: {latest_score}.  "
+                f"ARMM Level: {armm_level}.  Health: {latest_health}."
+            ),
+        }
+        return [TextContent(type="text", text=json.dumps(output, indent=2, default=str))]
+
+    except Exception as exc:
+        return [TextContent(type="text", text=f"Error: {exc}")]
+
+
+# ---------------------------------------------------------------------------
+# Hackathon: export_dashboard_data
+# ---------------------------------------------------------------------------
+
+
+def _health_to_score(health: str) -> int:
+    return {"HEALTHY": 90, "ATTENTION_NEEDED": 65, "AT_RISK": 40, "CRITICAL": 20}.get(health, 50)
+
+
+async def _export_dashboard_data(arguments: dict[str, Any]) -> list[TextContent]:
+    """Export all assurance data as static JSON for the UDS Renderer."""
+    try:
+        from pm_data_tools.db.store import AssuranceStore
+
+        project_id: str = arguments["project_id"]
+        output_dir: str = arguments["output_dir"]
+        raw_db_path = arguments.get("db_path")
+        db_path = Path(raw_db_path) if raw_db_path else None
+        store = AssuranceStore(db_path=db_path)
+
+        # --- Gather all P1-P12 data ---
+        scores = store.get_confidence_scores(project_id)
+        recs = store.get_recommendations(project_id)
+        divergence = store.get_divergence_history(project_id)
+        schedule = store.get_schedule_history(project_id)
+        workflows = store.get_workflow_history(project_id)
+        classifications = store.get_domain_classifications(project_id)
+        assumptions = store.get_assumptions(project_id)
+
+        # --- Build panel data ---
+        panels: dict[str, Any] = {}
+
+        # overall_health (gauge) — from latest workflow
+        latest_wf = workflows[-1] if workflows else {}
+        health_str = str(latest_wf.get("health", "ATTENTION_NEEDED"))
+        panels["overall_health"] = {"value": _health_to_score(health_str)}
+
+        # domain_classification (kpi) — from latest P10
+        latest_cls = classifications[-1] if classifications else {}
+        panels["domain_classification"] = {"value": str(latest_cls.get("domain", "UNKNOWN"))}
+
+        # review_urgency (kpi) — from latest P5
+        latest_sched = schedule[-1] if schedule else {}
+        rec_date_str = str(latest_sched.get("recommended_date", ""))
+        if rec_date_str:
+            from datetime import datetime as _dt, date as _date
+            try:
+                rec_date = _dt.fromisoformat(rec_date_str).date() if "T" in rec_date_str else _date.fromisoformat(rec_date_str)
+                days_until = max(0, (rec_date - _date.today()).days)
+            except Exception:
+                days_until = 42
+        else:
+            days_until = 42
+        panels["review_urgency"] = {"value": days_until}
+
+        # artefact_currency (kpi) — derive from scores
+        if scores:
+            avg = sum(s["score"] for s in scores[-3:]) / min(3, len(scores))
+            panels["artefact_currency"] = {"value": round(min(1.0, avg / 100 * 0.92), 2)}
+        else:
+            panels["artefact_currency"] = {"value": 0.5}
+
+        # compliance_score (kpi) — latest P2
+        latest_score = scores[-1]["score"] if scores else None
+        panels["compliance_score"] = {"value": latest_score}
+
+        # action_closure (kpi) — derived from P3
+        total_recs = len(recs)
+        closed_recs = sum(1 for r in recs if r.get("status") == "CLOSED")
+        panels["action_closure"] = {
+            "value": round(closed_recs / max(1, total_recs), 2)
+        }
+
+        # ai_confidence (kpi) — latest P4
+        latest_div = divergence[-1] if divergence else {}
+        panels["ai_confidence"] = {
+            "value": latest_div.get("confidence_score", 0.75)
+        }
+
+        # confidence_divergence (kpi) — spread from latest P4
+        spread_map = {"STABLE": 0.08, "CONVERGENT": 0.05, "LOW_CONSENSUS": 0.22, "HIGH_DIVERGENCE": 0.30}
+        panels["confidence_divergence"] = {
+            "value": spread_map.get(str(latest_div.get("signal_type", "STABLE")), 0.10)
+        }
+
+        # compliance_trend (trend) — from P2 scores over time
+        panels["compliance_trend"] = {
+            "rows": [
+                {
+                    "label": str(s.get("timestamp", ""))[:7],
+                    "compliance_score": s["score"],
+                }
+                for s in scores
+            ]
+        }
+
+        # confidence_trend (trend) — from P4 divergence over time
+        panels["confidence_trend"] = {
+            "rows": [
+                {
+                    "label": str(d.get("timestamp", ""))[:7],
+                    "confidence_score": d.get("confidence_score", 0),
+                    "confidence_spread": spread_map.get(
+                        str(d.get("signal_type", "STABLE")), 0.10
+                    ),
+                }
+                for d in divergence
+            ]
+        }
+
+        # artefact_status_bar (bar) — synthesise from score data
+        if scores:
+            avg_score = sum(s["score"] for s in scores) / len(scores)
+            current_count = max(1, round(12 * avg_score / 100))
+            outdated_count = max(0, 12 - current_count - 1)
+            missing_count = max(0, 12 - current_count - outdated_count)
+        else:
+            current_count, outdated_count, missing_count = 8, 3, 1
+        panels["artefact_status_bar"] = {
+            "rows": [
+                {"assurance.currency_status": "CURRENT", "assurance.artefact_count": current_count},
+                {"assurance.currency_status": "OUTDATED", "assurance.artefact_count": outdated_count},
+                {"assurance.currency_status": "MISSING", "assurance.artefact_count": missing_count},
+            ]
+        }
+
+        # open_actions_table (table) — from P3 recommendations
+        panels["open_actions_table"] = {
+            "rows": [
+                {
+                    "assurance.action_id": str(r.get("id", ""))[:8],
+                    "assurance.action_text": r.get("text", ""),
+                    "assurance.action_category": r.get("category", ""),
+                    "assurance.action_status": r.get("status", "OPEN"),
+                    "assurance.action_confidence": r.get("confidence", 0),
+                    "assurance.action_review_date": r.get("review_date", ""),
+                    "assurance.action_owner": r.get("owner", ""),
+                    "assurance.recurring": "YES" if r.get("recurrence_of") else "NO",
+                }
+                for r in recs
+            ]
+        }
+
+        # --- Write to file ---
+        out_path = Path(output_dir)
+        out_path.mkdir(parents=True, exist_ok=True)
+        file_path = out_path / f"{project_id}-data.json"
+        file_path.write_text(json.dumps(panels, indent=2, default=str))
+
+        output: dict[str, Any] = {
+            "file_path": str(file_path),
+            "panel_count": len(panels),
+            "project_id": project_id,
+            "url": f"http://localhost:5173/?dashboard=assurance-overview.uds.yaml&project_id={project_id}&data_mode=static&branded=true",
+        }
+        return [TextContent(type="text", text=json.dumps(output, indent=2, default=str))]
+
+    except Exception as exc:
+        import traceback
+        return [TextContent(type="text", text=f"Error: {exc}\n{traceback.format_exc()}")]
+
+
+# ---------------------------------------------------------------------------
+# Hackathon: export_dashboard_html
+# ---------------------------------------------------------------------------
+
+
+async def _export_dashboard_html(arguments: dict[str, Any]) -> list[TextContent]:
+    """Generate a self-contained HTML dashboard file."""
+    try:
+        from pm_data_tools.db.store import AssuranceStore
+        from pm_mcp_servers.pm_assure.html_template import render_html
+
+        project_id: str = arguments["project_id"]
+        project_name: str = arguments["project_name"]
+        department: str = arguments.get("department", "")
+        domain: str = arguments.get("domain", "UNKNOWN")
+        key_risks: list[str] = arguments.get("key_risks", [])
+
+        raw_db_path = arguments.get("db_path")
+        db_path = Path(raw_db_path) if raw_db_path else None
+        store = AssuranceStore(db_path=db_path)
+
+        output_dir = arguments.get("output_dir")
+        if not output_dir:
+            output_dir = str(Path.home() / "Desktop" / "pda-dashboards")
+
+        # Build the same panel data as export_dashboard_data
+        spread_map = {"STABLE": 0.08, "CONVERGENT": 0.05, "LOW_CONSENSUS": 0.22, "HIGH_DIVERGENCE": 0.30}
+
+        scores = store.get_confidence_scores(project_id)
+        recs = store.get_recommendations(project_id)
+        divergence = store.get_divergence_history(project_id)
+        schedule = store.get_schedule_history(project_id)
+        workflows = store.get_workflow_history(project_id)
+        classifications = store.get_domain_classifications(project_id)
+
+        latest_wf = workflows[-1] if workflows else {}
+        health_str = str(latest_wf.get("health", "ATTENTION_NEEDED"))
+
+        latest_cls = classifications[-1] if classifications else {}
+        domain_val = str(latest_cls.get("domain", domain))
+
+        latest_sched = schedule[-1] if schedule else {}
+        rec_date_str = str(latest_sched.get("recommended_date", ""))
+        if rec_date_str:
+            from datetime import datetime as _dt, date as _date
+            try:
+                rec_date = _dt.fromisoformat(rec_date_str).date() if "T" in rec_date_str else _date.fromisoformat(rec_date_str)
+                days_until = max(0, (rec_date - _date.today()).days)
+            except Exception:
+                days_until = 42
+        else:
+            days_until = 42
+
+        latest_div = divergence[-1] if divergence else {}
+        total_recs = len(recs)
+        closed_recs = sum(1 for r in recs if r.get("status") == "CLOSED")
+
+        data = {
+            "project_name": project_name,
+            "department": department,
+            "domain": domain,
+            "project_id": project_id,
+            "key_risks": key_risks,
+            "overall_health": {"value": _health_to_score(health_str)},
+            "domain_classification": {"value": domain_val},
+            "review_urgency": {"value": days_until},
+            "artefact_currency": {
+                "value": round(min(1.0, (sum(s["score"] for s in scores[-3:]) / max(1, min(3, len(scores)))) / 100 * 0.92), 2)
+                if scores else 0.5
+            },
+            "compliance_score": {"value": scores[-1]["score"] if scores else None},
+            "action_closure": {"value": round(closed_recs / max(1, total_recs), 2)},
+            "ai_confidence": {"value": latest_div.get("confidence_score", 0.75)},
+            "compliance_trend": {
+                "rows": [
+                    {"label": str(s.get("timestamp", ""))[:7], "compliance_score": s["score"]}
+                    for s in scores
+                ]
+            },
+            "confidence_trend": {
+                "rows": [
+                    {
+                        "label": str(d.get("timestamp", ""))[:7],
+                        "confidence_score": d.get("confidence_score", 0),
+                    }
+                    for d in divergence
+                ]
+            },
+            "artefact_status_bar": {
+                "rows": (lambda: [
+                    {"assurance.currency_status": "CURRENT", "assurance.artefact_count": max(1, round(12 * (sum(s["score"] for s in scores) / len(scores)) / 100)) if scores else 8},
+                    {"assurance.currency_status": "OUTDATED", "assurance.artefact_count": max(0, 12 - (max(1, round(12 * (sum(s["score"] for s in scores) / len(scores)) / 100)) if scores else 8) - 1)},
+                    {"assurance.currency_status": "MISSING", "assurance.artefact_count": 1},
+                ])()
+            },
+            "open_actions_table": {
+                "rows": [
+                    {
+                        "assurance.action_id": str(r.get("id", ""))[:8],
+                        "assurance.action_text": r.get("text", ""),
+                        "assurance.action_category": r.get("category", ""),
+                        "assurance.action_status": r.get("status", "OPEN"),
+                        "assurance.action_confidence": r.get("confidence", 0),
+                        "assurance.action_review_date": r.get("review_date", ""),
+                        "assurance.action_owner": r.get("owner", ""),
+                        "assurance.recurring": "YES" if r.get("recurrence_of") else "NO",
+                    }
+                    for r in recs
+                ]
+            },
+        }
+
+        html = render_html(data)
+
+        out_path = Path(output_dir)
+        out_path.mkdir(parents=True, exist_ok=True)
+        file_path = out_path / f"{project_id}-dashboard.html"
+        file_path.write_text(html, encoding="utf-8")
+
+        output: dict[str, Any] = {
+            "file_path": str(file_path),
+            "project_id": project_id,
+            "message": (
+                f"HTML dashboard saved to {file_path}.  "
+                "Open in any browser — works offline.  "
+                "Would you like me to deploy this to a public URL?"
+            ),
+        }
+        return [TextContent(type="text", text=json.dumps(output, indent=2, default=str))]
+
+    except Exception as exc:
+        import traceback
+        return [TextContent(type="text", text=f"Error: {exc}\n{traceback.format_exc()}")]
 
 
 # ---------------------------------------------------------------------------

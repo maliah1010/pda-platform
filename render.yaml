@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: pda-mcp-server
+    runtime: python
+    pythonVersion: "3.11"
+    buildCommand: >
+      pip install -e packages/pm-data-tools &&
+      pip install -e packages/pm-mcp-servers
+    startCommand: >
+      uvicorn pm_mcp_servers.pm_assure.web_server:app
+      --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "true"

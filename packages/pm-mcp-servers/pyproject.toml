@@ -11,6 +11,8 @@ authors = [
 dependencies = [
     "mcp>=0.9.0",
     "pm-data-tools>=0.2.0",
+    "uvicorn>=0.30.0",
+    "starlette>=0.37.0",
 ]
 keywords = ["mcp", "model-context-protocol", "claude", "ai", "project-management"]
 
@@ -35,6 +37,7 @@ pm-analyse-server = "pm_mcp_servers.pm_analyse.server:main"
 pm-benchmark-server = "pm_mcp_servers.pm_benchmark.server:main"
 pm-nista-server = "pm_mcp_servers.pm_nista.server:main"
 pm-assure-server = "pm_mcp_servers.pm_assure.server:main"
+pm-assure-web = "pm_mcp_servers.pm_assure.web_server:main"
 
 [build-system]
 requires = ["setuptools>=61.0"]
