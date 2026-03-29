@@ -1,39 +1,50 @@
 # PM Data Tools
 
-Universal parser and validator for project management data. Supports NISTA compliance.
+Universal parser, validator, and assurance toolkit for project management data.
+Supports NISTA compliance, longitudinal score tracking, and cross-cycle review
+action analysis.
 
-Part of the [PDA Platform](https://github.com/PDA-Task-Force/pda-platform).
+Part of the [PDA Platform](https://github.com/antnewman/pda-platform).
 
-[![Tests](https://github.com/PDA-Task-Force/pda-platform/workflows/CI/badge.svg)](https://github.com/PDA-Task-Force/pda-platform/actions)
-[![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)](https://github.com/PDA-Task-Force/pda-platform)
+[![Tests](https://github.com/antnewman/pda-platform/workflows/CI/badge.svg)](https://github.com/antnewman/pda-platform/actions)
+[![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)](https://github.com/antnewman/pda-platform)
 [![Python](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## Overview
 
-PM Data Tools provides a canonical data model and conversion utilities for project management data across multiple platforms and standards. Built for UK Government NISTA (National Infrastructure and Service Transformation Authority) standard compliance.
+PM Data Tools provides a canonical data model and conversion utilities for project
+management data across multiple platforms and standards. Built for UK Government
+NISTA (National Infrastructure and Service Transformation Authority) standard
+compliance and assurance quality tracking.
 
 ## Features
 
 - **Canonical data model** for project management data
-- **Schema mappings** for major PM tools:
-  - Microsoft Project (MSPDI XML)
-  - Primavera P6 (XER, PMXML)
-  - Jira
-  - Microsoft Planner
-  - Monday.com
-  - Asana
-  - Smartsheet
-- **Validation framework** for structural and semantic rules
+- **Schema mappings** for major PM tools (MS Project, Primavera P6, Jira, Monday,
+  Asana, Smartsheet, GMPP, NISTA)
+- **NISTA compliance validation** at three strictness levels
+- **Longitudinal Compliance Tracker** — persists NISTA scores over time, detects
+  trends and threshold breaches
+- **Cross-Cycle Finding Analyzer** — AI-powered extraction, deduplication, and
+  recurrence detection for review actions
+- **Artefact Currency Validator** — detects stale artefacts and last-minute
+  compliance updates before gate reviews *(planned v0.4.0)*
+- **SQLite-backed persistence** shared across all assurance features
 - **CLI tools** for conversion, validation, and inspection
-- **GMPP-aligned** for UK government project data
-- **NISTA-ready** (placeholder for official schema)
 - **100% test coverage** with comprehensive test suite
 
 ## Installation
 
 ```bash
 pip install pm-data-tools
+```
+
+For assurance features with recurrence detection:
+
+```bash
+pip install pm-data-tools[assurance]
+pip install "agent-task-planning[mining]"
 ```
 
 For development:
@@ -48,173 +59,204 @@ pip install pm-data-tools[dev]
 
 ```python
 from pm_data_tools.schemas.monday import MondayParser
-from pm_data_tools.schemas.asana import AsanaParser
-from pm_data_tools.schemas.smartsheet import SmartsheetParser
 from pm_data_tools.schemas.gmpp import GMPPParser
 
-# Parse Monday.com data
 monday_parser = MondayParser()
 project = monday_parser.parse_file("monday_board.json")
 
-# Parse Asana data
-asana_parser = AsanaParser()
-project = asana_parser.parse_file("asana_project.json")
-
-# Parse Smartsheet data
-smartsheet_parser = SmartsheetParser()
-project = smartsheet_parser.parse_file("smartsheet.json")
-
-# Parse GMPP CSV data
 gmpp_parser = GMPPParser()
 projects = gmpp_parser.parse_file("gmpp_projects.csv")
 ```
 
-### Validate project data
+### Validate NISTA compliance
 
 ```python
-from pm_data_tools import validate
+from pm_data_tools.schemas.nista import NISTAValidator, StrictnessLevel
 
-result = validate("project.xml")
+validator = NISTAValidator(strictness=StrictnessLevel.STANDARD)
+result = validator.validate(data)
 
-if result.valid:
-    print("✓ Validation passed")
-else:
-    for error in result.errors:
-        print(f"✗ {error.code}: {error.message}")
+print(f"Compliant: {result.compliant}")
+print(f"Score: {result.compliance_score}%")
+```
+
+### Track compliance scores over time (P2)
+
+```python
+from pm_data_tools.schemas.nista import NISTAValidator, LongitudinalComplianceTracker
+from pm_data_tools.db import AssuranceStore
+
+store = AssuranceStore()
+tracker = LongitudinalComplianceTracker(store=store)
+
+# Score is persisted as a side effect of validation
+validator = NISTAValidator()
+result = validator.validate(data, project_id="PROJ-001", history=tracker)
+
+trend = tracker.compute_trend("PROJ-001")   # IMPROVING / STAGNATING / DEGRADING
+breaches = tracker.check_thresholds("PROJ-001")  # floor and drop breaches
+```
+
+### Extract and track review actions (P3)
+
+```python
+from agent_planning.confidence import ConfidenceExtractor
+from agent_planning.providers.anthropic import AnthropicProvider
+from pm_data_tools.assurance import FindingAnalyzer, RecurrenceDetector
+
+provider = AnthropicProvider(api_key="...")
+ce = ConfidenceExtractor(provider)
+
+analyzer = FindingAnalyzer(
+    extractor=ce,
+    recurrence_detector=RecurrenceDetector(),
+)
+
+result = await analyzer.extract(
+    review_text="...",
+    review_id="review-2026-Q1",
+    project_id="PROJ-001",
+)
+
+for action in result.recommendations:
+    print(f"[{action.status.value}] {action.text}")
 ```
 
 ### CLI Usage
 
 ```bash
-# Convert formats
 pm-data-tools convert project.xml project.json --to canonical
-
-# Validate project file
 pm-data-tools validate project.xml
-
-# Inspect project structure
 pm-data-tools inspect project.xml
 ```
 
-## Canonical Data Model
+## Assurance Features
 
-The canonical model is a superset of all supported formats, enabling lossless conversion between tools.
+### P1 — Artefact Currency Validator *(planned v0.4.0)*
 
-**Core entities:**
-- **Project** - Container with metadata, schedule, and financials
-- **Task** - Work items with WBS, schedule, progress, and costs
-- **Resource** - People, equipment, materials with rates
-- **Assignment** - Task-resource allocation
-- **Dependency** - Task relationships (FS, FF, SS, SF)
-- **Risk** - Risk register entries with probability/impact
-- **Milestone** - Key project dates
-- **Calendar** - Working time definitions
+Detects two failure modes in gate evidence:
+
+- **Outdated artefacts**: documents not updated within the configured staleness
+  window (default 90 days).
+- **Anomalous updates**: documents updated within a short window before the gate
+  date — consistent with last-minute compliance updates rather than genuine
+  revision. Status: `CURRENT / OUTDATED / ANOMALOUS_UPDATE`.
+
+### P2 — Longitudinal Compliance Tracker
+
+```
+from pm_data_tools.schemas.nista.longitudinal import (
+    LongitudinalComplianceTracker,
+    ComplianceThresholdConfig,
+    TrendDirection,
+    ThresholdBreach,
+)
+```
+
+| Class | Description |
+|-------|-------------|
+| `LongitudinalComplianceTracker` | Persist scores, compute trend, detect breaches |
+| `ComplianceThresholdConfig` | Configurable drop tolerance, floor, stagnation window |
+| `TrendDirection` | `IMPROVING / STAGNATING / DEGRADING` |
+| `ThresholdBreach` | Drop or floor breach with message |
+
+### P3 — Cross-Cycle Finding Analyzer
+
+```
+from pm_data_tools.assurance import (
+    FindingAnalyzer,
+    ReviewAction,
+    ReviewActionStatus,
+    FindingAnalysisResult,
+    RecurrenceDetector,
+)
+```
+
+| Class | Description |
+|-------|-------------|
+| `FindingAnalyzer` | Extract, deduplicate, and persist review actions |
+| `ReviewAction` | Single action with lifecycle status and confidence |
+| `ReviewActionStatus` | `OPEN / IN_PROGRESS / CLOSED / RECURRING` |
+| `RecurrenceDetector` | Sentence-transformer cosine similarity across cycles |
+
+Full API reference: [`docs/assurance.md`](../../docs/assurance.md)
 
 ## Supported Formats
 
-| Format | Read | Write | Status | Coverage |
-|--------|------|-------|--------|----------|
-| Monday.com (JSON API) | ✅ | 🚧 | v0.1.0 | 97% (32 tests) |
-| Asana (JSON API) | ✅ | 🚧 | v0.1.0 | 99% (20 tests) |
-| Smartsheet (JSON API) | ✅ | 🚧 | v0.1.0 | 94% (21 tests) |
-| GMPP (CSV) | ✅ | 🚧 | v0.1.0 | 99% (21 tests) |
-| Microsoft Project (MSPDI) | 🚧 | 🚧 | Planned | - |
-| Primavera P6 (XER) | 🚧 | 🚧 | Planned | - |
-| Primavera P6 (PMXML) | 🚧 | 🚧 | Planned | - |
-| Jira (JSON API) | 🚧 | 🚧 | Planned | - |
-| NISTA | 🚧 | 🚧 | Awaiting schema | - |
+| Format | Read | Write | Status |
+|--------|------|-------|--------|
+| Monday.com (JSON API) | ✅ | — | v0.1.0 |
+| Asana (JSON API) | ✅ | — | v0.1.0 |
+| Smartsheet (JSON API) | ✅ | — | v0.1.0 |
+| GMPP (CSV) | ✅ | ✅ | v0.1.0 |
+| NISTA (JSON/CSV/Excel) | ✅ | ✅ | v0.2.0 |
+| Microsoft Project (MSPDI) | — | — | Planned |
+| Primavera P6 (XER) | — | — | Planned |
+| Jira (JSON API) | — | — | Planned |
 
-## NISTA Alignment
+## Architecture
 
-This library is designed to support the UK Government's [Programme and Project Data Standard](https://www.nista.gov.uk/) launched in December 2024. The GMPP schema module provides current alignment; full NISTA support will be added when the official schema is published.
+```
+src/pm_data_tools/
+  db/
+    store.py              # AssuranceStore — shared SQLite persistence
+  schemas/
+    nista/
+      longitudinal.py     # LongitudinalComplianceTracker (P2)
+      validator.py        # NISTAValidator
+      parser.py
+      exporter.py
+  assurance/
+    models.py             # ReviewAction, ReviewActionStatus, FindingAnalysisResult
+    analyzer.py           # FindingAnalyzer (P3)
+    recurrence.py         # RecurrenceDetector
+  gmpp/                   # GMPP quarterly reporting and AI narratives
+  integrations/nista/     # NISTA API client (OAuth 2.0 + mTLS)
+```
 
 ## Development
 
-### Setup
-
 ```bash
-# Clone repository
-git clone https://github.com/PDA-Task-Force/pda-platform.git
-cd pm-data-tools
-
-# Create virtual environment
+git clone https://github.com/antnewman/pda-platform.git
+cd pda-platform/packages/pm-data-tools
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install development dependencies
+source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -e ".[dev]"
-
-# Install pre-commit hooks
-pre-commit install
 ```
 
 ### Running Tests
 
 ```bash
-# Run all tests with coverage
-pytest
-
-# Run specific test file
-pytest tests/test_models/test_task.py
-
-# Run with coverage report
-pytest --cov-report=html
+pytest                          # all tests
+pytest tests/test_assurance/    # P2 and P3 assurance tests only
+pytest --cov-report=html        # with coverage report
 ```
 
 ### Code Quality
 
 ```bash
-# Format code
 ruff format .
-
-# Lint code
 ruff check .
-
-# Type check
 mypy src/pm_data_tools
 ```
 
-## Architecture
+## Documentation
 
-PM Data Tools follows a three-layer architecture:
-
-1. **Models Layer** (`src/pm_data_tools/models/`) - Canonical data structures
-2. **Schemas Layer** (`src/pm_data_tools/schemas/`) - Format-specific parsers and writers
-3. **Validation Layer** (`src/pm_data_tools/validators/`) - Structural and semantic validation
-
-All conversions pass through the canonical model:
-
-```
-Source Format → Parser → Canonical Model → Writer → Target Format
-```
-
-This ensures:
-- **Lossless roundtrip** conversion (Source → Canonical → Source preserves data)
-- **Consistent validation** (all formats validated against same rules)
-- **Extensibility** (new formats only need parser/writer, not N² converters)
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines, coding standards, and how to submit contributions.
-
-## Acknowledgements
-
-Developed by members of the PDA Task Force.
-
-This work was made possible by:
-- The **PDA Task Force White Paper** identifying AI implementation barriers in UK project delivery
-- The **NISTA Programme and Project Data Standard** and its 12-month trial period
-
-Sponsored by the UK Government's Infrastructure and Projects Authority (IPA) research initiative.
+- [Assurance — Developer Reference](../../docs/assurance.md)
+- [Assurance — Practitioner Guide](../../docs/assurance-for-practitioners.md)
+- [NISTA Integration Reference](docs/nista/README.md)
+- [Migration Guide](docs/nista/migration-guide.md)
+- [Changelog](CHANGELOG.md)
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+MIT License — see [LICENSE](LICENSE) for details.
 
-## Links
+## Acknowledgements
 
-- [Documentation](https://github.com/PDA-Task-Force/pda-platform#readme)
-- [Issues](https://github.com/PDA-Task-Force/pda-platform/issues)
-- [Changelog](CHANGELOG.md)
-- [NISTA Programme and Project Data Standard](https://www.nista.gov.uk/)
-- [UK Government Major Projects Portfolio (GMPP)](https://www.gov.uk/government/collections/major-projects-data)
+Fork maintained by Ant Newman ([github.com/antnewman](https://github.com/antnewman)).
+
+Original work by members of the PDA Task Force. Made possible by:
+- The **PDA Task Force White Paper** identifying AI implementation barriers in UK
+  project delivery
+- The **NISTA Programme and Project Data Standard** and its 12-month trial period

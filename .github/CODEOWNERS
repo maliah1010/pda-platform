@@ -1,0 +1,9 @@
+# CODEOWNERS
+# All pull requests require review from the maintainer.
+# Add additional reviewers here as the project grows.
+
+*  @antnewman
+
+/packages/pm-data-tools/        @antnewman
+/packages/agent-task-planning/  @antnewman
+/packages/pm-mcp-servers/       @antnewman

@@ -1,10 +1,17 @@
 """Validator for NISTA Programme and Project Data Standard compliance."""
 
+from __future__ import annotations
+
 import json
+import uuid
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Optional
+
+if TYPE_CHECKING:
+    from .longitudinal import LongitudinalComplianceTracker
 
 try:
     import jsonschema
@@ -149,14 +156,28 @@ class NISTAValidator:
         with open(self.schema_path, "r", encoding="utf-8") as f:
             return json.load(f)
 
-    def validate(self, data: dict[str, Any]) -> ValidationResult:
+    def validate(
+        self,
+        data: dict[str, Any],
+        project_id: Optional[str] = None,
+        history: Optional["LongitudinalComplianceTracker"] = None,
+    ) -> ValidationResult:
         """Validate NISTA data dictionary.
 
+        The return signature is unchanged.  When ``history`` is supplied the
+        resulting compliance score is persisted as a side effect; the caller
+        receives the same :class:`ValidationResult` regardless.
+
         Args:
-            data: NISTA project data dictionary
+            data: NISTA project data dictionary.
+            project_id: Project identifier used when persisting to ``history``.
+                Defaults to ``data["project_id"]`` if present.
+            history: Optional :class:`~.longitudinal.LongitudinalComplianceTracker`
+                instance.  When provided the compliance score is recorded after
+                validation.
 
         Returns:
-            ValidationResult with compliance status and issues
+            ValidationResult with compliance status and issues.
         """
         issues = []
         missing_required = []
@@ -231,7 +252,7 @@ class NISTAValidator:
         # Determine compliance (no errors = compliant)
         compliant = len(missing_required) == 0
 
-        return ValidationResult(
+        result = ValidationResult(
             compliant=compliant,
             compliance_score=compliance_score,
             missing_required_fields=missing_required,
@@ -239,6 +260,22 @@ class NISTAValidator:
             issues=issues,
             strictness=self.strictness.value,
         )
+
+        # Persist score as side effect when history is provided
+        if history is not None:
+            from .longitudinal import ConfidenceScoreRecord
+
+            pid = project_id or str(data.get("project_id", ""))
+            record = ConfidenceScoreRecord(
+                project_id=pid,
+                run_id=str(uuid.uuid4()),
+                timestamp=datetime.now(tz=timezone.utc),
+                score=compliance_score,
+                dimension_scores={},
+            )
+            history.record(record)
+
+        return result
 
     def validate_project(self, project: Project) -> ValidationResult:
         """Validate a canonical Project model against NISTA requirements.

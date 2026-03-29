@@ -19,6 +19,7 @@ The PDA Platform provides a modular, interoperable infrastructure for AI-enabled
 │  │  • Exporters    │  │  • Planning      │  │  • pm-analyse  │ │
 │  │  • Canonical    │  │  • Providers     │  │  • pm-benchmark│ │
 │  │    Model        │  │                  │  │  • pm-nista    │ │
+│  │  • Assurance    │  │                  │  │  • pm-assure   │ │
 │  └─────────────────┘  └──────────────────┘  └────────────────┘ │
 │         ▲                      ▲                      ▲          │
 └─────────┼──────────────────────┼──────────────────────┼──────────┘
@@ -211,6 +212,12 @@ openai         # Optional: GPT integration
 **5. pm-nista-server**
 - Tools: `nista_export`, `nista_validate`, `nista_transform`
 - Purpose: NISTA-specific operations
+
+**6. pm-assure-server**
+- Tools: 16 tools across P1–P10 (see [docs/assurance.md](./assurance.md))
+- Purpose: Full assurance quality lifecycle — artefact currency, compliance trends,
+  review action tracking, confidence monitoring, adaptive scheduling, override logging,
+  lessons learned, overhead optimisation, workflow orchestration, domain classification
 
 **Design Decisions**:
 - **Stateless**: Each request is independent
@@ -518,6 +525,6 @@ Phase 4: Cloud-native, auto-scaling
 
 ---
 
-**Architecture Version**: 1.0
-**Last Updated**: February 2026
-**Maintained by**: PDA Platform Contributors
+**Architecture Version**: 1.1
+**Last Updated**: March 2026
+**Maintained by**: maliah1010 ([github.com/maliah1010](https://github.com/maliah1010))

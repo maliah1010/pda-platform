@@ -1,0 +1,833 @@
+# PDA Platform: Portfolio Assurance View
+# The programme-level view across multiple projects.
+# Designed for IPA reviewers, portfolio directors, and departmental SROs
+# who need to compare assurance health across their entire portfolio.
+#
+# This is the "killer" dashboard — the one that shows the full power of
+# combining P1-P10 across a portfolio of projects.
+
+uds: "0.1.0"
+
+metadata:
+  id: "pda-assurance-portfolio-v1"
+  name: "assurance-portfolio"
+  version: "1.0.0"
+  created_at: "2026-03-28T00:00:00Z"
+  authors:
+    - name: "PDA Task Force"
+      email: "pda@tortoiseai.co.uk"
+  tags: ["assurance", "portfolio", "nista", "ipa", "cross-project"]
+
+dashboard:
+  title: "Portfolio Assurance"
+  description: "Cross-project assurance health comparison for portfolio-level governance decisions"
+  intent: "Enable portfolio directors and IPA reviewers to identify which projects need intervention, spot systemic patterns across the portfolio, and allocate assurance resources where they will have the most impact"
+
+  decisions:
+    - "Which projects in my portfolio need urgent attention?"
+    - "Are there systemic assurance weaknesses across the portfolio?"
+    - "Where should I deploy additional assurance resource?"
+    - "Which projects are over-assured relative to their complexity?"
+    - "Is governance override behaviour consistent across the portfolio?"
+
+  persona:
+    type: executive
+    characteristics:
+      attention_span: moderate
+      data_literacy: medium
+      interaction_preference: moderate
+      primary_device: desktop
+      update_frequency: periodic
+
+  semantic_sources:
+    - id: portfolio
+      type: custom
+      endpoint: "${PDA_ASSURANCE_API_URL}"
+      authentication:
+        type: bearer
+        token_env: "PDA_API_TOKEN"
+      capabilities:
+        metrics: true
+        dimensions: true
+        filters: true
+        time_grains: ["month", "quarter"]
+
+  # Filters
+  filters:
+    - id: department_filter
+      label: "Department"
+      type: dimension
+      dimension: "portfolio.department"
+      multi_select: true
+
+    - id: domain_filter
+      label: "Complexity Domain"
+      type: dimension
+      dimension: "portfolio.complexity_domain"
+      multi_select: true
+
+  # Derived metrics
+  derived_metrics:
+    - id: portfolio_health_avg
+      name: "Portfolio Health Average"
+      expression:
+        type: arithmetic
+        operator: divide
+        operands:
+          - metric: "portfolio.total_health_score"
+          - metric: "portfolio.project_count"
+      format:
+        style: number
+        precision: 0
+
+    - id: portfolio_action_closure
+      name: "Portfolio Action Closure Rate"
+      expression:
+        type: arithmetic
+        operator: divide
+        operands:
+          - metric: "portfolio.total_closed_actions"
+          - metric: "portfolio.total_actions"
+      format:
+        style: percent
+        precision: 0
+
+    - id: portfolio_override_impact
+      name: "Portfolio Override Impact Rate"
+      expression:
+        type: arithmetic
+        operator: divide
+        operands:
+          - metric: "portfolio.total_impactful_overrides"
+          - metric: "portfolio.total_resolved_overrides"
+      format:
+        style: percent
+        precision: 0
+
+  # Time context
+  time_context:
+    default_range:
+      type: relative
+      value: "this_quarter"
+    timezone: "Europe/London"
+
+  # Sections layout
+  layout:
+    type: sections
+    sections:
+      - id: portfolio_kpis
+        title: "Portfolio Health"
+        collapsible: false
+        layout:
+          type: grid
+          columns: 12
+          row_height: 90
+      - id: project_comparison
+        title: "Project Comparison"
+        collapsible: false
+        layout:
+          type: grid
+          columns: 12
+          row_height: 60
+      - id: domain_analysis
+        title: "Complexity Domains"
+        collapsible: true
+        collapsed: false
+        layout:
+          type: grid
+          columns: 12
+          row_height: 60
+      - id: systemic_patterns
+        title: "Systemic Patterns"
+        collapsible: true
+        collapsed: false
+        layout:
+          type: grid
+          columns: 12
+          row_height: 60
+
+  panels:
+    # =====================================================================
+    # SECTION: Portfolio KPIs
+    # =====================================================================
+
+    - id: total_projects
+      type: kpi
+      title: "Active Projects"
+      section: portfolio_kpis
+      position:
+        row: 0
+        column: 0
+        width: 2
+        height: 2
+
+      data:
+        source: portfolio
+        metrics:
+          - ref: "portfolio.project_count"
+
+      options:
+        format:
+          style: number
+          precision: 0
+        layout:
+          value_size: xlarge
+
+      accessibility:
+        alt_text: "Total number of active projects in the portfolio"
+
+    - id: portfolio_health
+      type: gauge
+      title: "Portfolio Health"
+      section: portfolio_kpis
+      position:
+        row: 0
+        column: 2
+        width: 3
+        height: 2
+
+      data:
+        derived_metric: portfolio_health_avg
+
+      options:
+        min: 0
+        max: 100
+        zones:
+          - min: 0
+            max: 25
+            colour: "#DC3545"
+            label: "Critical"
+          - min: 25
+            max: 50
+            colour: "#FD7E14"
+            label: "At Risk"
+          - min: 50
+            max: 75
+            colour: "#FFC107"
+            label: "Attention"
+          - min: 75
+            max: 100
+            colour: "#28A745"
+            label: "Healthy"
+        style: arc
+        arc_angle: 180
+        show_value: true
+
+      accessibility:
+        alt_text: "Portfolio average health gauge"
+
+    - id: critical_count
+      type: kpi
+      title: "Critical / At Risk"
+      description: "Projects classified as CRITICAL or AT_RISK by latest workflow"
+      section: portfolio_kpis
+      position:
+        row: 0
+        column: 5
+        width: 2
+        height: 2
+
+      data:
+        source: portfolio
+        metrics:
+          - ref: "portfolio.critical_project_count"
+
+      options:
+        format:
+          style: number
+          precision: 0
+        comparison:
+          enabled: true
+          type: custom
+          label: "at risk"
+          metric: "portfolio.at_risk_project_count"
+        layout:
+          value_size: xlarge
+        thresholds:
+          mode: absolute
+          values:
+            - max: 0
+              status: positive
+            - max: 2
+              status: warning
+            - min: 3
+              status: negative
+
+      accessibility:
+        alt_text: "Count of projects in critical or at-risk health status"
+
+    - id: portfolio_closure
+      type: kpi
+      title: "Action Closure"
+      description: "Portfolio-wide review action closure rate"
+      section: portfolio_kpis
+      position:
+        row: 0
+        column: 7
+        width: 3
+        height: 2
+
+      data:
+        derived_metric: portfolio_action_closure
+
+      options:
+        layout:
+          value_size: xlarge
+        sparkline:
+          enabled: true
+          periods: 4
+        thresholds:
+          mode: absolute
+          values:
+            - max: 0.50
+              status: negative
+            - max: 0.80
+              status: warning
+            - min: 0.80
+              status: positive
+
+      accessibility:
+        alt_text: "Portfolio-wide action closure rate with quarterly sparkline"
+
+    - id: portfolio_overrides
+      type: kpi
+      title: "Override Impact"
+      description: "Portfolio-wide override impact rate"
+      section: portfolio_kpis
+      position:
+        row: 0
+        column: 10
+        width: 2
+        height: 2
+
+      data:
+        derived_metric: portfolio_override_impact
+
+      options:
+        layout:
+          value_size: xlarge
+        thresholds:
+          mode: absolute
+          values:
+            - max: 0.20
+              status: positive
+            - max: 0.40
+              status: warning
+            - min: 0.40
+              status: negative
+
+      accessibility:
+        alt_text: "Portfolio-wide override impact rate"
+
+    # =====================================================================
+    # SECTION: Project Comparison — the headline table
+    # =====================================================================
+
+    # The "war room" table: every project, all key metrics, sortable
+    - id: project_comparison_table
+      type: table
+      title: "Project Assurance Comparison"
+      description: "All projects ranked by assurance health with key metrics from P1-P10"
+      section: project_comparison
+      position:
+        row: 0
+        column: 0
+        width: 12
+        height: 8
+
+      data:
+        source: portfolio
+        metrics:
+          - ref: "portfolio.health_score"
+          - ref: "portfolio.compliance_score"
+          - ref: "portfolio.artefact_currency_pct"
+          - ref: "portfolio.action_closure_pct"
+          - ref: "portfolio.confidence_score"
+          - ref: "portfolio.override_count"
+          - ref: "portfolio.effort_hours"
+          - ref: "portfolio.days_until_review"
+        dimensions:
+          - ref: "portfolio.project_id"
+          - ref: "portfolio.project_name"
+          - ref: "portfolio.department"
+          - ref: "portfolio.complexity_domain"
+          - ref: "portfolio.workflow_health"
+          - ref: "portfolio.review_urgency"
+
+      options:
+        columns:
+          - field: "portfolio.project_name"
+            label: "Project"
+            width: 200
+            align: left
+            sortable: true
+            pinned: left
+
+          - field: "portfolio.department"
+            label: "Dept"
+            width: 80
+            align: center
+            sortable: true
+
+          - field: "portfolio.complexity_domain"
+            label: "Domain"
+            width: 110
+            align: center
+            sortable: true
+
+          - field: "portfolio.workflow_health"
+            label: "Health"
+            width: 120
+            align: center
+            sortable: true
+
+          - field: "portfolio.compliance_score"
+            label: "NISTA"
+            width: 70
+            align: right
+            sortable: true
+            format:
+              style: number
+              precision: 0
+
+          - field: "portfolio.artefact_currency_pct"
+            label: "Currency"
+            width: 80
+            align: right
+            sortable: true
+            format:
+              style: percent
+              precision: 0
+
+          - field: "portfolio.action_closure_pct"
+            label: "Closure"
+            width: 80
+            align: right
+            sortable: true
+            format:
+              style: percent
+              precision: 0
+
+          - field: "portfolio.confidence_score"
+            label: "AI Conf"
+            width: 80
+            align: right
+            sortable: true
+            format:
+              style: percent
+              precision: 0
+
+          - field: "portfolio.override_count"
+            label: "Overrides"
+            width: 80
+            align: right
+            sortable: true
+
+          - field: "portfolio.effort_hours"
+            label: "Hours"
+            width: 70
+            align: right
+            sortable: true
+            format:
+              style: number
+              precision: 0
+
+          - field: "portfolio.review_urgency"
+            label: "Urgency"
+            width: 100
+            align: center
+            sortable: true
+
+          - field: "portfolio.days_until_review"
+            label: "Next Review"
+            width: 90
+            align: right
+            sortable: true
+            format:
+              style: number
+              precision: 0
+
+        sorting:
+          initial:
+            field: "portfolio.health_score"
+            order: asc
+          allow_multi: true
+
+        pagination:
+          enabled: true
+          page_size: 25
+          show_size_options: true
+          size_options: [10, 25, 50, 100]
+
+        search:
+          enabled: true
+          fields: ["portfolio.project_name", "portfolio.department"]
+          placeholder: "Search projects..."
+
+        row_height: compact
+        zebra_striping: true
+
+        conditional_formatting:
+          - field: "portfolio.workflow_health"
+            rules:
+              - value: "HEALTHY"
+                background: "#D5F5D5"
+              - value: "ATTENTION_NEEDED"
+                background: "#FFF3CD"
+              - value: "AT_RISK"
+                background: "#FFE0B2"
+              - value: "CRITICAL"
+                background: "#F8D7DA"
+          - field: "portfolio.complexity_domain"
+            rules:
+              - value: "CLEAR"
+                background: "#D5F5D5"
+              - value: "COMPLICATED"
+                background: "#CCE5FF"
+              - value: "COMPLEX"
+                background: "#FFF3CD"
+              - value: "CHAOTIC"
+                background: "#F8D7DA"
+          - field: "portfolio.review_urgency"
+            rules:
+              - value: "IMMEDIATE"
+                background: "#F8D7DA"
+                text_colour: "#721C24"
+              - value: "EXPEDITED"
+                background: "#FFE0B2"
+              - value: "STANDARD"
+                background: "#E3F2FD"
+              - value: "DEFERRED"
+                background: "#D5F5D5"
+
+      interactions:
+        - trigger: click
+          action: drill_through
+          target: "assurance-overview"
+          context:
+            pass_variables:
+              project_id: "portfolio.project_id"
+
+      accessibility:
+        alt_text: "Master comparison table of all portfolio projects showing health, compliance, currency, closure rate, confidence, overrides, effort, and review urgency — click any row to drill into the project overview dashboard"
+
+    # =====================================================================
+    # SECTION: Complexity Domains — P10 distribution
+    # =====================================================================
+
+    # Domain distribution
+    - id: domain_distribution
+      type: pie
+      title: "Portfolio by Complexity Domain"
+      description: "P10: How projects are distributed across complexity domains"
+      section: domain_analysis
+      position:
+        row: 0
+        column: 0
+        width: 4
+        height: 5
+
+      data:
+        source: portfolio
+        metrics:
+          - ref: "portfolio.project_count"
+        dimensions:
+          - ref: "portfolio.complexity_domain"
+
+      options:
+        style: donut
+        colour_map:
+          "CLEAR": "#28A745"
+          "COMPLICATED": "#2196F3"
+          "COMPLEX": "#FFC107"
+          "CHAOTIC": "#DC3545"
+        show_values: true
+        show_percentages: true
+
+      accessibility:
+        alt_text: "Donut chart showing portfolio distribution across CLEAR, COMPLICATED, COMPLEX, and CHAOTIC domains"
+
+    # Health by domain
+    - id: health_by_domain
+      type: bar
+      title: "Average Health by Domain"
+      description: "Do more complex projects have worse assurance health?"
+      section: domain_analysis
+      position:
+        row: 0
+        column: 4
+        width: 4
+        height: 5
+
+      data:
+        source: portfolio
+        metrics:
+          - ref: "portfolio.avg_health_score"
+        dimensions:
+          - ref: "portfolio.complexity_domain"
+
+      options:
+        orientation: vertical
+        bar_width: 0.6
+        show_values: true
+        value_position: end
+        colour_map:
+          "CLEAR": "#28A745"
+          "COMPLICATED": "#2196F3"
+          "COMPLEX": "#FFC107"
+          "CHAOTIC": "#DC3545"
+        y_axis:
+          label: "Avg Health Score"
+          min: 0
+          max: 100
+        reference_lines:
+          - value: 75
+            label: "Target"
+            colour: "#28A745"
+            style: dashed
+
+      accessibility:
+        alt_text: "Bar chart comparing average health scores across complexity domains"
+
+    # Effort vs domain
+    - id: effort_vs_domain
+      type: bar
+      title: "Avg Effort by Domain"
+      description: "P8 + P10: Are complex projects getting proportionally more assurance resource?"
+      section: domain_analysis
+      position:
+        row: 0
+        column: 8
+        width: 4
+        height: 5
+
+      data:
+        source: portfolio
+        metrics:
+          - ref: "portfolio.avg_effort_hours"
+        dimensions:
+          - ref: "portfolio.complexity_domain"
+
+      options:
+        orientation: vertical
+        bar_width: 0.6
+        show_values: true
+        colour_map:
+          "CLEAR": "#28A745"
+          "COMPLICATED": "#2196F3"
+          "COMPLEX": "#FFC107"
+          "CHAOTIC": "#DC3545"
+        y_axis:
+          label: "Avg Hours"
+          format:
+            style: number
+            precision: 0
+
+      accessibility:
+        alt_text: "Bar chart showing average assurance effort hours by complexity domain to identify over and under-investment"
+
+    # =====================================================================
+    # SECTION: Systemic Patterns — portfolio-wide signals
+    # =====================================================================
+
+    # Portfolio compliance trend
+    - id: portfolio_compliance_trend
+      type: trend
+      title: "Portfolio Compliance Trend"
+      description: "P2: Average NISTA compliance score across the portfolio over time"
+      section: systemic_patterns
+      position:
+        row: 0
+        column: 0
+        width: 6
+        height: 5
+
+      data:
+        source: portfolio
+        metrics:
+          - ref: "portfolio.avg_compliance_score"
+          - ref: "portfolio.min_compliance_score"
+          - ref: "portfolio.max_compliance_score"
+        time_range:
+          type: relative
+          value: "last_12_months"
+        time_grain: month
+
+      options:
+        style: line
+        series:
+          - metric: "portfolio.avg_compliance_score"
+            label: "Average"
+            colour: "#2196F3"
+            style: line
+          - metric: "portfolio.min_compliance_score"
+            label: "Worst Project"
+            colour: "#DC3545"
+            style: line
+            dash: [5, 5]
+          - metric: "portfolio.max_compliance_score"
+            label: "Best Project"
+            colour: "#28A745"
+            style: line
+            dash: [5, 5]
+        y_axis:
+          min: 0
+          max: 100
+          label: "NISTA Score"
+        legend:
+          show: true
+          position: top
+        reference_lines:
+          - value: 60
+            label: "Floor"
+            colour: "#DC3545"
+            style: dashed
+
+      accessibility:
+        alt_text: "Line chart showing portfolio average, best, and worst NISTA compliance scores over 12 months"
+
+    # Most common recurring actions across portfolio
+    - id: recurring_actions_portfolio
+      type: bar
+      title: "Most Common Recurring Actions"
+      description: "P3: Recommendations that keep appearing across multiple projects"
+      section: systemic_patterns
+      position:
+        row: 0
+        column: 6
+        width: 6
+        height: 5
+
+      data:
+        source: portfolio
+        metrics:
+          - ref: "portfolio.recurrence_count"
+        dimensions:
+          - ref: "portfolio.recurring_action_text"
+
+      options:
+        orientation: horizontal
+        limit: 10
+        sort_by: value
+        sort_order: desc
+        show_values: true
+        bar_width: 0.7
+        x_axis:
+          label: "Occurrences"
+        y_axis:
+          label: "Recommendation"
+          truncate: 50
+
+      accessibility:
+        alt_text: "Horizontal bar chart of the top 10 most frequently recurring assurance recommendations across the portfolio"
+
+    # Override patterns across portfolio
+    - id: override_heatmap
+      type: heatmap
+      title: "Override Patterns by Department"
+      description: "P6: Which departments are overriding assurance advice most frequently?"
+      section: systemic_patterns
+      position:
+        row: 5
+        column: 0
+        width: 6
+        height: 5
+
+      data:
+        source: portfolio
+        metrics:
+          - ref: "portfolio.override_count"
+        dimensions:
+          - ref: "portfolio.department"
+          - ref: "portfolio.override_type"
+
+      options:
+        x_axis:
+          label: "Override Type"
+        y_axis:
+          label: "Department"
+        colour_scale:
+          min_colour: "#E3F2FD"
+          max_colour: "#DC3545"
+        show_values: true
+        value_format:
+          style: number
+          precision: 0
+
+      accessibility:
+        alt_text: "Heatmap showing override frequency by department and override type to identify systemic governance patterns"
+
+    # Portfolio lessons gap analysis
+    - id: lessons_coverage
+      type: bar
+      title: "Lessons Coverage by Category"
+      description: "P7: Which categories have the most lessons vs the most negative outcomes?"
+      section: systemic_patterns
+      position:
+        row: 5
+        column: 6
+        width: 6
+        height: 5
+
+      data:
+        source: portfolio
+        metrics:
+          - ref: "portfolio.positive_lessons_count"
+          - ref: "portfolio.negative_lessons_count"
+        dimensions:
+          - ref: "portfolio.lesson_category"
+
+      options:
+        orientation: vertical
+        stacking: grouped
+        series:
+          - metric: "portfolio.positive_lessons_count"
+            label: "Positive"
+            colour: "#28A745"
+          - metric: "portfolio.negative_lessons_count"
+            label: "Negative"
+            colour: "#DC3545"
+        legend:
+          show: true
+          position: top
+        x_axis:
+          label: "Category"
+        y_axis:
+          label: "Lesson Count"
+
+      accessibility:
+        alt_text: "Grouped bar chart comparing positive and negative lessons learned by category across the portfolio"
+
+  # Theme
+  theme:
+    mode: light
+    primary_colour: "#1F4E79"
+    secondary_colour: "#334155"
+    accent_colour: "#10B981"
+    font_family: "Inter, system-ui, sans-serif"
+
+  # Internationalisation
+  i18n:
+    default_locale: "en-GB"
+    supported_locales: ["en-GB", "en-US"]
+    number_format:
+      locale: "en-GB"
+    date_format:
+      locale: "en-GB"
+      format: "D MMM yyyy"
+
+  # Error handling
+  error_handling:
+    on_panel_error:
+      action: show_placeholder
+      message: "Portfolio data temporarily unavailable"
+    on_source_error:
+      action: show_error
+      allow_partial: true
+
+  # Refresh
+  refresh:
+    enabled: false
+
+  accessibility:
+    alt_text: "Portfolio-level assurance dashboard comparing all projects across health, compliance, domains, overrides, efficiency, and lessons learned patterns"

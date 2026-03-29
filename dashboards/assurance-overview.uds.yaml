@@ -1,0 +1,735 @@
+# PDA Platform: Project Assurance Overview
+# The executive-level view of a project's assurance health.
+# Designed for SROs, programme directors, and IPA reviewers.
+#
+# Data sources: P1 (currency), P2 (compliance), P3 (actions),
+#               P4 (divergence), P5 (scheduling), P9 (workflows),
+#               P10 (domain classification)
+
+uds: "0.1.0"
+
+metadata:
+  id: "pda-assurance-overview-v1"
+  name: "assurance-overview"
+  version: "1.0.0"
+  created_at: "2026-03-28T00:00:00Z"
+  authors:
+    - name: "PDA Task Force"
+      email: "pda@tortoiseai.co.uk"
+  tags: ["assurance", "governance", "nista", "project-delivery"]
+
+dashboard:
+  title: "Project Assurance Overview"
+  description: "Single-screen assurance health summary across all ten capability dimensions"
+  intent: "Enable SROs and programme directors to assess a project's assurance posture at a glance and decide whether intervention is needed"
+
+  decisions:
+    - "Does this project need an urgent review?"
+    - "Are assurance artefacts current for the upcoming gate?"
+    - "Is the AI extraction trustworthy for this project?"
+    - "What complexity domain should drive our assurance strategy?"
+
+  persona:
+    type: executive
+    characteristics:
+      attention_span: brief
+      data_literacy: medium
+      interaction_preference: minimal
+      primary_device: desktop
+      update_frequency: periodic
+
+  semantic_sources:
+    - id: assurance
+      type: custom
+      endpoint: "${PDA_ASSURANCE_API_URL}"
+      authentication:
+        type: bearer
+        token_env: "PDA_API_TOKEN"
+      capabilities:
+        metrics: true
+        dimensions: true
+        filters: true
+        time_grains: ["day", "week", "month", "quarter"]
+
+  # Variables for project selection
+  variables:
+    - id: project_id
+      label: "Project"
+      type: string
+      default: ""
+      source:
+        type: dimension
+        ref: "assurance.project_id"
+
+  # Derived metrics
+  derived_metrics:
+    - id: action_closure_rate
+      name: "Action Closure Rate"
+      description: "Proportion of review actions that have been closed"
+      expression:
+        type: arithmetic
+        operator: divide
+        operands:
+          - metric: "assurance.closed_actions_count"
+          - metric: "assurance.total_actions_count"
+      format:
+        style: percent
+        precision: 0
+
+    - id: artefact_health_score
+      name: "Artefact Health"
+      description: "Proportion of artefacts classified as CURRENT"
+      expression:
+        type: arithmetic
+        operator: divide
+        operands:
+          - metric: "assurance.current_artefacts_count"
+          - metric: "assurance.total_artefacts_count"
+      format:
+        style: percent
+        precision: 0
+
+  # Time context
+  time_context:
+    default_range:
+      type: relative
+      value: "this_quarter"
+    timezone: "Europe/London"
+
+  # Sections layout
+  layout:
+    type: sections
+    sections:
+      - id: health
+        title: "Assurance Health"
+        collapsible: false
+        layout:
+          type: grid
+          columns: 12
+          row_height: 90
+      - id: signals
+        title: "Key Signals"
+        collapsible: false
+        layout:
+          type: grid
+          columns: 12
+          row_height: 70
+      - id: trends
+        title: "Compliance & Confidence"
+        collapsible: true
+        collapsed: false
+        layout:
+          type: grid
+          columns: 12
+          row_height: 60
+      - id: readiness
+        title: "Gate Readiness"
+        collapsible: true
+        collapsed: false
+        layout:
+          type: grid
+          columns: 12
+          row_height: 60
+
+  panels:
+    # =====================================================================
+    # SECTION: Assurance Health — the headline numbers
+    # =====================================================================
+
+    # Overall health from latest P9 workflow execution
+    - id: overall_health
+      type: gauge
+      title: "Overall Assurance Health"
+      description: "Composite health classification from the latest workflow execution"
+      section: health
+      position:
+        row: 0
+        column: 0
+        width: 4
+        height: 3
+
+      data:
+        source: assurance
+        metrics:
+          - ref: "assurance.workflow_health_score"
+        filters:
+          - dimension: "assurance.project_id"
+            operator: eq
+            value: "${project_id}"
+
+      options:
+        min: 0
+        max: 100
+        zones:
+          - min: 0
+            max: 25
+            colour: "#DC3545"
+            label: "Critical"
+          - min: 25
+            max: 50
+            colour: "#FD7E14"
+            label: "At Risk"
+          - min: 50
+            max: 75
+            colour: "#FFC107"
+            label: "Attention Needed"
+          - min: 75
+            max: 100
+            colour: "#28A745"
+            label: "Healthy"
+        target:
+          value: 75
+          show: true
+          colour: "#2196F3"
+          label: "Target"
+        style: arc
+        arc_angle: 180
+        show_value: true
+        value_format:
+          style: number
+          precision: 0
+
+      accessibility:
+        alt_text: "Gauge showing overall assurance health score with zones from Critical to Healthy"
+
+    # Domain classification from P10
+    - id: domain_classification
+      type: kpi
+      title: "Complexity Domain"
+      description: "P10 classification: CLEAR, COMPLICATED, COMPLEX, or CHAOTIC"
+      section: health
+      position:
+        row: 0
+        column: 4
+        width: 4
+        height: 3
+
+      data:
+        source: assurance
+        metrics:
+          - ref: "assurance.domain_classification"
+        filters:
+          - dimension: "assurance.project_id"
+            operator: eq
+            value: "${project_id}"
+
+      options:
+        format:
+          style: number
+          precision: 1
+        layout:
+          value_size: xlarge
+        thresholds:
+          mode: absolute
+          values:
+            - max: 0.25
+              status: positive
+              label: "Clear"
+            - max: 0.50
+              status: neutral
+              label: "Complicated"
+            - max: 0.75
+              status: warning
+              label: "Complex"
+            - min: 0.75
+              status: negative
+              label: "Chaotic"
+
+      accessibility:
+        alt_text: "Project complexity domain classification with composite score"
+
+    # Review urgency from P5
+    - id: review_urgency
+      type: kpi
+      title: "Next Review"
+      description: "P5 adaptive scheduling recommendation"
+      section: health
+      position:
+        row: 0
+        column: 8
+        width: 4
+        height: 3
+
+      data:
+        source: assurance
+        metrics:
+          - ref: "assurance.days_until_review"
+        filters:
+          - dimension: "assurance.project_id"
+            operator: eq
+            value: "${project_id}"
+
+      options:
+        format:
+          style: number
+          precision: 0
+        comparison:
+          enabled: true
+          type: custom
+          label: "urgency"
+          metric: "assurance.review_urgency"
+        sparkline:
+          enabled: false
+        layout:
+          value_size: xlarge
+        thresholds:
+          mode: absolute
+          values:
+            - max: 7
+              status: negative
+              label: "Immediate"
+            - max: 14
+              status: warning
+              label: "Expedited"
+            - max: 42
+              status: neutral
+              label: "Standard"
+            - min: 42
+              status: positive
+              label: "Deferred"
+
+      accessibility:
+        alt_text: "Days until next recommended assurance review with urgency classification"
+
+    # =====================================================================
+    # SECTION: Key Signals — the four P1-P4 independent signals
+    # =====================================================================
+
+    # P1: Artefact currency
+    - id: artefact_currency
+      type: kpi
+      title: "Artefact Currency"
+      description: "P1: Proportion of artefacts classified as CURRENT"
+      section: signals
+      position:
+        row: 0
+        column: 0
+        width: 3
+        height: 2
+
+      data:
+        derived_metric: artefact_health_score
+        filters:
+          - dimension: "assurance.project_id"
+            operator: eq
+            value: "${project_id}"
+
+      options:
+        format:
+          style: percent
+          precision: 0
+        thresholds:
+          mode: absolute
+          values:
+            - max: 0.50
+              status: negative
+            - max: 0.80
+              status: warning
+            - min: 0.80
+              status: positive
+
+      accessibility:
+        alt_text: "Artefact currency health showing percentage of current artefacts"
+
+    # P2: Compliance trend
+    - id: compliance_score
+      type: kpi
+      title: "NISTA Compliance"
+      description: "P2: Latest compliance score with trend direction"
+      section: signals
+      position:
+        row: 0
+        column: 3
+        width: 3
+        height: 2
+
+      data:
+        source: assurance
+        metrics:
+          - ref: "assurance.latest_compliance_score"
+        filters:
+          - dimension: "assurance.project_id"
+            operator: eq
+            value: "${project_id}"
+
+      options:
+        format:
+          style: number
+          precision: 1
+        comparison:
+          enabled: true
+          type: previous_period
+          show_percent: true
+        sparkline:
+          enabled: true
+          periods: 6
+        thresholds:
+          mode: absolute
+          values:
+            - max: 60
+              status: negative
+            - max: 75
+              status: warning
+            - min: 75
+              status: positive
+
+      accessibility:
+        alt_text: "NISTA compliance score with trend sparkline and period-over-period change"
+
+    # P3: Action closure rate
+    - id: action_closure
+      type: kpi
+      title: "Action Closure"
+      description: "P3: Rate of review action closure"
+      section: signals
+      position:
+        row: 0
+        column: 6
+        width: 3
+        height: 2
+
+      data:
+        derived_metric: action_closure_rate
+        filters:
+          - dimension: "assurance.project_id"
+            operator: eq
+            value: "${project_id}"
+
+      options:
+        format:
+          style: percent
+          precision: 0
+        comparison:
+          enabled: true
+          type: custom
+          label: "recurring"
+          metric: "assurance.recurring_actions_count"
+        thresholds:
+          mode: absolute
+          values:
+            - max: 0.50
+              status: negative
+            - max: 0.80
+              status: warning
+            - min: 0.80
+              status: positive
+
+      accessibility:
+        alt_text: "Review action closure rate with count of recurring actions"
+
+    # P4: AI confidence
+    - id: ai_confidence
+      type: kpi
+      title: "AI Confidence"
+      description: "P4: Latest extraction consensus score"
+      section: signals
+      position:
+        row: 0
+        column: 9
+        width: 3
+        height: 2
+
+      data:
+        source: assurance
+        metrics:
+          - ref: "assurance.latest_confidence_score"
+        filters:
+          - dimension: "assurance.project_id"
+            operator: eq
+            value: "${project_id}"
+
+      options:
+        format:
+          style: percent
+          precision: 0
+        comparison:
+          enabled: true
+          type: custom
+          label: "signal"
+          metric: "assurance.latest_divergence_signal"
+        thresholds:
+          mode: absolute
+          values:
+            - max: 0.60
+              status: negative
+            - max: 0.80
+              status: warning
+            - min: 0.80
+              status: positive
+
+      accessibility:
+        alt_text: "AI extraction confidence score with divergence signal classification"
+
+    # =====================================================================
+    # SECTION: Compliance & Confidence Trends
+    # =====================================================================
+
+    # P2: Compliance score over time
+    - id: compliance_trend
+      type: trend
+      title: "Compliance Score Trend"
+      description: "P2: NISTA compliance score history with threshold floor"
+      section: trends
+      position:
+        row: 0
+        column: 0
+        width: 6
+        height: 5
+
+      data:
+        source: assurance
+        metrics:
+          - ref: "assurance.compliance_score"
+        filters:
+          - dimension: "assurance.project_id"
+            operator: eq
+            value: "${project_id}"
+        time_range:
+          type: relative
+          value: "last_12_months"
+        time_grain: month
+
+      options:
+        style: area
+        smoothing: none
+        x_axis:
+          show: true
+          format: "MMM yyyy"
+        y_axis:
+          show: true
+          label: "Score"
+          min: 0
+          max: 100
+          format:
+            style: number
+            precision: 0
+        legend:
+          show: false
+        grid:
+          show_x: false
+          show_y: true
+        markers:
+          show: true
+          size: 4
+        # Reference lines for thresholds
+        reference_lines:
+          - value: 60
+            label: "Floor"
+            colour: "#DC3545"
+            style: dashed
+          - value: 75
+            label: "Target"
+            colour: "#28A745"
+            style: dashed
+
+      accessibility:
+        alt_text: "Line chart showing NISTA compliance score trend over 12 months with floor and target reference lines"
+
+    # P4: Confidence divergence over time
+    - id: confidence_trend
+      type: trend
+      title: "AI Confidence History"
+      description: "P4: Consensus confidence scores across review cycles"
+      section: trends
+      position:
+        row: 0
+        column: 6
+        width: 6
+        height: 5
+
+      data:
+        source: assurance
+        metrics:
+          - ref: "assurance.confidence_score"
+          - ref: "assurance.confidence_spread"
+        filters:
+          - dimension: "assurance.project_id"
+            operator: eq
+            value: "${project_id}"
+        time_range:
+          type: relative
+          value: "last_12_months"
+        time_grain: month
+
+      options:
+        style: line
+        x_axis:
+          show: true
+          format: "MMM yyyy"
+        y_axis:
+          show: true
+          label: "Score"
+          min: 0
+          max: 1.0
+          format:
+            style: percent
+            precision: 0
+        series:
+          - metric: "assurance.confidence_score"
+            label: "Consensus"
+            colour: "#2196F3"
+            style: line
+          - metric: "assurance.confidence_spread"
+            label: "Sample Spread"
+            colour: "#FF9800"
+            style: area
+        legend:
+          show: true
+          position: top
+        reference_lines:
+          - value: 0.60
+            label: "Min Consensus"
+            colour: "#DC3545"
+            style: dashed
+          - value: 0.20
+            label: "Max Spread"
+            colour: "#FFC107"
+            style: dashed
+
+      accessibility:
+        alt_text: "Dual-axis chart showing AI consensus confidence and sample spread over time with threshold markers"
+
+    # =====================================================================
+    # SECTION: Gate Readiness — artefact status and schedule
+    # =====================================================================
+
+    # P1: Artefact status breakdown
+    - id: artefact_status_bar
+      type: bar
+      title: "Artefact Status"
+      description: "P1: Currency classification of all project artefacts"
+      section: readiness
+      position:
+        row: 0
+        column: 0
+        width: 6
+        height: 4
+
+      data:
+        source: assurance
+        metrics:
+          - ref: "assurance.artefact_count"
+        dimensions:
+          - ref: "assurance.currency_status"
+        filters:
+          - dimension: "assurance.project_id"
+            operator: eq
+            value: "${project_id}"
+
+      options:
+        orientation: horizontal
+        sort_by: value
+        sort_order: desc
+        bar_width: 0.7
+        show_values: true
+        value_position: end
+        colour_map:
+          "CURRENT": "#28A745"
+          "ANOMALOUS_UPDATE": "#FFC107"
+          "OUTDATED": "#DC3545"
+        x_axis:
+          show: true
+          label: "Count"
+        y_axis:
+          show: true
+          label: "Status"
+
+      accessibility:
+        alt_text: "Horizontal bar chart showing artefact counts by currency status: Current, Anomalous Update, and Outdated"
+
+    # P3: Open review actions
+    - id: open_actions_table
+      type: table
+      title: "Open Review Actions"
+      description: "P3: Unresolved review actions requiring attention"
+      section: readiness
+      position:
+        row: 0
+        column: 6
+        width: 6
+        height: 4
+
+      data:
+        source: assurance
+        metrics:
+          - ref: "assurance.action_confidence"
+        dimensions:
+          - ref: "assurance.action_text"
+          - ref: "assurance.action_category"
+          - ref: "assurance.action_status"
+          - ref: "assurance.action_review_date"
+        filters:
+          - dimension: "assurance.project_id"
+            operator: eq
+            value: "${project_id}"
+          - dimension: "assurance.action_status"
+            operator: in
+            values: ["OPEN", "RECURRING"]
+
+      options:
+        columns:
+          - field: "assurance.action_text"
+            label: "Action"
+            width: 250
+            align: left
+            sortable: true
+          - field: "assurance.action_category"
+            label: "Priority"
+            width: 80
+            align: center
+            sortable: true
+          - field: "assurance.action_status"
+            label: "Status"
+            width: 90
+            align: center
+            sortable: true
+          - field: "assurance.action_confidence"
+            label: "Confidence"
+            width: 90
+            align: right
+            sortable: true
+            format:
+              style: percent
+              precision: 0
+        sorting:
+          initial:
+            field: "assurance.action_status"
+            order: asc
+        pagination:
+          enabled: true
+          page_size: 10
+        row_height: compact
+        zebra_striping: true
+        conditional_formatting:
+          - field: "assurance.action_status"
+            rules:
+              - value: "RECURRING"
+                background: "#FFF3CD"
+                text_colour: "#856404"
+
+      accessibility:
+        alt_text: "Table of open and recurring review actions with priority, status, and AI confidence score"
+
+  # Theme
+  theme:
+    mode: light
+    primary_colour: "#1F4E79"
+    secondary_colour: "#334155"
+    accent_colour: "#10B981"
+    font_family: "Inter, system-ui, sans-serif"
+
+  # Error handling
+  error_handling:
+    on_panel_error:
+      action: show_placeholder
+      message: "Assurance data temporarily unavailable"
+    on_source_error:
+      action: show_error
+      allow_partial: true
+
+  # Refresh
+  refresh:
+    enabled: false
+
+  accessibility:
+    alt_text: "Executive assurance overview dashboard showing project health gauge, four key signal KPIs, compliance and confidence trends, and gate readiness tables"

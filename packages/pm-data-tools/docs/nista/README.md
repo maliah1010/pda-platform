@@ -171,6 +171,36 @@ See [migration-guide.md](migration-guide.md) for detailed migration instructions
 
 See [schema-mapping.md](schema-mapping.md) for complete field mappings between NISTA and the canonical model.
 
+## Longitudinal Compliance Tracking
+
+Use `LongitudinalComplianceTracker` to persist compliance scores across validation
+runs and surface trend direction and threshold breaches.
+
+```python
+from pm_data_tools.schemas.nista import NISTAValidator, LongitudinalComplianceTracker
+from pm_data_tools.schemas.nista.longitudinal import ComplianceThresholdConfig
+from pm_data_tools.db import AssuranceStore
+
+store = AssuranceStore()
+tracker = LongitudinalComplianceTracker(
+    store=store,
+    thresholds=ComplianceThresholdConfig(
+        drop_tolerance=5.0,   # alert if score drops > 5 points in one run
+        floor=60.0,           # alert if score falls below 60%
+        stagnation_window=3,  # examine last 3 runs for trend direction
+    ),
+)
+
+validator = NISTAValidator()
+result = validator.validate(data, project_id="PROJ-001", history=tracker)
+
+# Query trend and breaches after one or more runs
+trend = tracker.compute_trend("PROJ-001")   # TrendDirection enum
+breaches = tracker.check_thresholds("PROJ-001")  # list[ThresholdBreach]
+```
+
+Full reference: [`docs/assurance.md`](../../../../docs/assurance.md#p2--longitudinal-compliance-tracker)
+
 ## API Reference
 
 ### NISTAParser

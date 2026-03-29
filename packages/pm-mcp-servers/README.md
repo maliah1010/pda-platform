@@ -1,29 +1,66 @@
 # PM MCP Servers
 
-MCP servers for AI-enabled project management. Enables Claude to interact with PM data.
+MCP servers for AI-enabled project management. Enables Claude to interact with PM
+data, validate NISTA compliance, and track assurance quality over time.
 
-Part of the [PDA Platform](https://github.com/PDA-Task-Force/pda-platform).
+Part of the [PDA Platform](https://github.com/antnewman/pda-platform).
 
 <!-- mcp-name: io.github.antnewman/pm-data -->
 <!-- mcp-name: io.github.antnewman/pm-validate -->
 <!-- mcp-name: io.github.antnewman/pm-analyse -->
+<!-- mcp-name: io.github.antnewman/pm-assure -->
 
 ## Overview
 
-PM MCP Servers provides Model Context Protocol (MCP) servers that enable Claude Desktop and other MCP clients to interact with project management data. Built to support the NISTA Programme and Project Data Standard trial.
+PM MCP Servers provides Model Context Protocol (MCP) servers that enable Claude
+Desktop and other MCP clients to interact with project management data and assurance
+tooling. Built to support the NISTA Programme and Project Data Standard trial.
 
-## Features
+## Available Servers
 
-- **pm-data-server**: Load, query, and manipulate PM data
-- **pm-validate-server**: Validate PM data against standards
-- **pm-analyse-server**: Analyze PM data for insights
-- **pm-benchmark-server**: Benchmark PM AI capabilities
+### pm-data-server
+
+Core server for PM data interaction.
+
+**Tools:** `load_project`, `query_tasks`, `get_critical_path`, `export_project`
+
+### pm-validate-server
+
+Validation server for PM data quality.
+
+**Tools:** `validate_nista`, `validate_structure`, `check_dependencies`
+
+### pm-analyse-server
+
+Analysis server for PM insights.
+
+**Tools:** `analyze_risks`, `forecast_completion`, `resource_utilization`
+
+### pm-benchmark-server
+
+Benchmarking server for PM AI evaluation.
+
+**Tools:** `run_benchmark`, `compare_results`
+
+### pm-assure-server
+
+Assurance quality tracking server. Covers longitudinal compliance score analysis,
+cross-cycle review action management, and artefact currency checking.
+
+**Tools:**
+
+| Tool | Description |
+|------|-------------|
+| `nista_longitudinal_trend` | Retrieve NISTA compliance score history, trend direction (IMPROVING / STAGNATING / DEGRADING), and active threshold breaches for a project. |
+| `track_review_actions` | Extract review actions from project review text using AI, deduplicate within the current review, and detect cross-cycle recurrences. Requires `ANTHROPIC_API_KEY`. |
+| `review_action_status` | Retrieve tracked review actions for a project, optionally filtered by status (OPEN / IN_PROGRESS / CLOSED / RECURRING). |
+
+See [`docs/assurance.md`](../../docs/assurance.md) for full API reference.
 
 ## UK Government Compliance
 
-pda-platform is designed to support compliance with UK government AI and data ethics frameworks.
-
-### Framework Alignment
+pda-platform is designed to support compliance with UK government AI and data
+ethics frameworks.
 
 | Framework | Status |
 |-----------|--------|
@@ -32,31 +69,15 @@ pda-platform is designed to support compliance with UK government AI and data et
 | Data and AI Ethics Framework | ✅ Aligned |
 | NISTA Programme and Project Data Standard | ✅ Supported |
 
-### Key Features
-
+Key properties:
 - **Transparency**: MIT open source licence; full code visibility
 - **Accountability**: Evidence trails on all AI outputs
-- **Human Oversight**: Advisory outputs with confidence scoring (0.0-1.0)
+- **Human Oversight**: Advisory outputs with confidence scoring (0.0–1.0)
 - **Fairness**: No personal or demographic data processing
 - **Safety**: Documented limitations and risk assessment
 
-### Documentation
-
-- [Compliance Statement](docs/compliance/COMPLIANCE_STATEMENT.md)
-- [Model Cards](docs/model-cards/)
-- [Risk Assessment](docs/compliance/RISK_ASSESSMENT.md)
-- [Limitations](docs/LIMITATIONS.md)
-- [ATRS Guidance](docs/guides/ATRS_GUIDANCE.md) (for government adopters)
-- [Governance Guide](docs/guides/GOVERNANCE_GUIDE.md)
-
-### For Government Adopters
-
-pda-platform provides templates and guidance to support your compliance obligations:
-- ATRS completion guidance
-- Governance integration templates
-- Human oversight documentation
-
-See [docs/guides/](docs/guides/) for details.
+See [`docs/compliance/`](docs/compliance/), [`docs/model-cards/`](docs/model-cards/),
+and [`docs/guides/`](docs/guides/) for full compliance documentation.
 
 ## Installation
 
@@ -64,11 +85,19 @@ See [docs/guides/](docs/guides/) for details.
 pip install pm-mcp-servers
 ```
 
+For assurance features with recurrence detection:
+
+```bash
+pip install "agent-task-planning[mining]"
+```
+
 ## Quick Start
 
 ### Configure Claude Desktop
 
-Add to your Claude Desktop config (`claude_desktop_config.json`):
+Add to `claude_desktop_config.json`
+(`%APPDATA%\Claude\claude_desktop_config.json` on Windows,
+`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
 
 ```json
 {
@@ -76,91 +105,55 @@ Add to your Claude Desktop config (`claude_desktop_config.json`):
     "pm-data": {
       "command": "pm-data-server",
       "args": []
+    },
+    "pm-assure": {
+      "command": "pm-assure-server",
+      "args": [],
+      "env": {
+        "ANTHROPIC_API_KEY": "sk-ant-..."
+      }
     }
   }
 }
 ```
 
-### Example Queries
+### Example prompts
 
-Once configured, you can ask Claude:
+Once configured you can ask Claude:
 
+**Project data:**
 - "Load /projects/building.mpp and show the critical path"
-- "What tasks are at risk of slipping?"
-- "Convert this project to NISTA format"
 - "Validate this project against NISTA requirements"
 
-## Available Servers
+**Longitudinal compliance (P2):**
+- "Show me the NISTA compliance trend for project PROJ-001."
+- "Have there been any threshold breaches for PROJ-001 recently?"
 
-### pm-data-server
-
-Core server for PM data interaction.
-
-**Tools:**
-- `load_project`: Load a project file
-- `query_tasks`: Query tasks by criteria
-- `get_critical_path`: Find critical path
-- `export_project`: Export to different formats
-
-### pm-validate-server
-
-Validation server for PM data quality.
-
-**Tools:**
-- `validate_nista`: Validate NISTA compliance
-- `validate_structure`: Check structural integrity
-- `check_dependencies`: Validate task dependencies
-
-### pm-analyse-server
-
-Analysis server for PM insights.
-
-**Tools:**
-- `analyze_risks`: Identify project risks
-- `forecast_completion`: Predict completion dates
-- `resource_utilization`: Analyze resource usage
-
-### pm-benchmark-server
-
-Benchmarking server for PM AI evaluation.
-
-**Tools:**
-- `run_benchmark`: Execute benchmark tasks
-- `compare_results`: Compare AI performance
+**Review action tracking (P3):**
+- "Extract the actions from this review document and track them for PROJ-001."
+- "Show me all open review actions for PROJ-001."
+- "Which actions for PROJ-001 are recurring from previous reviews?"
 
 ## Development
 
 ```bash
-# Clone repository
-git clone https://github.com/PDA-Task-Force/pda-platform.git
+git clone https://github.com/antnewman/pda-platform.git
 cd pda-platform/packages/pm-mcp-servers
-
-# Create virtual environment
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install development dependencies
+source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -e ".[dev]"
-
-# Run tests
 pytest
 ```
 
-## Acknowledgments
-
-Developed by members of the PDA Task Force.
-
-This work was made possible by:
-- The **PDA Task Force White Paper** identifying AI implementation barriers in UK project delivery
-- The **NISTA Programme and Project Data Standard** and its 12-month trial period
-
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+MIT License — see [LICENSE](LICENSE) for details.
 
-## Links
+## Acknowledgments
 
-- [PDA Platform](https://github.com/PDA-Task-Force/pda-platform)
-- [Documentation](https://github.com/PDA-Task-Force/pda-platform/tree/main/packages/pm-mcp-servers)
-- [Issues](https://github.com/PDA-Task-Force/pda-platform/issues)
-- [Model Context Protocol](https://modelcontextprotocol.io)
+Fork maintained by Ant Newman ([github.com/antnewman](https://github.com/antnewman)).
+
+Original work by members of the PDA Task Force. Made possible by:
+- The **PDA Task Force White Paper** identifying AI implementation barriers in UK
+  project delivery
+- The **NISTA Programme and Project Data Standard** and its 12-month trial period

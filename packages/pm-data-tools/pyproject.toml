@@ -54,8 +54,15 @@ dev = [
     "httpx>=0.25.0",
     "types-python-dateutil>=2.8.0",
 ]
+# Assurance module: recurrence detection via sentence-transformer embeddings.
+# sentence-transformers itself is declared as an optional extra in
+# agent-task-planning[mining]; reference that instead of duplicating.
+assurance = [
+    "structlog>=23.0.0",
+]
 all = [
     "httpx>=0.25.0",
+    "structlog>=23.0.0",
 ]
 
 [project.scripts]

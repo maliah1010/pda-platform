@@ -34,6 +34,8 @@ UK major infrastructure projects have a success rate of approximately 0.5%. The 
 | **agent-task-planning** | AI reliability framework | v1.0.0 ✅ |
 | **pm-mcp-servers** | MCP servers for Claude integration | Phase 1 ✅ |
 | **Specifications** | Canonical model, benchmarks, synthetic data | Published ✅ |
+| **Longitudinal Compliance Tracker** | Compliance score trend analysis and threshold alerting | v0.3.0 ✅ |
+| **Cross-Cycle Finding Analyzer** | AI extraction, deduplication, and cross-cycle recurrence detection | v0.3.0 ✅ |
 
 ## Quick Start
 

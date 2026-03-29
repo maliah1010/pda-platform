@@ -1,0 +1,1317 @@
+# PDA Platform: Assurance Deep Dive
+# The analyst-level view with full detail across all ten features.
+# Designed for assurance leads, PMO analysts, and IPA review teams.
+#
+# Data sources: All P1-P10 features via AssuranceStore
+
+uds: "0.1.0"
+
+metadata:
+  id: "pda-assurance-deep-dive-v1"
+  name: "assurance-deep-dive"
+  version: "1.0.0"
+  created_at: "2026-03-28T00:00:00Z"
+  authors:
+    - name: "PDA Task Force"
+      email: "pda@tortoiseai.co.uk"
+  tags: ["assurance", "analysis", "nista", "governance", "operational"]
+
+dashboard:
+  title: "Assurance Deep Dive"
+  description: "Full operational view across all ten assurance capabilities with filtering, drill-down, and historical analysis"
+  intent: "Enable assurance analysts to investigate specific signals, trace root causes, correlate findings across features, and prepare evidence packs for gate reviews"
+
+  decisions:
+    - "Which artefacts need updating before the gate?"
+    - "Are recurring recommendations being addressed or ignored?"
+    - "Do governance overrides correlate with negative outcomes?"
+    - "Is assurance effort being spent on the right activities?"
+    - "What lessons from similar projects should inform this review?"
+
+  persona:
+    type: analyst
+    characteristics:
+      attention_span: extended
+      data_literacy: high
+      interaction_preference: full
+      primary_device: desktop
+
+  semantic_sources:
+    - id: assurance
+      type: custom
+      endpoint: "${PDA_ASSURANCE_API_URL}"
+      authentication:
+        type: bearer
+        token_env: "PDA_API_TOKEN"
+      capabilities:
+        metrics: true
+        dimensions: true
+        filters: true
+        time_grains: ["day", "week", "month", "quarter"]
+
+  # Variables
+  variables:
+    - id: project_id
+      label: "Project"
+      type: string
+      default: ""
+      source:
+        type: dimension
+        ref: "assurance.project_id"
+
+    - id: gate_date
+      label: "Gate Date"
+      type: date
+      default: ""
+
+  # Filters
+  filters:
+    - id: time_filter
+      label: "Time Period"
+      type: time_range
+      default:
+        type: relative
+        value: "last_6_months"
+
+  # Derived metrics
+  derived_metrics:
+    - id: action_closure_rate
+      name: "Action Closure Rate"
+      expression:
+        type: arithmetic
+        operator: divide
+        operands:
+          - metric: "assurance.closed_actions_count"
+          - metric: "assurance.total_actions_count"
+      format:
+        style: percent
+        precision: 1
+
+    - id: override_impact_rate
+      name: "Override Impact Rate"
+      description: "Proportion of resolved overrides with negative outcomes"
+      expression:
+        type: arithmetic
+        operator: divide
+        operands:
+          - metric: "assurance.impactful_overrides_count"
+          - metric: "assurance.resolved_overrides_count"
+      format:
+        style: percent
+        precision: 0
+
+    - id: assurance_finding_rate
+      name: "Finding Rate"
+      description: "Proportion of assurance activities that produced findings"
+      expression:
+        type: arithmetic
+        operator: divide
+        operands:
+          - metric: "assurance.activities_with_findings"
+          - metric: "assurance.total_activities"
+      format:
+        style: percent
+        precision: 0
+
+    - id: avg_confidence_lift
+      name: "Avg Confidence Lift"
+      description: "Average compliance score improvement from assurance activities"
+      expression:
+        type: arithmetic
+        operator: subtract
+        operands:
+          - metric: "assurance.avg_confidence_after"
+          - metric: "assurance.avg_confidence_before"
+      format:
+        style: number
+        precision: 1
+        sign_display: always
+
+  # Time context
+  time_context:
+    default_range:
+      type: relative
+      value: "last_6_months"
+    timezone: "Europe/London"
+
+  # Tabbed layout — one tab per assurance domain
+  layout:
+    type: tabs
+    tabs:
+      - id: evidence
+        title: "Evidence & Currency"
+        icon: "document"
+        layout:
+          type: grid
+          columns: 12
+          row_height: 60
+      - id: compliance
+        title: "Compliance & Actions"
+        icon: "check-circle"
+        layout:
+          type: grid
+          columns: 12
+          row_height: 60
+      - id: governance
+        title: "Governance & Overrides"
+        icon: "shield"
+        layout:
+          type: grid
+          columns: 12
+          row_height: 60
+      - id: efficiency
+        title: "Efficiency & Lessons"
+        icon: "trending-up"
+        layout:
+          type: grid
+          columns: 12
+          row_height: 60
+      - id: workflows
+        title: "Workflow History"
+        icon: "activity"
+        layout:
+          type: grid
+          columns: 12
+          row_height: 60
+
+  panels:
+
+    # =================================================================
+    # TAB: Evidence & Currency (P1 + P4)
+    # =================================================================
+
+    # P1: Artefact currency detail table
+    - id: artefact_detail
+      type: table
+      title: "Artefact Currency Assessment"
+      description: "P1: Full currency check results for all project artefacts"
+      tab: evidence
+      position:
+        row: 0
+        column: 0
+        width: 12
+        height: 5
+
+      data:
+        source: assurance
+        metrics:
+          - ref: "assurance.staleness_days"
+          - ref: "assurance.anomaly_window_days"
+        dimensions:
+          - ref: "assurance.artefact_id"
+          - ref: "assurance.artefact_type"
+          - ref: "assurance.last_modified"
+          - ref: "assurance.currency_status"
+          - ref: "assurance.currency_message"
+        filters:
+          - dimension: "assurance.project_id"
+            operator: eq
+            value: "${project_id}"
+
+      options:
+        columns:
+          - field: "assurance.artefact_id"
+            label: "Artefact"
+            width: 180
+            align: left
+            sortable: true
+            pinned: left
+          - field: "assurance.artefact_type"
+            label: "Type"
+            width: 140
+            align: left
+            sortable: true
+          - field: "assurance.last_modified"
+            label: "Last Modified"
+            width: 130
+            align: left
+            sortable: true
+          - field: "assurance.staleness_days"
+            label: "Staleness (days)"
+            width: 120
+            align: right
+            sortable: true
+            format:
+              style: number
+              precision: 0
+          - field: "assurance.currency_status"
+            label: "Status"
+            width: 150
+            align: center
+            sortable: true
+          - field: "assurance.currency_message"
+            label: "Assessment"
+            width: 300
+            align: left
+        sorting:
+          initial:
+            field: "assurance.staleness_days"
+            order: desc
+        pagination:
+          enabled: true
+          page_size: 20
+        search:
+          enabled: true
+          fields: ["assurance.artefact_id", "assurance.artefact_type"]
+          placeholder: "Search artefacts..."
+        row_height: comfortable
+        zebra_striping: true
+        conditional_formatting:
+          - field: "assurance.currency_status"
+            rules:
+              - value: "CURRENT"
+                background: "#D5F5D5"
+                text_colour: "#155724"
+              - value: "OUTDATED"
+                background: "#F8D7DA"
+                text_colour: "#721C24"
+              - value: "ANOMALOUS_UPDATE"
+                background: "#FFF3CD"
+                text_colour: "#856404"
+
+      accessibility:
+        alt_text: "Detailed table of all project artefacts with currency status, staleness days, and assessment messages"
+
+    # P1: Staleness distribution
+    - id: staleness_distribution
+      type: bar
+      title: "Staleness Distribution"
+      description: "P1: How many artefacts fall in each staleness band"
+      tab: evidence
+      position:
+        row: 5
+        column: 0
+        width: 6
+        height: 4
+
+      data:
+        source: assurance
+        metrics:
+          - ref: "assurance.artefact_count"
+        dimensions:
+          - ref: "assurance.staleness_band"
+        filters:
+          - dimension: "assurance.project_id"
+            operator: eq
+            value: "${project_id}"
+
+      options:
+        orientation: vertical
+        bar_width: 0.7
+        show_values: true
+        value_position: end
+        colour_map:
+          "0-30 days": "#28A745"
+          "31-60 days": "#20C997"
+          "61-90 days": "#FFC107"
+          "91-120 days": "#FD7E14"
+          "120+ days": "#DC3545"
+        x_axis:
+          show: true
+          label: "Staleness Band"
+        y_axis:
+          show: true
+          label: "Artefact Count"
+          format:
+            style: number
+            precision: 0
+
+      accessibility:
+        alt_text: "Bar chart showing distribution of artefacts across staleness bands from 0-30 days to 120+ days"
+
+    # P4: Confidence divergence detail
+    - id: divergence_history
+      type: table
+      title: "Confidence Divergence History"
+      description: "P4: All divergence check snapshots for this project"
+      tab: evidence
+      position:
+        row: 5
+        column: 6
+        width: 6
+        height: 4
+
+      data:
+        source: assurance
+        metrics:
+          - ref: "assurance.confidence_score"
+          - ref: "assurance.confidence_spread"
+        dimensions:
+          - ref: "assurance.review_id"
+          - ref: "assurance.divergence_signal_type"
+          - ref: "assurance.divergence_timestamp"
+        filters:
+          - dimension: "assurance.project_id"
+            operator: eq
+            value: "${project_id}"
+
+      options:
+        columns:
+          - field: "assurance.divergence_timestamp"
+            label: "Date"
+            width: 130
+            sortable: true
+          - field: "assurance.review_id"
+            label: "Review"
+            width: 160
+            sortable: true
+          - field: "assurance.confidence_score"
+            label: "Consensus"
+            width: 100
+            align: right
+            format:
+              style: percent
+              precision: 0
+          - field: "assurance.confidence_spread"
+            label: "Spread"
+            width: 100
+            align: right
+            format:
+              style: percent
+              precision: 0
+          - field: "assurance.divergence_signal_type"
+            label: "Signal"
+            width: 160
+            align: center
+        sorting:
+          initial:
+            field: "assurance.divergence_timestamp"
+            order: desc
+        pagination:
+          enabled: true
+          page_size: 10
+        conditional_formatting:
+          - field: "assurance.divergence_signal_type"
+            rules:
+              - value: "STABLE"
+                background: "#D5F5D5"
+              - value: "HIGH_DIVERGENCE"
+                background: "#F8D7DA"
+              - value: "LOW_CONSENSUS"
+                background: "#FFF3CD"
+              - value: "DEGRADING_CONFIDENCE"
+                background: "#FFE0B2"
+
+      accessibility:
+        alt_text: "Table of AI confidence divergence checks showing consensus score, spread, and signal classification over time"
+
+    # =================================================================
+    # TAB: Compliance & Actions (P2 + P3)
+    # =================================================================
+
+    # P2: Compliance score history
+    - id: compliance_history
+      type: trend
+      title: "Compliance Score History"
+      description: "P2: Full NISTA compliance score timeline with breach markers"
+      tab: compliance
+      position:
+        row: 0
+        column: 0
+        width: 12
+        height: 5
+
+      data:
+        source: assurance
+        metrics:
+          - ref: "assurance.compliance_score"
+        filters:
+          - dimension: "assurance.project_id"
+            operator: eq
+            value: "${project_id}"
+        time_range:
+          type: relative
+          value: "last_24_months"
+        time_grain: month
+
+      options:
+        style: line
+        smoothing: none
+        x_axis:
+          show: true
+          format: "MMM yyyy"
+        y_axis:
+          show: true
+          label: "NISTA Score"
+          min: 0
+          max: 100
+        markers:
+          show: true
+          size: 5
+        reference_lines:
+          - value: 60
+            label: "Floor"
+            colour: "#DC3545"
+            style: dashed
+          - value: 75
+            label: "Target"
+            colour: "#28A745"
+            style: dashed
+        tooltip:
+          show: true
+          format:
+            style: number
+            precision: 1
+
+      accessibility:
+        alt_text: "Compliance score trend over 24 months with floor and target reference lines"
+
+    # P3: All review actions
+    - id: all_actions
+      type: table
+      title: "Review Action Tracker"
+      description: "P3: Complete lifecycle of all extracted review actions"
+      tab: compliance
+      position:
+        row: 5
+        column: 0
+        width: 12
+        height: 6
+
+      data:
+        source: assurance
+        metrics:
+          - ref: "assurance.action_confidence"
+        dimensions:
+          - ref: "assurance.action_id"
+          - ref: "assurance.action_text"
+          - ref: "assurance.action_category"
+          - ref: "assurance.action_status"
+          - ref: "assurance.action_owner"
+          - ref: "assurance.action_review_date"
+          - ref: "assurance.action_recurrence_of"
+          - ref: "assurance.action_flagged"
+        filters:
+          - dimension: "assurance.project_id"
+            operator: eq
+            value: "${project_id}"
+
+      options:
+        columns:
+          - field: "assurance.action_text"
+            label: "Action"
+            width: 280
+            align: left
+            pinned: left
+          - field: "assurance.action_category"
+            label: "Priority"
+            width: 80
+            align: center
+            sortable: true
+          - field: "assurance.action_status"
+            label: "Status"
+            width: 100
+            align: center
+            sortable: true
+          - field: "assurance.action_owner"
+            label: "Owner"
+            width: 120
+            sortable: true
+          - field: "assurance.action_review_date"
+            label: "Raised"
+            width: 110
+            sortable: true
+          - field: "assurance.action_confidence"
+            label: "Confidence"
+            width: 90
+            align: right
+            format:
+              style: percent
+              precision: 0
+          - field: "assurance.action_recurrence_of"
+            label: "Recurrence"
+            width: 100
+            align: center
+          - field: "assurance.action_flagged"
+            label: "Flagged"
+            width: 70
+            align: center
+        sorting:
+          initial:
+            field: "assurance.action_status"
+            order: asc
+          allow_multi: true
+        pagination:
+          enabled: true
+          page_size: 25
+          show_size_options: true
+          size_options: [10, 25, 50]
+        search:
+          enabled: true
+          fields: ["assurance.action_text", "assurance.action_owner"]
+          placeholder: "Search actions..."
+        conditional_formatting:
+          - field: "assurance.action_status"
+            rules:
+              - value: "OPEN"
+                background: "#FFF3CD"
+              - value: "RECURRING"
+                background: "#F8D7DA"
+              - value: "IN_PROGRESS"
+                background: "#CCE5FF"
+              - value: "CLOSED"
+                background: "#D5F5D5"
+
+      accessibility:
+        alt_text: "Complete review action tracker with status, ownership, confidence scores, and recurrence flags"
+
+    # P3: Action status breakdown
+    - id: action_status_pie
+      type: pie
+      title: "Action Status Mix"
+      description: "P3: Distribution of actions by lifecycle status"
+      tab: compliance
+      position:
+        row: 11
+        column: 0
+        width: 4
+        height: 4
+
+      data:
+        source: assurance
+        metrics:
+          - ref: "assurance.action_count"
+        dimensions:
+          - ref: "assurance.action_status"
+        filters:
+          - dimension: "assurance.project_id"
+            operator: eq
+            value: "${project_id}"
+
+      options:
+        style: donut
+        colour_map:
+          "OPEN": "#FFC107"
+          "IN_PROGRESS": "#2196F3"
+          "CLOSED": "#28A745"
+          "RECURRING": "#DC3545"
+        show_values: true
+        show_percentages: true
+
+      accessibility:
+        alt_text: "Donut chart showing review action distribution across OPEN, IN_PROGRESS, CLOSED, and RECURRING statuses"
+
+    # P3: Actions by category
+    - id: actions_by_category
+      type: bar
+      title: "Actions by Priority"
+      tab: compliance
+      position:
+        row: 11
+        column: 4
+        width: 4
+        height: 4
+
+      data:
+        source: assurance
+        metrics:
+          - ref: "assurance.action_count"
+        dimensions:
+          - ref: "assurance.action_category"
+          - ref: "assurance.action_status"
+        filters:
+          - dimension: "assurance.project_id"
+            operator: eq
+            value: "${project_id}"
+
+      options:
+        orientation: vertical
+        stacking: stacked
+        colour_map:
+          "OPEN": "#FFC107"
+          "IN_PROGRESS": "#2196F3"
+          "CLOSED": "#28A745"
+          "RECURRING": "#DC3545"
+
+      accessibility:
+        alt_text: "Stacked bar chart showing action counts by priority category with status breakdown"
+
+    # P3: Recurrence trend
+    - id: recurrence_trend
+      type: trend
+      title: "Recurring Actions Over Time"
+      description: "P3: Count of recurring recommendations per review cycle"
+      tab: compliance
+      position:
+        row: 11
+        column: 8
+        width: 4
+        height: 4
+
+      data:
+        source: assurance
+        metrics:
+          - ref: "assurance.recurring_actions_count"
+          - ref: "assurance.new_actions_count"
+        time_range:
+          type: relative
+          value: "last_12_months"
+        time_grain: quarter
+        filters:
+          - dimension: "assurance.project_id"
+            operator: eq
+            value: "${project_id}"
+
+      options:
+        style: area
+        stacking: stacked
+        series:
+          - metric: "assurance.recurring_actions_count"
+            label: "Recurring"
+            colour: "#DC3545"
+          - metric: "assurance.new_actions_count"
+            label: "New"
+            colour: "#2196F3"
+        legend:
+          show: true
+          position: top
+
+      accessibility:
+        alt_text: "Stacked area chart showing recurring versus new review actions per quarter"
+
+    # =================================================================
+    # TAB: Governance & Overrides (P6)
+    # =================================================================
+
+    # P6: Override decision log
+    - id: override_log
+      type: table
+      title: "Override Decision Log"
+      description: "P6: Complete structured record of governance overrides"
+      tab: governance
+      position:
+        row: 0
+        column: 0
+        width: 12
+        height: 6
+
+      data:
+        source: assurance
+        metrics:
+          - ref: "assurance.override_id"
+        dimensions:
+          - ref: "assurance.override_type"
+          - ref: "assurance.override_decision_date"
+          - ref: "assurance.override_authoriser"
+          - ref: "assurance.override_rationale"
+          - ref: "assurance.overridden_value"
+          - ref: "assurance.override_value"
+          - ref: "assurance.override_outcome"
+          - ref: "assurance.override_outcome_notes"
+        filters:
+          - dimension: "assurance.project_id"
+            operator: eq
+            value: "${project_id}"
+
+      options:
+        columns:
+          - field: "assurance.override_decision_date"
+            label: "Date"
+            width: 100
+            sortable: true
+          - field: "assurance.override_type"
+            label: "Type"
+            width: 160
+            sortable: true
+          - field: "assurance.override_authoriser"
+            label: "Authoriser"
+            width: 140
+            sortable: true
+          - field: "assurance.overridden_value"
+            label: "Advice"
+            width: 130
+          - field: "assurance.override_value"
+            label: "Decision"
+            width: 150
+          - field: "assurance.override_outcome"
+            label: "Outcome"
+            width: 130
+            sortable: true
+          - field: "assurance.override_outcome_notes"
+            label: "Notes"
+            width: 200
+        sorting:
+          initial:
+            field: "assurance.override_decision_date"
+            order: desc
+        pagination:
+          enabled: true
+          page_size: 15
+        conditional_formatting:
+          - field: "assurance.override_outcome"
+            rules:
+              - value: "PENDING"
+                background: "#E3F2FD"
+              - value: "NO_IMPACT"
+                background: "#D5F5D5"
+              - value: "MINOR_IMPACT"
+                background: "#FFF3CD"
+              - value: "SIGNIFICANT_IMPACT"
+                background: "#F8D7DA"
+              - value: "ESCALATED"
+                background: "#F8D7DA"
+                text_colour: "#721C24"
+
+      accessibility:
+        alt_text: "Full override decision log showing type, authoriser, original advice, decision taken, and tracked outcome"
+
+    # P6: Override outcome distribution
+    - id: override_outcomes
+      type: pie
+      title: "Override Outcomes"
+      description: "P6: Distribution of outcomes for resolved overrides"
+      tab: governance
+      position:
+        row: 6
+        column: 0
+        width: 4
+        height: 4
+
+      data:
+        source: assurance
+        metrics:
+          - ref: "assurance.override_count"
+        dimensions:
+          - ref: "assurance.override_outcome"
+        filters:
+          - dimension: "assurance.project_id"
+            operator: eq
+            value: "${project_id}"
+
+      options:
+        style: donut
+        colour_map:
+          "PENDING": "#90CAF9"
+          "NO_IMPACT": "#28A745"
+          "MINOR_IMPACT": "#FFC107"
+          "SIGNIFICANT_IMPACT": "#FD7E14"
+          "ESCALATED": "#DC3545"
+        show_percentages: true
+
+      accessibility:
+        alt_text: "Donut chart showing override outcome distribution from No Impact to Escalated"
+
+    # P6: Overrides by type
+    - id: overrides_by_type
+      type: bar
+      title: "Overrides by Type"
+      tab: governance
+      position:
+        row: 6
+        column: 4
+        width: 4
+        height: 4
+
+      data:
+        source: assurance
+        metrics:
+          - ref: "assurance.override_count"
+        dimensions:
+          - ref: "assurance.override_type"
+        filters:
+          - dimension: "assurance.project_id"
+            operator: eq
+            value: "${project_id}"
+
+      options:
+        orientation: horizontal
+        sort_by: value
+        sort_order: desc
+        show_values: true
+
+      accessibility:
+        alt_text: "Bar chart showing override counts by type: gate progression, recommendation dismissed, RAG override, risk acceptance, schedule override"
+
+    # P6: Impact rate KPI
+    - id: impact_rate_kpi
+      type: kpi
+      title: "Override Impact Rate"
+      description: "P6: Proportion of resolved overrides with negative outcomes"
+      tab: governance
+      position:
+        row: 6
+        column: 8
+        width: 4
+        height: 2
+
+      data:
+        derived_metric: override_impact_rate
+        filters:
+          - dimension: "assurance.project_id"
+            operator: eq
+            value: "${project_id}"
+
+      options:
+        layout:
+          value_size: xlarge
+        thresholds:
+          mode: absolute
+          values:
+            - max: 0.20
+              status: positive
+              label: "Low Impact"
+            - max: 0.40
+              status: warning
+              label: "Moderate"
+            - min: 0.40
+              status: negative
+              label: "High Impact"
+
+      accessibility:
+        alt_text: "Override impact rate showing proportion of overrides leading to negative outcomes"
+
+    # P6: Top authorisers
+    - id: top_authorisers
+      type: bar
+      title: "Override Frequency by Authoriser"
+      description: "P6: Which individuals are authorising the most overrides"
+      tab: governance
+      position:
+        row: 8
+        column: 8
+        width: 4
+        height: 2
+
+      data:
+        source: assurance
+        metrics:
+          - ref: "assurance.override_count"
+        dimensions:
+          - ref: "assurance.override_authoriser"
+        filters:
+          - dimension: "assurance.project_id"
+            operator: eq
+            value: "${project_id}"
+
+      options:
+        orientation: horizontal
+        limit: 5
+        sort_by: value
+        sort_order: desc
+        show_values: true
+        bar_width: 0.6
+
+      accessibility:
+        alt_text: "Horizontal bar chart showing top 5 override authorisers by frequency"
+
+    # =================================================================
+    # TAB: Efficiency & Lessons (P7 + P8)
+    # =================================================================
+
+    # P8: Efficiency scorecard
+    - id: efficiency_scorecard
+      type: scorecard
+      title: "Assurance Efficiency"
+      description: "P8: Key efficiency metrics from the overhead analysis"
+      tab: efficiency
+      position:
+        row: 0
+        column: 0
+        width: 12
+        height: 3
+
+      data:
+        source: assurance
+        metrics:
+          - ref: "assurance.total_effort_hours"
+          - ref: "assurance.finding_rate"
+          - ref: "assurance.duplicate_count"
+          - ref: "assurance.avg_confidence_lift"
+          - ref: "assurance.efficiency_rating"
+        filters:
+          - dimension: "assurance.project_id"
+            operator: eq
+            value: "${project_id}"
+
+      options:
+        perspectives:
+          - id: effort
+            name: "Effort Investment"
+            metrics:
+              - id: total_hours
+                name: "Total Hours"
+                current_value: "assurance.total_effort_hours"
+                format: { style: number, precision: 0 }
+              - id: finding_rate
+                name: "Finding Rate"
+                current_value: "assurance.finding_rate"
+                target_value: 0.50
+                format: { style: percent, precision: 0 }
+          - id: quality
+            name: "Quality Impact"
+            metrics:
+              - id: duplicates
+                name: "Duplicate Checks"
+                current_value: "assurance.duplicate_count"
+                target_value: 0
+                lower_is_better: true
+                format: { style: number, precision: 0 }
+              - id: lift
+                name: "Avg Score Lift"
+                current_value: "assurance.avg_confidence_lift"
+                target_value: 5.0
+                format: { style: number, precision: 1, sign_display: always }
+        display:
+          layout: horizontal
+          show_targets: true
+          show_variance: true
+        status_thresholds:
+          - max: 40
+            status: negative
+          - max: 70
+            status: warning
+          - min: 70
+            status: positive
+
+      accessibility:
+        alt_text: "Scorecard showing assurance efficiency metrics: total hours, finding rate, duplicate checks, and compliance score lift"
+
+    # P8: Effort by activity type
+    - id: effort_by_type
+      type: bar
+      title: "Effort by Activity Type"
+      description: "P8: Person-hours spent on each type of assurance activity"
+      tab: efficiency
+      position:
+        row: 3
+        column: 0
+        width: 6
+        height: 4
+
+      data:
+        source: assurance
+        metrics:
+          - ref: "assurance.total_effort_hours"
+        dimensions:
+          - ref: "assurance.activity_type"
+        filters:
+          - dimension: "assurance.project_id"
+            operator: eq
+            value: "${project_id}"
+
+      options:
+        orientation: horizontal
+        sort_by: value
+        sort_order: desc
+        show_values: true
+        x_axis:
+          label: "Hours"
+        y_axis:
+          label: "Activity Type"
+
+      accessibility:
+        alt_text: "Horizontal bar chart showing person-hours by assurance activity type"
+
+    # P8: Recommendations
+    - id: optimisation_recommendations
+      type: text
+      title: "Optimisation Recommendations"
+      description: "P8: AI-generated suggestions for improving assurance efficiency"
+      tab: efficiency
+      position:
+        row: 3
+        column: 6
+        width: 6
+        height: 4
+
+      data:
+        source: assurance
+        metrics:
+          - ref: "assurance.optimisation_recommendations"
+        filters:
+          - dimension: "assurance.project_id"
+            operator: eq
+            value: "${project_id}"
+
+      options:
+        format: markdown
+        template: |
+          ### Efficiency Rating: {{assurance.efficiency_rating}}
+
+          {{assurance.optimisation_recommendations}}
+
+      accessibility:
+        alt_text: "Text panel showing AI-generated optimisation recommendations for assurance efficiency"
+
+    # P7: Relevant lessons
+    - id: relevant_lessons
+      type: table
+      title: "Relevant Lessons Learned"
+      description: "P7: Lessons from similar projects matched to this project's context"
+      tab: efficiency
+      position:
+        row: 7
+        column: 0
+        width: 12
+        height: 5
+
+      data:
+        source: assurance
+        metrics:
+          - ref: "assurance.lesson_relevance_score"
+        dimensions:
+          - ref: "assurance.lesson_title"
+          - ref: "assurance.lesson_category"
+          - ref: "assurance.lesson_sentiment"
+          - ref: "assurance.lesson_project_type"
+          - ref: "assurance.lesson_description"
+          - ref: "assurance.lesson_impact"
+        filters:
+          - dimension: "assurance.project_id"
+            operator: eq
+            value: "${project_id}"
+
+      options:
+        columns:
+          - field: "assurance.lesson_sentiment"
+            label: ""
+            width: 40
+            align: center
+          - field: "assurance.lesson_title"
+            label: "Lesson"
+            width: 250
+            sortable: true
+          - field: "assurance.lesson_category"
+            label: "Category"
+            width: 130
+            sortable: true
+          - field: "assurance.lesson_project_type"
+            label: "Project Type"
+            width: 110
+            sortable: true
+          - field: "assurance.lesson_relevance_score"
+            label: "Relevance"
+            width: 90
+            align: right
+            format:
+              style: percent
+              precision: 0
+          - field: "assurance.lesson_impact"
+            label: "Impact"
+            width: 250
+        sorting:
+          initial:
+            field: "assurance.lesson_relevance_score"
+            order: desc
+        pagination:
+          enabled: true
+          page_size: 10
+        conditional_formatting:
+          - field: "assurance.lesson_sentiment"
+            rules:
+              - value: "NEGATIVE"
+                background: "#F8D7DA"
+              - value: "POSITIVE"
+                background: "#D5F5D5"
+
+      accessibility:
+        alt_text: "Table of relevant lessons learned from similar projects, sorted by relevance score, with sentiment and category"
+
+    # =================================================================
+    # TAB: Workflow History (P9)
+    # =================================================================
+
+    # P9: Workflow execution timeline
+    - id: workflow_timeline
+      type: trend
+      title: "Workflow Health Over Time"
+      description: "P9: Health classification from each workflow execution"
+      tab: workflows
+      position:
+        row: 0
+        column: 0
+        width: 12
+        height: 4
+
+      data:
+        source: assurance
+        metrics:
+          - ref: "assurance.workflow_health_score"
+          - ref: "assurance.workflow_risk_signal_count"
+        filters:
+          - dimension: "assurance.project_id"
+            operator: eq
+            value: "${project_id}"
+        time_range:
+          type: relative
+          value: "last_12_months"
+        time_grain: month
+
+      options:
+        style: line
+        series:
+          - metric: "assurance.workflow_health_score"
+            label: "Health Score"
+            colour: "#2196F3"
+          - metric: "assurance.workflow_risk_signal_count"
+            label: "Risk Signals"
+            colour: "#DC3545"
+            y_axis: secondary
+        y_axis:
+          label: "Health Score"
+          min: 0
+          max: 100
+        secondary_y_axis:
+          label: "Risk Signals"
+          min: 0
+        legend:
+          show: true
+          position: top
+
+      accessibility:
+        alt_text: "Dual-axis chart showing workflow health score and risk signal count over time"
+
+    # P9: Workflow execution log
+    - id: workflow_log
+      type: table
+      title: "Workflow Execution Log"
+      description: "P9: All workflow runs with step results and outcomes"
+      tab: workflows
+      position:
+        row: 4
+        column: 0
+        width: 12
+        height: 5
+
+      data:
+        source: assurance
+        metrics:
+          - ref: "assurance.workflow_duration_ms"
+          - ref: "assurance.workflow_completed_steps"
+          - ref: "assurance.workflow_risk_signal_count"
+        dimensions:
+          - ref: "assurance.workflow_id"
+          - ref: "assurance.workflow_type"
+          - ref: "assurance.workflow_timestamp"
+          - ref: "assurance.workflow_health"
+          - ref: "assurance.workflow_executive_summary"
+        filters:
+          - dimension: "assurance.project_id"
+            operator: eq
+            value: "${project_id}"
+
+      options:
+        columns:
+          - field: "assurance.workflow_timestamp"
+            label: "Date"
+            width: 140
+            sortable: true
+          - field: "assurance.workflow_type"
+            label: "Workflow"
+            width: 180
+            sortable: true
+          - field: "assurance.workflow_health"
+            label: "Health"
+            width: 130
+            align: center
+            sortable: true
+          - field: "assurance.workflow_completed_steps"
+            label: "Steps"
+            width: 70
+            align: center
+          - field: "assurance.workflow_risk_signal_count"
+            label: "Signals"
+            width: 70
+            align: center
+          - field: "assurance.workflow_duration_ms"
+            label: "Duration"
+            width: 90
+            align: right
+            format:
+              style: number
+              precision: 0
+          - field: "assurance.workflow_executive_summary"
+            label: "Summary"
+            width: 350
+        sorting:
+          initial:
+            field: "assurance.workflow_timestamp"
+            order: desc
+        pagination:
+          enabled: true
+          page_size: 10
+        conditional_formatting:
+          - field: "assurance.workflow_health"
+            rules:
+              - value: "HEALTHY"
+                background: "#D5F5D5"
+              - value: "ATTENTION_NEEDED"
+                background: "#FFF3CD"
+              - value: "AT_RISK"
+                background: "#FFE0B2"
+              - value: "CRITICAL"
+                background: "#F8D7DA"
+
+      accessibility:
+        alt_text: "Workflow execution log showing type, health classification, step count, risk signals, and executive summary for each run"
+
+    # P9: Step completion breakdown from latest workflow
+    - id: step_breakdown
+      type: bar
+      title: "Latest Workflow Steps"
+      description: "P9: Step-by-step results from the most recent workflow execution"
+      tab: workflows
+      position:
+        row: 9
+        column: 0
+        width: 12
+        height: 4
+
+      data:
+        source: assurance
+        metrics:
+          - ref: "assurance.step_duration_ms"
+        dimensions:
+          - ref: "assurance.step_name"
+          - ref: "assurance.step_feature"
+          - ref: "assurance.step_status"
+        filters:
+          - dimension: "assurance.project_id"
+            operator: eq
+            value: "${project_id}"
+          - dimension: "assurance.workflow_id"
+            operator: eq
+            value: "latest"
+
+      options:
+        orientation: horizontal
+        sort_by: custom
+        colour_map:
+          "COMPLETED": "#28A745"
+          "SKIPPED": "#6C757D"
+          "FAILED": "#DC3545"
+          "NOT_APPLICABLE": "#ADB5BD"
+        show_values: true
+        x_axis:
+          label: "Duration (ms)"
+        y_axis:
+          label: "Step"
+
+      accessibility:
+        alt_text: "Horizontal bar chart showing duration and status of each step in the most recent workflow execution"
+
+  # Theme
+  theme:
+    mode: light
+    primary_colour: "#1F4E79"
+    secondary_colour: "#334155"
+    accent_colour: "#10B981"
+    font_family: "Inter, system-ui, sans-serif"
+
+  # Error handling
+  error_handling:
+    on_panel_error:
+      action: show_placeholder
+      message: "Data unavailable for this panel"
+    on_source_error:
+      action: show_error
+      allow_partial: true
+
+  # Refresh
+  refresh:
+    enabled: true
+    interval_seconds: 300
+    show_last_updated: true
+
+  accessibility:
+    alt_text: "Comprehensive assurance deep dive dashboard with five tabs covering evidence currency, compliance actions, governance overrides, efficiency analysis, and workflow history"
