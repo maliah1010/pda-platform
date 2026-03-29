@@ -1,6 +1,6 @@
 """Assurance module: artefact currency, compliance tracking, finding analysis.
 
-This module provides ten capabilities for assurance gate reviews:
+This module provides eleven capabilities for assurance gate reviews:
 
 - **P1** — :class:`ArtefactCurrencyValidator`: detect stale and last-minute
   artefact updates against a gate date.
@@ -22,10 +22,23 @@ This module provides ten capabilities for assurance gate reviews:
   workflow orchestrator across P1–P8.
 - **P10** — :class:`ProjectDomainClassifier`: classify projects into complexity
   domains using explicit indicators and store-derived signals.
+- **P12** — :class:`ARMMScorer`: Agent Readiness Maturity Model — four-dimension,
+  28-topic, 251-criterion weakest-link maturity assessment for AI agent deployment.
 
 Public API::
 
     from pm_data_tools.assurance import (
+        # P12
+        ARMMScorer,
+        ARMMAssessment,
+        ARMMDimension,
+        ARMMTopic,
+        ARMMTopicResult,
+        ARMMDimensionResult,
+        ARMMReport,
+        ARMMConfig,
+        CriterionResult,
+        MaturityLevel,
         # P1
         ArtefactCurrencyValidator,
         CurrencyConfig,
@@ -146,6 +159,29 @@ from .classifier import (
     DomainIndicator,
     ProjectDomainClassifier,
 )
+from .assumptions import (
+    AssumptionTracker,
+    Assumption,
+    AssumptionCategory,
+    AssumptionConfig,
+    AssumptionSource,
+    AssumptionValidation,
+    DriftSeverity,
+    DriftResult,
+    AssumptionHealthReport,
+)
+from .armm import (
+    ARMMScorer,
+    ARMMAssessment,
+    ARMMConfig,
+    ARMMDimension,
+    ARMMDimensionResult,
+    ARMMReport,
+    ARMMTopic,
+    ARMMTopicResult,
+    CriterionResult,
+    MaturityLevel,
+)
 from .scheduler import (
     AdaptiveReviewScheduler,
     ReviewUrgency,
@@ -220,6 +256,27 @@ __all__ = [
     "ComplexityDomain",
     "DomainAssuranceProfile",
     "DomainIndicator",
+    # P11 — Assumption Drift Tracker
+    "AssumptionTracker",
+    "Assumption",
+    "AssumptionCategory",
+    "AssumptionConfig",
+    "AssumptionSource",
+    "AssumptionValidation",
+    "DriftSeverity",
+    "DriftResult",
+    "AssumptionHealthReport",
+    # P12 — ARMM (Agent Readiness Maturity Model)
+    "ARMMScorer",
+    "ARMMAssessment",
+    "ARMMConfig",
+    "ARMMDimension",
+    "ARMMDimensionResult",
+    "ARMMReport",
+    "ARMMTopic",
+    "ARMMTopicResult",
+    "CriterionResult",
+    "MaturityLevel",
     # Deprecated aliases — will be removed in v0.5.0
     "Recommendation",
     "RecommendationExtractionResult",

@@ -1582,3 +1582,177 @@ rationale.
 
 Reclassifies using only P2/P3/P6/P8 store data — no explicit indicators
 required.  Suitable for automated or scheduled reclassification tasks.
+
+---
+
+## P11 — Assumption Drift Tracker
+
+### Purpose
+
+Captures project assumptions with baseline values, monitors drift against
+current values over time, detects stale assumptions (not re-validated within
+a configurable window), and flags cascading impacts through the assumption
+dependency graph.  Designed as the key differentiator for MPA Challenge 5
+(Critical Assumption Drift).
+
+### Data models
+
+| Model | Description |
+|-------|-------------|
+| `Assumption` | A single assumption with baseline, current value, unit, tolerance, and dependencies |
+| `AssumptionValidation` | A single validation record: new value, drift %, severity |
+| `DriftResult` | Per-assumption drift analysis: drift_pct, severity, cascade impact |
+| `AssumptionHealthReport` | Aggregate health: total, stale, drift by severity/category, cascade warnings, overall score |
+| `AssumptionConfig` | Thresholds: staleness_days, minor/moderate/significant drift percentages |
+
+**`AssumptionCategory`:** `COST` | `SCHEDULE` | `RESOURCE` | `TECHNICAL` | `COMMERCIAL` | `REGULATORY` | `STAKEHOLDER` | `EXTERNAL`
+
+**`DriftSeverity`:** `NONE` | `MINOR` | `MODERATE` | `SIGNIFICANT` | `CRITICAL`
+
+**`AssumptionSource`:** `MANUAL` | `EXTERNAL_API` | `DERIVED`
+
+### Core class
+
+```python
+from pm_data_tools.assurance.assumptions import (
+    AssumptionTracker, Assumption, AssumptionCategory,
+    AssumptionConfig, AssumptionSource,
+)
+from pm_data_tools.db.store import AssuranceStore
+
+store = AssuranceStore()
+tracker = AssumptionTracker(store=store)
+
+# Ingest an assumption
+a = tracker.ingest(
+    Assumption(
+        project_id="PROJ-001",
+        text="CPI inflation will remain below 3% through 2026",
+        category=AssumptionCategory.COST,
+        baseline_value=2.5,
+        unit="%",
+        tolerance_pct=20.0,
+        source=AssumptionSource.EXTERNAL_API,
+        external_ref="ONS_CPI",
+    )
+)
+
+# Later, update with a new value
+validation = tracker.update_value(
+    assumption_id=a.id,
+    new_value=3.8,
+    notes="Updated from latest ONS release",
+)
+# validation.drift_pct == 52.0, validation.severity == DriftSeverity.CRITICAL
+
+# Run full project analysis
+report = tracker.analyse_project("PROJ-001")
+# report.overall_drift_score → 0.0 – 1.0
+# report.cascade_warnings → list of human-readable impact warnings
+
+# Cascade impact
+affected_ids = tracker.get_cascade_impact(a.id)
+
+# Stale assumptions
+stale = tracker.get_stale_assumptions("PROJ-001")
+```
+
+| Method | Description |
+|--------|-------------|
+| `ingest(assumption)` | Persist an assumption; returns it with auto-generated id |
+| `ingest_batch(assumptions)` | Ingest multiple assumptions; returns count |
+| `get_assumptions(project_id, category=None)` | Retrieve assumptions, optionally filtered |
+| `update_value(assumption_id, new_value, source, notes)` | Update current value, record validation, compute drift |
+| `compute_drift(assumption)` | Compute drift for a single assumption |
+| `analyse_project(project_id)` | Full health analysis: drift, staleness, cascade, score |
+| `get_cascade_impact(assumption_id)` | BFS cascade graph traversal; handles cycles |
+| `get_dependency_graph(project_id)` | Reverse adjacency dict for all assumptions |
+| `get_stale_assumptions(project_id)` | Assumptions not validated within staleness window |
+| `get_validation_history(assumption_id)` | All validations oldest first |
+
+**Drift severity thresholds (default config):**
+
+| Drift % | Severity |
+|---------|----------|
+| ≤ 5% | NONE |
+| ≤ 15% | MINOR |
+| ≤ 30% | MODERATE |
+| ≤ 45% | SIGNIFICANT |
+| > 45% | CRITICAL |
+
+**Overall drift score** = weighted average of individual severities
+(NONE=0, MINOR=0.2, MODERATE=0.5, SIGNIFICANT=0.8, CRITICAL=1.0).
+
+### Persistence
+
+Two new tables in `AssuranceStore`:
+
+- `assumptions` — one row per assumption per project
+- `assumption_validations` — one row per `update_value()` call
+
+New store methods: `upsert_assumption`, `get_assumptions`, `get_assumption_by_id`,
+`update_assumption_value`, `insert_assumption_validation`, `get_assumption_validations`.
+
+### P9 workflow integration
+
+`FULL_ASSURANCE` runs `p11_assumption_drift` as step 9 (after P8).
+
+New workflow type `ASSUMPTION_HEALTH_CHECK` runs:
+`p11_assumption_drift` → `p2_compliance_trend` → `p5_schedule_recommendation`
+
+P11 signal: `"assumption_drift"` from source `"P11"`, severity = `overall_drift_score`.
+
+Recommended action when signal >= threshold:
+`"Review and re-validate stale or drifting assumptions before the next gate review."`
+
+### MCP tools
+
+#### `ingest_assumption` (tool 17)
+
+```json
+{
+  "project_id": "PROJ-001",
+  "text": "CPI inflation will remain below 3% through 2026",
+  "category": "COST",
+  "baseline_value": 2.5,
+  "unit": "%",
+  "tolerance_pct": 20.0,
+  "source": "EXTERNAL_API",
+  "external_ref": "ONS_CPI",
+  "owner": "Finance Lead"
+}
+```
+
+Returns the ingested assumption with its auto-generated `id`.
+
+#### `validate_assumption` (tool 18)
+
+```json
+{
+  "assumption_id": "uuid-here",
+  "new_value": 3.8,
+  "source": "MANUAL",
+  "notes": "Updated from latest ONS release"
+}
+```
+
+Returns the validation record with `drift_pct` and `severity`.
+
+#### `get_assumption_drift` (tool 19)
+
+```json
+{ "project_id": "PROJ-001" }
+```
+
+Returns the full `AssumptionHealthReport` as JSON including per-assumption drift
+results, cascade warnings, counts by severity/category, and overall drift score.
+
+#### `get_cascade_impact` (tool 20)
+
+```json
+{ "assumption_id": "uuid-here" }
+```
+
+Returns the list of affected assumption IDs with their texts, category, baseline
+value, current value, drift percentage, and severity.  Uses breadth-first
+traversal and handles circular dependency graphs safely.

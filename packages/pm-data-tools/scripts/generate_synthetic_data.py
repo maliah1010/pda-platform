@@ -1266,7 +1266,7 @@ def build_artefacts() -> dict[str, list[dict[str, str]]]:
 
 
 def verify(db_path: Path) -> None:
-    """Print record counts for all 10 tables."""
+    """Print record counts for all tables."""
     import sqlite3
 
     size_mb = db_path.stat().st_size / (1024 * 1024)
@@ -1282,6 +1282,10 @@ def verify(db_path: Path) -> None:
         "overhead_analyses",
         "workflow_executions",
         "domain_classifications",
+        "assumptions",
+        "assumption_validations",
+        "armm_assessments",
+        "armm_criterion_results",
     ]
 
     print("\n=== Synthetic Data Summary ===")
@@ -1312,6 +1316,239 @@ def verify(db_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
+# P11: Assumption data
+# ---------------------------------------------------------------------------
+
+_ASSUMPTION_TEMPLATES: list[dict] = [
+    {"text": "Annual inflation rate will not exceed 3%", "category": "COST", "baseline": 2.5, "unit": "%", "ext": "ONS_CPI"},
+    {"text": "Contractor day rates within 10% of current levels", "category": "COST", "baseline": 850.0, "unit": "GBP"},
+    {"text": "Planning approval granted within 12 weeks", "category": "SCHEDULE", "baseline": 12.0, "unit": "weeks"},
+    {"text": "Delivery milestone dates will not slip more than 4 weeks", "category": "SCHEDULE", "baseline": 4.0, "unit": "weeks"},
+    {"text": "Senior developer availability >= 3 FTE through delivery", "category": "RESOURCE", "baseline": 3.0, "unit": "FTE"},
+    {"text": "Specialist contractor supply remains stable", "category": "RESOURCE", "baseline": 1.0, "unit": "score"},
+    {"text": "API response times will remain under 200ms", "category": "TECHNICAL", "baseline": 200.0, "unit": "ms"},
+    {"text": "Cloud platform SLA stays at 99.9%", "category": "TECHNICAL", "baseline": 99.9, "unit": "%"},
+    {"text": "Primary supplier remains financially viable", "category": "COMMERCIAL", "baseline": 1.0, "unit": "score"},
+    {"text": "GDPR requirements will not change materially", "category": "REGULATORY", "baseline": 1.0, "unit": "score"},
+    {"text": "Ministerial priorities will remain aligned", "category": "STAKEHOLDER", "baseline": 1.0, "unit": "score"},
+    {"text": "GBP/EUR exchange rate stays within 5% of current", "category": "EXTERNAL", "baseline": 1.17, "unit": "ratio", "ext": "BoE_FX"},
+]
+
+_DOMAIN_ASSUMPTION_COUNTS = {"CLEAR": 5, "COMPLICATED": 7, "COMPLEX": 9, "CHAOTIC": 10}
+
+_DOMAIN_DRIFT_SCALE = {"CLEAR": 0.02, "COMPLICATED": 0.08, "COMPLEX": 0.25, "CHAOTIC": 0.50}
+
+
+def generate_assumptions(store: "AssuranceStore", project_id: str, domain: str, months: int = 12) -> None:
+    """Generate P11 assumption data for a project.
+
+    Args:
+        store: The AssuranceStore instance.
+        project_id: The project identifier.
+        domain: Complexity domain (CLEAR/COMPLICATED/COMPLEX/CHAOTIC).
+        months: Number of months in the history window.
+    """
+    from pm_data_tools.assurance.assumptions import (
+        Assumption,
+        AssumptionCategory,
+        AssumptionSource,
+        AssumptionTracker,
+    )
+    from datetime import date, timedelta
+
+    n_assumptions = _DOMAIN_ASSUMPTION_COUNTS.get(domain, 5)
+    drift_scale = _DOMAIN_DRIFT_SCALE.get(domain, 0.05)
+    tracker = AssumptionTracker(store=store)
+
+    templates = _ASSUMPTION_TEMPLATES[:n_assumptions]
+    assumption_ids: list[str] = []
+
+    # Create dependency chains for COMPLEX/CHAOTIC
+    dep_chains: dict[int, list[int]] = {}
+    if domain in ("COMPLEX", "CHAOTIC"):
+        # indices 2→0, 3→1 (schedule depends on cost), 6→4 (tech on resource)
+        dep_chains = {2: [0], 3: [1], 6: [4]}
+
+    base_date = date(2025, 4, 1)
+    for i, tmpl in enumerate(templates):
+        deps = [assumption_ids[d] for d in dep_chains.get(i, []) if d < len(assumption_ids)]
+        cat = AssumptionCategory(tmpl["category"])
+        src = AssumptionSource.EXTERNAL_API if tmpl.get("ext") else AssumptionSource.MANUAL
+        a = Assumption(
+            project_id=project_id,
+            text=tmpl["text"],
+            category=cat,
+            baseline_value=tmpl["baseline"],
+            unit=tmpl.get("unit", ""),
+            tolerance_pct=15.0 if domain in ("COMPLEX", "CHAOTIC") else 10.0,
+            source=src,
+            external_ref=tmpl.get("ext"),
+            dependencies=deps,
+            owner="SRO" if i == 0 else ("Finance Lead" if cat == AssumptionCategory.COST else "PM"),
+            created_date=base_date,
+        )
+        tracker.ingest(a)
+        assumption_ids.append(a.id)
+
+    # Generate validations across 12 months
+    n_validations = {"CLEAR": 2, "COMPLICATED": 3, "COMPLEX": 3, "CHAOTIC": 4}.get(domain, 2)
+    staleness_days = {"CLEAR": 0, "COMPLICATED": 0, "COMPLEX": 1, "CHAOTIC": 2}.get(domain, 0)
+
+    for idx, assumption_id in enumerate(assumption_ids):
+        row = store.get_assumption_by_id(assumption_id)
+        if row is None:
+            continue
+        baseline = float(row["baseline_value"])
+
+        # For CHAOTIC, last few assumptions get no validations (stale)
+        effective_validations = n_validations
+        if idx >= len(assumption_ids) - staleness_days:
+            effective_validations = 0
+
+        for v in range(effective_validations):
+            # Each validation adds cumulative drift
+            months_elapsed = int((v + 1) * (months / effective_validations)) if effective_validations else 0
+            val_date = base_date + timedelta(days=months_elapsed * 30)
+
+            drift_factor = 1.0 + drift_scale * (v + 1) * random.uniform(0.5, 1.5)
+            # Some assumptions drift down (costs rise, timelines slip)
+            if idx % 3 == 0:
+                new_val = round(baseline * drift_factor, 3)
+            else:
+                new_val = round(baseline / drift_factor, 3) if baseline > 0 else round(baseline - drift_scale * (v + 1), 3)
+
+            tracker.update_value(
+                assumption_id=assumption_id,
+                new_value=new_val,
+                source=AssumptionSource.EXTERNAL_API if idx % 2 == 0 else AssumptionSource.MANUAL,
+                notes=f"Periodic review month {months_elapsed}",
+            )
+
+
+# ---------------------------------------------------------------------------
+# P12: ARMM assessment data
+# ---------------------------------------------------------------------------
+
+# Per-dimension criteria-met rates by project complexity domain.
+# These drive the synthetic ARMM scoring (weakest-link per dimension/topic).
+_ARMM_DOMAIN_PCT: dict[str, dict[str, float]] = {
+    "CLEAR":       {"TC": 0.82, "OR": 0.78, "GA": 0.75, "CC": 0.70},
+    "COMPLICATED": {"TC": 0.58, "OR": 0.52, "GA": 0.55, "CC": 0.45},
+    "COMPLEX":     {"TC": 0.30, "OR": 0.22, "GA": 0.35, "CC": 0.28},
+    "CHAOTIC":     {"TC": 0.12, "OR": 0.08, "GA": 0.18, "CC": 0.10},
+}
+
+# Which topic within each dimension is deliberately weakest (weakest-link model).
+_ARMM_WEAKEST_TOPIC: dict[str, dict[str, str]] = {
+    "CLEAR":       {"TC": "TC-SC", "OR": "OR-DR", "GA": "GA-EA", "CC": "CC-CI"},
+    "COMPLICATED": {"TC": "TC-RT", "OR": "OR-BC", "GA": "GA-EA", "CC": "CC-CM"},
+    "COMPLEX":     {"TC": "TC-SC", "OR": "OR-BC", "GA": "GA-ER", "CC": "CC-SK"},
+    "CHAOTIC":     {"TC": "TC-IV", "OR": "OR-BC", "GA": "GA-PF", "CC": "CC-LC"},
+}
+
+_ARMM_ASSESSORS: list[str] = [
+    "Assurance Lead",
+    "Senior Responsible Owner",
+    "Portfolio Manager",
+    "IPA Reviewer",
+    "Programme Director",
+]
+
+
+def generate_armm_assessments(
+    store: "AssuranceStore", project_id: str, domain: str, months: int = 12
+) -> None:
+    """Generate P12 ARMM assessment data for a project.
+
+    Creates 2–3 historical assessments using the real ARMMScorer (weakest-link
+    scoring across 28 topics, 251 criteria, 4 dimensions).
+
+    Args:
+        store: The AssuranceStore instance.
+        project_id: The project identifier.
+        domain: Complexity domain (CLEAR/COMPLICATED/COMPLEX/CHAOTIC).
+        months: History window in months.
+    """
+    from datetime import date, timedelta
+    from pm_data_tools.assurance.armm import (
+        ARMMScorer,
+        ARMMTopic,
+        CriterionResult,
+        TOPIC_CRITERIA_COUNT,
+        TOPIC_DIMENSION,
+    )
+
+    scorer = ARMMScorer(store=store)
+    pct_profile = _ARMM_DOMAIN_PCT.get(domain, _ARMM_DOMAIN_PCT["COMPLICATED"])
+    weakest = _ARMM_WEAKEST_TOPIC.get(domain, {})
+
+    n_assessments = {"CLEAR": 3, "COMPLICATED": 3, "COMPLEX": 2, "CHAOTIC": 2}.get(domain, 2)
+    base_date = date(2025, 4, 1)
+
+    for assessment_idx in range(n_assessments):
+        months_offset = int(assessment_idx * months / n_assessments)
+        assessment_date = (base_date + timedelta(days=months_offset * 30)).isoformat()
+
+        # Small improvement between assessments for non-CHAOTIC
+        improvement_bonus = 0.0
+        if assessment_idx > 0 and domain != "CHAOTIC":
+            improvement_bonus = 0.06 * assessment_idx
+
+        criterion_results: list[CriterionResult] = []
+        for topic in ARMMTopic:
+            dim_code = TOPIC_DIMENSION[topic].value
+            n_criteria = TOPIC_CRITERIA_COUNT[topic]
+            base_pct = pct_profile.get(dim_code, 0.3) + improvement_bonus
+
+            # Weakest topic gets deliberately lower rate
+            is_weakest = weakest.get(dim_code) == topic.value
+            topic_pct = max(0.0, min(1.0, base_pct - 0.25 if is_weakest else base_pct))
+
+            for i in range(1, n_criteria + 1):
+                criterion_id = f"{topic.value}-{i}"
+                met = (i / n_criteria) <= topic_pct
+                evidence_ref = f"DOC-{project_id}-{topic.value}-{i}" if met else None
+                criterion_results.append(
+                    CriterionResult(
+                        criterion_id=criterion_id,
+                        met=met,
+                        evidence_ref=evidence_ref,
+                    )
+                )
+
+        assessor = _ARMM_ASSESSORS[assessment_idx % len(_ARMM_ASSESSORS)]
+        assessment = scorer.assess(
+            project_id=project_id,
+            criterion_results=criterion_results,
+            assessed_by=assessor,
+            notes=f"Periodic assessment {assessment_idx + 1} of {n_assessments}",
+        )
+
+        # Override assessed_at to reflect historical date
+        with store._connect() as conn:
+            conn.execute(
+                "UPDATE armm_assessments SET assessed_at = ? WHERE id = ?",
+                (assessment_date + "T09:00:00+00:00", assessment.id),
+            )
+
+        # Persist criterion-level results for drill-through
+        store.insert_armm_criterion_results(
+            assessment_id=assessment.id,
+            project_id=project_id,
+            results=[
+                {
+                    "criterion_id": r.criterion_id,
+                    "topic_code": "-".join(r.criterion_id.split("-")[:2]),
+                    "dimension_code": r.criterion_id.split("-")[0],
+                    "met": r.met,
+                    "evidence_ref": r.evidence_ref or "",
+                    "notes": r.notes or "",
+                }
+                for r in criterion_results
+            ],
+        )
+
+# ---------------------------------------------------------------------------
 # Main generation loop
 # ---------------------------------------------------------------------------
 
@@ -1332,6 +1569,8 @@ def generate(output: Path) -> None:
         generate_schedule_recommendations(store, project_id, domain)
         generate_overrides(store, project_id, domain)
         generate_activities(store, project_id, domain, scores)
+        generate_assumptions(store, project_id, domain)
+        generate_armm_assessments(store, project_id, domain)
         generate_workflow_executions(store, project_id, domain)
         generate_domain_classifications(store, project_id)
 
@@ -1380,7 +1619,7 @@ def main() -> None:
 
     output: Path = args.output.resolve()
     print(f"Generating synthetic data → {output}")
-    print(f"15 projects  |  12 months  |  10 tables\n")
+    print(f"15 projects  |  12 months  |  14 tables (P1–P12)\n")
 
     generate(output)
 

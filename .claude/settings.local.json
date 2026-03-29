@@ -36,7 +36,21 @@
       "Bash(GIT_SEQUENCE_EDITOR=\"sed -i ''s/^pick f121c7b/edit f121c7b/''\" git rebase -i b72db88)",
       "Bash(tree:*)",
       "Bash(echo:*)",
-      "Bash(git -C \"C:\\\\Users\\\\antjs\\\\pda-platform\" log --oneline -20)"
+      "Bash(git -C \"C:\\\\Users\\\\antjs\\\\pda-platform\" log --oneline -20)",
+      "Bash(git remote:*)",
+      "Bash(pip install:*)",
+      "Bash(find C:Usersantjspda-platform -type f \\\\\\(-name *.py -o -name *.ts -o -name *.tsx -o -name *.json \\\\\\))",
+      "Bash(wc -l \"C:\\\\Users\\\\antjs\\\\pda-platform/packages/pm-data-tools/tests/test_assurance\"/*.py)",
+      "Bash(find /c/Users/antjs/pda-platform -type f \\\\\\(-name *.py -o -name *.md -o -name *.json -o -name *.toml -o -name *.txt -o -name *.cfg -o -name *.yml -o -name *.yaml \\\\\\) ! -path */.git/* ! -path */node_modules/* ! -path */.pytest_cache/* ! -path */__pycache__/*)",
+      "Bash(npm list:*)",
+      "Bash(npm install:*)",
+      "Bash(node docs/generate_audit_report.js)",
+      "Bash(node /tmp/create_plan.js)",
+      "Bash(node create_plan.js)",
+      "Bash(mv /c/Users/antjs/uds-renderer/create_plan.js /c/Users/antjs/uds-renderer/create_plan.cjs)",
+      "Bash(node create_plan.cjs)",
+      "Bash(git pull:*)",
+      "Bash(PYTHONIOENCODING=utf-8 python packages/pm-data-tools/scripts/generate_synthetic_data.py --verify)"
     ]
   }
 }

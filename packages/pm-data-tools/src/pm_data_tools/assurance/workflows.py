@@ -86,6 +86,8 @@ class WorkflowType(Enum):
     CURRENCY_FOCUS = "CURRENCY_FOCUS"
     TREND_ANALYSIS = "TREND_ANALYSIS"
     RISK_ASSESSMENT = "RISK_ASSESSMENT"
+    ASSUMPTION_HEALTH_CHECK = "ASSUMPTION_HEALTH_CHECK"
+    ARMM_READINESS_CHECK = "ARMM_READINESS_CHECK"
 
 
 class ProjectHealth(Enum):
@@ -207,6 +209,17 @@ _WORKFLOW_STEPS: dict[str, list[str]] = {
         "p6_override_analysis",
         "p7_lessons_summary",
         "p8_overhead_analysis",
+        "p11_assumption_drift",
+        "p12_armm_readiness",
+    ],
+    "ASSUMPTION_HEALTH_CHECK": [
+        "p11_assumption_drift",
+        "p2_compliance_trend",
+        "p5_schedule_recommendation",
+    ],
+    "ARMM_READINESS_CHECK": [
+        "p12_armm_readiness",
+        "p2_compliance_trend",
     ],
     "COMPLIANCE_FOCUS": [
         "p2_compliance_trend",
@@ -438,6 +451,8 @@ class AssuranceWorkflowEngine:
             "p6_override_analysis": self._step_override_analysis,
             "p7_lessons_summary": self._step_lessons_summary,
             "p8_overhead_analysis": self._step_overhead_analysis,
+            "p11_assumption_drift": self._step_assumption_drift,
+            "p12_armm_readiness": self._step_armm_readiness,
         }
 
         executor = _executor_map.get(step_name)
@@ -1093,6 +1108,10 @@ class AssuranceWorkflowEngine:
                 actions.append(
                     "Rebalance assurance activities to improve efficiency and findings yield."
                 )
+            elif signal.source == "P11":
+                actions.append(
+                    "Review and re-validate stale or drifting assumptions before the next gate review."
+                )
 
         # Deduplicate while preserving insertion order
         seen: set[str] = set()
@@ -1102,6 +1121,122 @@ class AssuranceWorkflowEngine:
                 seen.add(action)
                 unique.append(action)
         return unique
+
+    def _step_assumption_drift(
+        self,
+        project_id: str,
+        artefacts: list[dict[str, Any]] | None,
+        gate_date: str | datetime | None,
+        intermediate: dict[str, Any],
+    ) -> WorkflowStepResult:
+        """P11: Assumption drift analysis."""
+        if self._store is None:
+            return WorkflowStepResult(
+                step_name="p11_assumption_drift",
+                status=WorkflowStepStatus.NOT_APPLICABLE,
+                duration_ms=0.0,
+                output={"reason": "No store configured."},
+            )
+
+        from .assumptions import AssumptionTracker
+
+        tracker = AssumptionTracker(store=self._store)
+        report = tracker.analyse_project(project_id)
+
+        if report.total_assumptions == 0:
+            return WorkflowStepResult(
+                step_name="p11_assumption_drift",
+                status=WorkflowStepStatus.NOT_APPLICABLE,
+                duration_ms=0.0,
+                output={"reason": "No assumptions tracked for this project."},
+            )
+
+        severity = report.overall_drift_score
+
+        return WorkflowStepResult(
+            step_name="p11_assumption_drift",
+            status=WorkflowStepStatus.COMPLETED,
+            duration_ms=0.0,
+            output={
+                "total_assumptions": report.total_assumptions,
+                "stale_count": report.stale_count,
+                "overall_drift_score": report.overall_drift_score,
+                "by_severity": report.by_severity,
+                "cascade_warnings": report.cascade_warnings,
+                "message": report.message,
+            },
+            risk_signal=WorkflowRiskSignal(
+                source="P11",
+                signal_name="assumption_drift",
+                severity=severity,
+                detail=(
+                    f"{report.total_assumptions} assumption(s), "
+                    f"{report.stale_count} stale.  "
+                    f"Overall drift score {severity:.2f}.  "
+                    f"{len(report.cascade_warnings)} cascade warning(s)."
+                ),
+            ),
+        )
+
+    def _step_armm_readiness(
+        self,
+        project_id: str,
+        artefacts: list[dict[str, Any]] | None,
+        gate_date: str | datetime | None,
+        intermediate: dict[str, Any],
+    ) -> WorkflowStepResult:
+        """P12: ARMM Agent Readiness Maturity assessment."""
+        if self._store is None:
+            return WorkflowStepResult(
+                step_name="p12_armm_readiness",
+                status=WorkflowStepStatus.NOT_APPLICABLE,
+                duration_ms=0.0,
+                output={"reason": "No store configured."},
+            )
+
+        from .armm import ARMMScorer, MATURITY_LABELS
+
+        scorer = ARMMScorer(store=self._store)
+        report = scorer.get_report(project_id)
+
+        if report.latest_assessment_id is None:
+            return WorkflowStepResult(
+                step_name="p12_armm_readiness",
+                status=WorkflowStepStatus.NOT_APPLICABLE,
+                duration_ms=0.0,
+                output={"reason": "No ARMM assessment recorded for this project."},
+            )
+
+        level = int(report.overall_level)
+        # Severity: EXPERIMENTING → 1.0, MISSION_CRITICAL → 0.0
+        severity = max(0.0, round((4 - level) / 4, 2))
+
+        return WorkflowStepResult(
+            step_name="p12_armm_readiness",
+            status=WorkflowStepStatus.COMPLETED,
+            duration_ms=0.0,
+            output={
+                "overall_level": level,
+                "overall_level_label": MATURITY_LABELS.get(report.overall_level, str(level)),
+                "overall_score_pct": report.overall_score_pct,
+                "blocking_dimension": report.blocking_dimension,
+                "criteria_total": report.criteria_total,
+                "criteria_met": report.criteria_met,
+                "maturity_trend": report.maturity_trend,
+            },
+            risk_signal=WorkflowRiskSignal(
+                source="P12",
+                signal_name="armm_readiness",
+                severity=severity,
+                detail=(
+                    f"ARMM overall level: {MATURITY_LABELS.get(report.overall_level, str(level))}.  "
+                    f"{report.criteria_met}/{report.criteria_total} criteria met "
+                    f"({report.overall_score_pct:.1f}%).  "
+                    f"Blocking dimension: {report.blocking_dimension or 'none'}.  "
+                    f"Trend: {report.maturity_trend}."
+                ),
+            ),
+        )
 
     def _build_executive_summary(
         self,

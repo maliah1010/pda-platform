@@ -25,6 +25,13 @@ from pm_data_tools.assurance.lessons import (
     LessonSentiment,
     LessonsKnowledgeEngine,
 )
+from pm_data_tools.assurance.assumptions import (
+    Assumption,
+    AssumptionCategory,
+    AssumptionConfig,
+    AssumptionSource,
+    AssumptionTracker,
+)
 from pm_data_tools.assurance.classifier import (
     ClassificationInput,
     ClassifierConfig,
@@ -374,6 +381,72 @@ def make_classification_input(
 # ---------------------------------------------------------------------------
 # Overhead optimiser fixtures (P8)
 # ---------------------------------------------------------------------------
+
+
+@pytest.fixture()
+def assumption_tracker(store: AssuranceStore) -> AssumptionTracker:
+    """AssumptionTracker backed by the isolated temp store."""
+    return AssumptionTracker(store=store)
+
+
+def make_assumption(
+    project_id: str = "PROJ-001",
+    text: str = "Default test assumption",
+    category: AssumptionCategory = AssumptionCategory.COST,
+    baseline_value: float = 100.0,
+    unit: str = "GBP",
+    dependencies: list[str] | None = None,
+    last_validated: "date | None" = None,
+    created_date: "date | None" = None,
+    **kwargs: object,
+) -> Assumption:
+    """Helper to build an Assumption with sensible defaults."""
+    from datetime import date
+
+    return Assumption(
+        project_id=project_id,
+        text=text,
+        category=category,
+        baseline_value=baseline_value,
+        unit=unit,
+        dependencies=dependencies or [],
+        last_validated=last_validated,
+        created_date=created_date or date(2025, 4, 1),
+        **kwargs,  # type: ignore[arg-type]
+    )
+
+
+@pytest.fixture()
+def populated_assumption_tracker(store: AssuranceStore) -> AssumptionTracker:
+    """AssumptionTracker pre-loaded with 8 diverse assumptions including dependency chains."""
+    from datetime import date, timedelta
+
+    tracker = AssumptionTracker(store=store)
+
+    a0 = make_assumption(text="Inflation stays below 3%", category=AssumptionCategory.COST, baseline_value=2.5, unit="%")
+    a1 = make_assumption(text="Contractor rates stable", category=AssumptionCategory.COST, baseline_value=850.0, unit="GBP")
+    a2 = make_assumption(text="Planning approval in 12 weeks", category=AssumptionCategory.SCHEDULE, baseline_value=12.0, unit="weeks", dependencies=[a0.id])
+    a3 = make_assumption(text="3 FTE senior devs available", category=AssumptionCategory.RESOURCE, baseline_value=3.0, unit="FTE")
+    a4 = make_assumption(text="API under 200ms", category=AssumptionCategory.TECHNICAL, baseline_value=200.0, unit="ms", dependencies=[a3.id])
+    a5 = make_assumption(text="Supplier viable", category=AssumptionCategory.COMMERCIAL, baseline_value=1.0, unit="score")
+    a6 = make_assumption(text="Ministerial alignment", category=AssumptionCategory.STAKEHOLDER, baseline_value=1.0, unit="score")
+    # a7 has no recent validation (stale)
+    a7 = make_assumption(
+        text="GDPR requirements stable",
+        category=AssumptionCategory.REGULATORY,
+        baseline_value=1.0,
+        unit="score",
+        created_date=date(2025, 1, 1),  # old enough to be stale without validation
+    )
+
+    tracker.ingest_batch([a0, a1, a2, a3, a4, a5, a6, a7])
+
+    today = date.today()
+    # Validate most assumptions recently
+    for a, drift in [(a0, 3.1), (a1, 920.0), (a2, 16.0), (a3, 2.5), (a4, 220.0), (a5, 0.9), (a6, 0.8)]:
+        tracker.update_value(a.id, new_value=drift)
+
+    return tracker
 
 
 @pytest.fixture()
