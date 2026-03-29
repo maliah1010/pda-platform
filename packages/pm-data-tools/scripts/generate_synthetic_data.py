@@ -1282,6 +1282,8 @@ def verify(db_path: Path) -> None:
         "overhead_analyses",
         "workflow_executions",
         "domain_classifications",
+        "assumptions",
+        "assumption_validations",
     ]
 
     print("\n=== Synthetic Data Summary ===")
@@ -1491,7 +1493,7 @@ def main() -> None:
 
     output: Path = args.output.resolve()
     print(f"Generating synthetic data → {output}")
-    print(f"15 projects  |  12 months  |  10 tables\n")
+    print(f"15 projects  |  12 months  |  12 tables (P1–P11)\n")
 
     generate(output)
 

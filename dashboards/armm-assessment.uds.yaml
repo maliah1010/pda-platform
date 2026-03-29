@@ -1,0 +1,1050 @@
+# PDA Platform: ARMM Assessment Dashboard
+# Assurance and Review Maturity Model (ARMM) — organisational maturity view.
+# Three tabs: Maturity Overview / Evidence Tracker / Improvement Roadmap.
+# Data sources: armm-api/assessment, armm-api/evidence
+#
+# NOTE: ARMM API endpoints are placeholders. Data will be populated when the
+#       armm-api package is implemented. Static/fixture data is used here.
+
+uds: "0.1.0"
+
+metadata:
+  id: "pda-armm-assessment-v1"
+  name: "armm-assessment"
+  version: "0.1.0"
+  created_at: "2026-03-29T00:00:00Z"
+  authors:
+    - name: "PDA Task Force"
+      email: "pda@tortoiseai.co.uk"
+  tags: ["armm", "maturity", "assurance", "evidence", "improvement"]
+
+dashboard:
+  title: "ARMM Assessment — Assurance and Review Maturity Model"
+  description: "Organisational maturity assessment for project assurance and review practices. Covers six ARMM domains across five maturity levels."
+  intent: "Enable assurance leads and senior programme managers to assess maturity across ARMM domains, track evidence, and plan improvement activities aligned to maturity targets"
+
+  decisions:
+    - "What is the current maturity level across each ARMM domain?"
+    - "Which domains have the largest gap between current and target maturity?"
+    - "What evidence has been submitted and what gaps remain?"
+    - "Which improvement activities should be prioritised this quarter?"
+    - "Is maturity improving over time?"
+
+  persona:
+    type: executive
+    characteristics:
+      attention_span: medium
+      data_literacy: medium
+      interaction_preference: selective
+      primary_device: desktop
+
+  semantic_sources:
+    - id: armm-api
+      label: "ARMM Assessment API"
+      type: custom
+      endpoint: "${ARMM_API_URL}"
+      authentication:
+        type: bearer
+        token_env: "PDA_API_TOKEN"
+      capabilities:
+        metrics: true
+        dimensions: true
+        filters: false
+        time_grains: ["month", "quarter", "year"]
+
+  variables:
+    - id: department
+      label: "Department"
+      type: string
+      default: ""
+      source:
+        type: dimension
+        ref: "armm-api.department"
+
+    - id: assessment_cycle
+      label: "Assessment Cycle"
+      type: string
+      default: "2026-Q1"
+      source:
+        type: static
+        values:
+          - "2025-Q2"
+          - "2025-Q3"
+          - "2025-Q4"
+          - "2026-Q1"
+
+  time_context:
+    default_range: "last_4_quarters"
+    timezone: "Europe/London"
+
+  layout:
+    type: tabs
+
+  tabs:
+
+    # =========================================================================
+    # Tab 1: Maturity Overview
+    # =========================================================================
+    - id: maturity_overview
+      title: "Maturity Overview"
+      description: "Current ARMM maturity scores across all six domains with gap analysis."
+      icon: "bar-chart"
+      layout:
+        type: grid
+        columns: 12
+        row_height: 80
+
+    # =========================================================================
+    # Tab 2: Evidence Tracker
+    # =========================================================================
+    - id: evidence_tracker
+      title: "Evidence Tracker"
+      description: "Evidence submissions by domain, status, and reviewer."
+      icon: "file-check"
+      layout:
+        type: grid
+        columns: 12
+        row_height: 80
+
+    # =========================================================================
+    # Tab 3: Improvement Roadmap
+    # =========================================================================
+    - id: improvement_roadmap
+      title: "Improvement Roadmap"
+      description: "Prioritised improvement activities aligned to ARMM maturity targets."
+      icon: "map"
+      layout:
+        type: grid
+        columns: 12
+        row_height: 80
+
+  panels:
+
+    # =========================================================================
+    # MATURITY OVERVIEW PANELS
+    # =========================================================================
+
+    - id: overall_maturity_score
+      type: gauge
+      title: "Overall ARMM Maturity"
+      description: "Composite maturity score across all six ARMM domains. Scale: 1 (Initial) to 5 (Optimising)."
+      tab: maturity_overview
+      position:
+        row: 1
+        column: 1
+        width: 3
+        height: 2
+      data:
+        source: armm-api
+        endpoint: "/assessment/summary"
+        metrics:
+          - id: overall_maturity
+            label: "Overall Maturity"
+        time_range: "current"
+        fixture:
+          overall_maturity: 2.8
+      options:
+        min: 1
+        max: 5
+        thresholds:
+          - value: 1.0
+            color: "#EF4444"
+            label: "1 — Initial"
+          - value: 2.0
+            color: "#F59E0B"
+            label: "2 — Repeatable"
+          - value: 3.0
+            color: "#EAB308"
+            label: "3 — Defined"
+          - value: 4.0
+            color: "#22C55E"
+            label: "4 — Managed"
+          - value: 5.0
+            color: "#10B981"
+            label: "5 — Optimising"
+        show_value: true
+        format: decimal
+        precision: 1
+      accessibility:
+        alt_text: "Gauge showing overall ARMM maturity score on a scale of 1 to 5"
+
+    - id: target_maturity
+      type: kpi
+      title: "Target Maturity"
+      description: "Target maturity level for the current assessment cycle."
+      tab: maturity_overview
+      position:
+        row: 1
+        column: 4
+        width: 2
+        height: 2
+      data:
+        source: armm-api
+        endpoint: "/assessment/summary"
+        metrics:
+          - id: target_maturity
+            label: "Target"
+        fixture:
+          target_maturity: 3.5
+      options:
+        value_field: target_maturity
+        icon: "target"
+        format: decimal
+        precision: 1
+      accessibility:
+        alt_text: "KPI showing target ARMM maturity score for this assessment cycle"
+
+    - id: maturity_gap
+      type: kpi
+      title: "Maturity Gap"
+      description: "Gap between current and target maturity scores. Smaller is better."
+      tab: maturity_overview
+      position:
+        row: 1
+        column: 6
+        width: 2
+        height: 2
+      data:
+        source: armm-api
+        endpoint: "/assessment/summary"
+        metrics:
+          - id: maturity_gap
+            label: "Gap"
+        fixture:
+          maturity_gap: 0.7
+      options:
+        value_field: maturity_gap
+        comparison:
+          type: threshold
+          warn: 0.5
+          critical: 1.0
+        icon: "arrow-up"
+        format: decimal
+        precision: 1
+        invert_status: true
+      accessibility:
+        alt_text: "KPI showing gap between current and target ARMM maturity"
+
+    - id: domains_at_target
+      type: kpi
+      title: "Domains at Target"
+      description: "Number of ARMM domains that have reached or exceeded their target maturity level."
+      tab: maturity_overview
+      position:
+        row: 1
+        column: 8
+        width: 2
+        height: 2
+      data:
+        source: armm-api
+        endpoint: "/assessment/summary"
+        metrics:
+          - id: domains_at_target
+            label: "At Target"
+        fixture:
+          domains_at_target: 2
+      options:
+        value_field: domains_at_target
+        suffix: "/6"
+        icon: "check-circle"
+        format: integer
+      accessibility:
+        alt_text: "KPI showing how many of the six ARMM domains have reached their target maturity"
+
+    - id: last_assessment_date
+      type: kpi
+      title: "Last Assessment"
+      description: "Date of the most recent ARMM assessment cycle."
+      tab: maturity_overview
+      position:
+        row: 1
+        column: 10
+        width: 3
+        height: 2
+      data:
+        source: armm-api
+        endpoint: "/assessment/summary"
+        metrics:
+          - id: last_assessment_date
+            label: "Last Assessment"
+        fixture:
+          last_assessment_date: "2026-Q1"
+      options:
+        value_field: last_assessment_date
+        icon: "calendar"
+        format: text
+      accessibility:
+        alt_text: "KPI showing the date of the most recent ARMM assessment"
+
+    - id: domain_radar
+      type: bar
+      title: "Maturity by ARMM Domain"
+      description: "Current and target maturity scores across all six ARMM domains: Governance, Methodology, Tooling, People, Data, and Continuous Improvement."
+      tab: maturity_overview
+      position:
+        row: 3
+        column: 1
+        width: 8
+        height: 5
+      data:
+        source: armm-api
+        endpoint: "/assessment/domains"
+        metrics:
+          - id: current_maturity
+            label: "Current"
+          - id: target_maturity
+            label: "Target"
+        dimensions:
+          - id: domain
+            label: "Domain"
+        fixture:
+          rows:
+            - domain: "Governance"
+              current_maturity: 3.2
+              target_maturity: 4.0
+            - domain: "Methodology"
+              current_maturity: 2.5
+              target_maturity: 3.5
+            - domain: "Tooling"
+              current_maturity: 3.8
+              target_maturity: 4.0
+            - domain: "People"
+              current_maturity: 2.1
+              target_maturity: 3.0
+            - domain: "Data"
+              current_maturity: 2.6
+              target_maturity: 3.5
+            - domain: "Continuous Improvement"
+              current_maturity: 2.6
+              target_maturity: 4.0
+      options:
+        orientation: horizontal
+        stacked: false
+        series:
+          - id: current_maturity
+            color: "#1F4E79"
+            label: "Current"
+          - id: target_maturity
+            color: "#94A3B8"
+            label: "Target"
+            style: outline
+        x_axis:
+          min: 0
+          max: 5
+          label: "Maturity Level"
+        show_legend: true
+        show_values: true
+      accessibility:
+        alt_text: "Grouped horizontal bar chart showing current versus target maturity by ARMM domain"
+
+    - id: maturity_level_definitions
+      type: text
+      title: "ARMM Maturity Levels"
+      description: "Reference card for ARMM maturity level definitions."
+      tab: maturity_overview
+      position:
+        row: 3
+        column: 9
+        width: 4
+        height: 5
+      data:
+        source: static
+        content: |
+          **Level 1 — Initial**
+          Ad hoc processes. Success depends on individual effort. No repeatability.
+
+          **Level 2 — Repeatable**
+          Basic processes established. Some documentation. Inconsistent application.
+
+          **Level 3 — Defined**
+          Standardised processes documented and trained. Consistent across teams.
+
+          **Level 4 — Managed**
+          Quantitatively managed. Metrics drive decisions. Continuous monitoring.
+
+          **Level 5 — Optimising**
+          Focus on continuous improvement. Data-driven refinement. Innovation embedded.
+      options:
+        display: markdown
+        background_color: "#F8FAFC"
+        border: true
+      accessibility:
+        alt_text: "Reference text panel describing ARMM maturity levels 1 through 5"
+
+    - id: maturity_trend
+      type: trend
+      title: "Maturity Score Trend — Last 4 Quarters"
+      description: "Quarter-on-quarter overall maturity progression. Shows whether improvement activities are having effect."
+      tab: maturity_overview
+      position:
+        row: 8
+        column: 1
+        width: 12
+        height: 4
+      data:
+        source: armm-api
+        endpoint: "/assessment/trend"
+        metrics:
+          - id: overall_maturity
+            label: "Overall Maturity"
+        dimensions:
+          - id: domain
+            label: "Domain"
+        time_range: "last_4_quarters"
+        time_grain: quarter
+        fixture:
+          rows:
+            - quarter: "2025-Q2"
+              Governance: 2.8
+              Methodology: 2.1
+              Tooling: 3.2
+              People: 1.8
+              Data: 2.0
+              "Continuous Improvement": 1.9
+            - quarter: "2025-Q3"
+              Governance: 2.9
+              Methodology: 2.2
+              Tooling: 3.5
+              People: 1.9
+              Data: 2.2
+              "Continuous Improvement": 2.1
+            - quarter: "2025-Q4"
+              Governance: 3.0
+              Methodology: 2.3
+              Tooling: 3.6
+              People: 2.0
+              Data: 2.4
+              "Continuous Improvement": 2.3
+            - quarter: "2026-Q1"
+              Governance: 3.2
+              Methodology: 2.5
+              Tooling: 3.8
+              People: 2.1
+              Data: 2.6
+              "Continuous Improvement": 2.6
+      options:
+        series_by: domain
+        series_colors:
+          Governance: "#1F4E79"
+          Methodology: "#3B82F6"
+          Tooling: "#10B981"
+          People: "#F59E0B"
+          Data: "#8B5CF6"
+          "Continuous Improvement": "#EF4444"
+        y_axis:
+          min: 1
+          max: 5
+          label: "Maturity Level"
+          reference_lines:
+            - value: 3.0
+              color: "#94A3B8"
+              label: "Level 3 threshold"
+        show_legend: true
+        smooth: true
+      accessibility:
+        alt_text: "Line chart showing maturity trend by ARMM domain across the last four quarters"
+
+    # =========================================================================
+    # EVIDENCE TRACKER PANELS
+    # =========================================================================
+
+    - id: evidence_summary_kpis
+      type: scorecard
+      title: "Evidence Submission Status"
+      description: "Overview of evidence submissions for the current assessment cycle."
+      tab: evidence_tracker
+      position:
+        row: 1
+        column: 1
+        width: 12
+        height: 2
+      data:
+        source: armm-api
+        endpoint: "/evidence/summary"
+        metrics:
+          - id: total_required
+            label: "Required"
+          - id: submitted
+            label: "Submitted"
+          - id: accepted
+            label: "Accepted"
+          - id: under_review
+            label: "Under Review"
+          - id: rejected
+            label: "Rejected"
+          - id: outstanding
+            label: "Outstanding"
+        fixture:
+          total_required: 48
+          submitted: 35
+          accepted: 28
+          under_review: 7
+          rejected: 3
+          outstanding: 13
+      options:
+        layout: horizontal
+        card_colors:
+          total_required: "#1F4E79"
+          submitted: "#3B82F6"
+          accepted: "#10B981"
+          under_review: "#F59E0B"
+          rejected: "#EF4444"
+          outstanding: "#6366F1"
+      accessibility:
+        alt_text: "Scorecard showing evidence submission status for the current ARMM assessment cycle"
+
+    - id: evidence_by_domain
+      type: bar
+      title: "Evidence Completeness by Domain"
+      description: "Proportion of required evidence submitted and accepted per ARMM domain."
+      tab: evidence_tracker
+      position:
+        row: 3
+        column: 1
+        width: 7
+        height: 5
+      data:
+        source: armm-api
+        endpoint: "/evidence/by-domain"
+        metrics:
+          - id: accepted
+            label: "Accepted"
+          - id: under_review
+            label: "Under Review"
+          - id: outstanding
+            label: "Outstanding"
+        dimensions:
+          - id: domain
+            label: "Domain"
+        fixture:
+          rows:
+            - domain: "Governance"
+              accepted: 7
+              under_review: 1
+              outstanding: 0
+            - domain: "Methodology"
+              accepted: 4
+              under_review: 2
+              outstanding: 3
+            - domain: "Tooling"
+              accepted: 6
+              under_review: 1
+              outstanding: 1
+            - domain: "People"
+              accepted: 3
+              under_review: 1
+              outstanding: 4
+            - domain: "Data"
+              accepted: 5
+              under_review: 2
+              outstanding: 2
+            - domain: "Continuous Improvement"
+              accepted: 3
+              under_review: 0
+              outstanding: 3
+      options:
+        orientation: horizontal
+        stacked: true
+        series:
+          - id: accepted
+            color: "#10B981"
+            label: "Accepted"
+          - id: under_review
+            color: "#F59E0B"
+            label: "Under Review"
+          - id: outstanding
+            color: "#EF4444"
+            label: "Outstanding"
+        show_legend: true
+        show_values: true
+      accessibility:
+        alt_text: "Stacked horizontal bar chart showing evidence completeness by ARMM domain"
+
+    - id: evidence_submission_trend
+      type: trend
+      title: "Evidence Submissions Over Time"
+      description: "Cumulative evidence submissions and acceptances over the assessment cycle."
+      tab: evidence_tracker
+      position:
+        row: 3
+        column: 8
+        width: 5
+        height: 5
+      data:
+        source: armm-api
+        endpoint: "/evidence/trend"
+        metrics:
+          - id: cumulative_submitted
+            label: "Submitted"
+          - id: cumulative_accepted
+            label: "Accepted"
+        time_range: "current_cycle"
+        time_grain: week
+        fixture:
+          rows:
+            - week: "W1"
+              cumulative_submitted: 5
+              cumulative_accepted: 3
+            - week: "W2"
+              cumulative_submitted: 12
+              cumulative_accepted: 8
+            - week: "W3"
+              cumulative_submitted: 20
+              cumulative_accepted: 15
+            - week: "W4"
+              cumulative_submitted: 28
+              cumulative_accepted: 21
+            - week: "W5"
+              cumulative_submitted: 35
+              cumulative_accepted: 28
+      options:
+        series:
+          - id: cumulative_submitted
+            color: "#3B82F6"
+            style: line
+            label: "Submitted"
+          - id: cumulative_accepted
+            color: "#10B981"
+            style: area
+            label: "Accepted"
+        y_axis:
+          label: "Cumulative Count"
+        show_legend: true
+      accessibility:
+        alt_text: "Line chart showing cumulative evidence submission and acceptance over the current assessment cycle"
+
+    - id: evidence_detail_table
+      type: table
+      title: "Evidence Detail Register"
+      description: "Full register of evidence items for the current assessment cycle with status and reviewer."
+      tab: evidence_tracker
+      position:
+        row: 8
+        column: 1
+        width: 12
+        height: 6
+      data:
+        source: armm-api
+        endpoint: "/evidence/detail"
+        dimensions:
+          - id: evidence_id
+            label: "Ref"
+          - id: domain
+            label: "Domain"
+          - id: criterion
+            label: "Criterion"
+          - id: evidence_title
+            label: "Evidence Title"
+          - id: status
+            label: "Status"
+          - id: submitted_by
+            label: "Submitted By"
+          - id: submitted_date
+            label: "Submitted"
+          - id: reviewer
+            label: "Reviewer"
+          - id: notes
+            label: "Notes"
+        fixture:
+          rows:
+            - evidence_id: "E-GOV-001"
+              domain: "Governance"
+              criterion: "Programme board established and meeting regularly"
+              evidence_title: "Programme Board Terms of Reference v2"
+              status: "ACCEPTED"
+              submitted_by: "PMO"
+              submitted_date: "2026-01-15"
+              reviewer: "IPA Lead"
+              notes: ""
+            - evidence_id: "E-GOV-002"
+              domain: "Governance"
+              criterion: "Assurance strategy agreed by SRO"
+              evidence_title: "Assurance Strategy 2026"
+              status: "ACCEPTED"
+              submitted_by: "SRO"
+              submitted_date: "2026-01-20"
+              reviewer: "IPA Lead"
+              notes: ""
+            - evidence_id: "E-METH-001"
+              domain: "Methodology"
+              criterion: "Standard assurance methodology applied to all gates"
+              evidence_title: "Gate Review Methodology Playbook v1"
+              status: "UNDER_REVIEW"
+              submitted_by: "PMO"
+              submitted_date: "2026-02-10"
+              reviewer: "Assurance Lead"
+              notes: "Awaiting sign-off on section 4"
+            - evidence_id: "E-METH-002"
+              domain: "Methodology"
+              criterion: "Lessons learned process documented and operational"
+              evidence_title: "Lessons Learned SOP"
+              status: "OUTSTANDING"
+              submitted_by: ""
+              submitted_date: ""
+              reviewer: ""
+              notes: "Not yet submitted — due 2026-04-01"
+            - evidence_id: "E-TOOL-001"
+              domain: "Tooling"
+              criterion: "Assurance platform in use for all projects"
+              evidence_title: "PDA Platform Adoption Report"
+              status: "ACCEPTED"
+              submitted_by: "Tech Lead"
+              submitted_date: "2026-01-18"
+              reviewer: "IPA Lead"
+              notes: ""
+            - evidence_id: "E-PEOP-001"
+              domain: "People"
+              criterion: "Assurance leads trained to required level"
+              evidence_title: "Training Completion Log Q1 2026"
+              status: "UNDER_REVIEW"
+              submitted_by: "HR Lead"
+              submitted_date: "2026-02-28"
+              reviewer: "Assurance Lead"
+              notes: "2 of 8 staff still to complete module 3"
+            - evidence_id: "E-DATA-001"
+              domain: "Data"
+              criterion: "Data quality framework applied to all assurance evidence"
+              evidence_title: "Data Quality Framework v2"
+              status: "ACCEPTED"
+              submitted_by: "Data Lead"
+              submitted_date: "2026-01-25"
+              reviewer: "IPA Lead"
+              notes: ""
+        sort:
+          - field: domain
+            direction: asc
+          - field: status
+            direction: asc
+      options:
+        row_highlight:
+          field: status
+          rules:
+            - value: "OUTSTANDING"
+              color: "#FEF2F2"
+            - value: "UNDER_REVIEW"
+              color: "#FEFCE8"
+            - value: "ACCEPTED"
+              color: "#F0FDF4"
+        sticky_header: true
+        pagination:
+          page_size: 20
+      accessibility:
+        alt_text: "Full evidence register table showing all ARMM evidence items with status and reviewer for the current cycle"
+
+    # =========================================================================
+    # IMPROVEMENT ROADMAP PANELS
+    # =========================================================================
+
+    - id: roadmap_summary
+      type: scorecard
+      title: "Improvement Activity Summary"
+      description: "Status of all improvement activities across ARMM domains."
+      tab: improvement_roadmap
+      position:
+        row: 1
+        column: 1
+        width: 12
+        height: 2
+      data:
+        source: armm-api
+        endpoint: "/improvement/summary"
+        metrics:
+          - id: total_activities
+            label: "Total Activities"
+          - id: completed
+            label: "Completed"
+          - id: in_progress
+            label: "In Progress"
+          - id: planned
+            label: "Planned"
+          - id: overdue
+            label: "Overdue"
+        fixture:
+          total_activities: 24
+          completed: 8
+          in_progress: 6
+          planned: 7
+          overdue: 3
+      options:
+        layout: horizontal
+        card_colors:
+          total_activities: "#1F4E79"
+          completed: "#10B981"
+          in_progress: "#3B82F6"
+          planned: "#94A3B8"
+          overdue: "#EF4444"
+      accessibility:
+        alt_text: "Scorecard showing the status of all ARMM improvement activities"
+
+    - id: roadmap_by_domain
+      type: bar
+      title: "Improvement Activities by Domain"
+      description: "Distribution of improvement activities by ARMM domain and status."
+      tab: improvement_roadmap
+      position:
+        row: 3
+        column: 1
+        width: 6
+        height: 5
+      data:
+        source: armm-api
+        endpoint: "/improvement/by-domain"
+        metrics:
+          - id: completed
+            label: "Completed"
+          - id: in_progress
+            label: "In Progress"
+          - id: planned
+            label: "Planned"
+          - id: overdue
+            label: "Overdue"
+        dimensions:
+          - id: domain
+            label: "Domain"
+        fixture:
+          rows:
+            - domain: "Governance"
+              completed: 3
+              in_progress: 1
+              planned: 1
+              overdue: 0
+            - domain: "Methodology"
+              completed: 1
+              in_progress: 2
+              planned: 2
+              overdue: 1
+            - domain: "Tooling"
+              completed: 2
+              in_progress: 0
+              planned: 1
+              overdue: 0
+            - domain: "People"
+              completed: 1
+              in_progress: 2
+              planned: 1
+              overdue: 1
+            - domain: "Data"
+              completed: 1
+              in_progress: 1
+              planned: 1
+              overdue: 1
+            - domain: "Continuous Improvement"
+              completed: 0
+              in_progress: 0
+              planned: 1
+              overdue: 0
+      options:
+        orientation: horizontal
+        stacked: true
+        series:
+          - id: completed
+            color: "#10B981"
+            label: "Completed"
+          - id: in_progress
+            color: "#3B82F6"
+            label: "In Progress"
+          - id: planned
+            color: "#94A3B8"
+            label: "Planned"
+          - id: overdue
+            color: "#EF4444"
+            label: "Overdue"
+        show_legend: true
+        show_values: true
+      accessibility:
+        alt_text: "Stacked horizontal bar chart showing improvement activities by ARMM domain and status"
+
+    - id: roadmap_priority_matrix
+      type: text
+      title: "Priority Actions This Quarter"
+      description: "Top improvement actions requiring attention in Q1 2026, ranked by gap-to-target and effort."
+      tab: improvement_roadmap
+      position:
+        row: 3
+        column: 7
+        width: 6
+        height: 5
+      data:
+        source: static
+        content: |
+          **High Priority — Complete by 2026-04-30**
+
+          1. **People / Training**: Complete module 3 for remaining 2 assurance leads.
+             Owner: HR Lead. Gap to Level 3: 0.9.
+
+          2. **Methodology / Lessons SOP**: Publish Lessons Learned Standard Operating Procedure.
+             Owner: PMO. Gap to Level 3: 0.8.
+
+          3. **Continuous Improvement / Review cadence**: Establish quarterly ARMM self-assessment cadence.
+             Owner: Assurance Lead. Gap to Level 4: 1.4.
+
+          **Medium Priority — Complete by 2026-06-30**
+
+          4. **Data / Quality framework**: Extend data quality framework to cover assumption validation data.
+             Owner: Data Lead. Gap to Level 3: 0.5.
+
+          5. **Methodology / AI tooling**: Formalise AI extraction confidence thresholds in methodology.
+             Owner: Tech Lead + PMO.
+      options:
+        display: markdown
+        background_color: "#F8FAFC"
+        border: true
+      accessibility:
+        alt_text: "Priority improvement actions for Q1 2026 with owners and gap-to-target information"
+
+    - id: roadmap_activities_table
+      type: table
+      title: "Full Improvement Roadmap"
+      description: "All improvement activities with owner, target date, maturity gain, and status."
+      tab: improvement_roadmap
+      position:
+        row: 8
+        column: 1
+        width: 12
+        height: 6
+      data:
+        source: armm-api
+        endpoint: "/improvement/activities"
+        dimensions:
+          - id: activity_id
+            label: "Ref"
+          - id: domain
+            label: "Domain"
+          - id: activity_title
+            label: "Activity"
+          - id: target_level
+            label: "Target Level"
+          - id: maturity_gain
+            label: "Maturity Gain"
+          - id: owner
+            label: "Owner"
+          - id: due_date
+            label: "Due Date"
+          - id: status
+            label: "Status"
+          - id: notes
+            label: "Notes"
+        fixture:
+          rows:
+            - activity_id: "IMP-GOV-001"
+              domain: "Governance"
+              activity_title: "Formalise programme board TOR and meeting cadence"
+              target_level: 4
+              maturity_gain: 0.8
+              owner: "SRO"
+              due_date: "2026-03-31"
+              status: "COMPLETED"
+              notes: "TOR v2 accepted as evidence"
+            - activity_id: "IMP-GOV-002"
+              domain: "Governance"
+              activity_title: "Embed assurance strategy in programme governance framework"
+              target_level: 4
+              maturity_gain: 0.6
+              owner: "Assurance Lead"
+              due_date: "2026-03-31"
+              status: "COMPLETED"
+              notes: ""
+            - activity_id: "IMP-METH-001"
+              domain: "Methodology"
+              activity_title: "Publish Lessons Learned Standard Operating Procedure"
+              target_level: 3
+              maturity_gain: 0.8
+              owner: "PMO"
+              due_date: "2026-04-01"
+              status: "OUTSTANDING"
+              notes: "Draft in progress — missed original deadline"
+            - activity_id: "IMP-METH-002"
+              domain: "Methodology"
+              activity_title: "Formalise AI extraction confidence thresholds in methodology"
+              target_level: 3
+              maturity_gain: 0.5
+              owner: "Tech Lead"
+              due_date: "2026-06-30"
+              status: "IN_PROGRESS"
+              notes: "Under review with assurance team"
+            - activity_id: "IMP-TOOL-001"
+              domain: "Tooling"
+              activity_title: "Deploy PDA Platform to all 15 portfolio projects"
+              target_level: 4
+              maturity_gain: 1.0
+              owner: "Tech Lead"
+              due_date: "2026-01-31"
+              status: "COMPLETED"
+              notes: ""
+            - activity_id: "IMP-PEOP-001"
+              domain: "People"
+              activity_title: "Complete assurance lead training programme (all 8 leads)"
+              target_level: 3
+              maturity_gain: 0.9
+              owner: "HR Lead"
+              due_date: "2026-03-31"
+              status: "IN_PROGRESS"
+              notes: "6/8 complete. 2 remaining: module 3 outstanding."
+            - activity_id: "IMP-DATA-001"
+              domain: "Data"
+              activity_title: "Extend data quality framework to assumption validation data (P11)"
+              target_level: 3
+              maturity_gain: 0.5
+              owner: "Data Lead"
+              due_date: "2026-06-30"
+              status: "PLANNED"
+              notes: "Dependent on P11 rollout completion"
+            - activity_id: "IMP-CI-001"
+              domain: "Continuous Improvement"
+              activity_title: "Establish quarterly ARMM self-assessment cadence"
+              target_level: 4
+              maturity_gain: 1.4
+              owner: "Assurance Lead"
+              due_date: "2026-06-30"
+              status: "PLANNED"
+              notes: "First cycle planned for 2026-Q2"
+        sort:
+          - field: domain
+            direction: asc
+          - field: status
+            direction: asc
+      options:
+        row_highlight:
+          field: status
+          rules:
+            - value: "OUTSTANDING"
+              color: "#FEF2F2"
+            - value: "OVERDUE"
+              color: "#FEF2F2"
+            - value: "IN_PROGRESS"
+              color: "#EFF6FF"
+            - value: "COMPLETED"
+              color: "#F0FDF4"
+        sticky_header: true
+        pagination:
+          page_size: 20
+      accessibility:
+        alt_text: "Full ARMM improvement roadmap table showing all activities with owners, due dates, and status"
+
+  theme:
+    mode: light
+    primary_colour: "#1F4E79"
+    secondary_colour: "#334155"
+    accent_colour: "#10B981"
+    font_family: "Inter, system-ui, sans-serif"
+
+  i18n:
+    default_locale: en-GB
+    date_format: "DD/MM/YYYY"
+    number_format:
+      decimal_separator: "."
+      thousands_separator: ","
+
+  error_handling:
+    on_source_unavailable: show_fixture_data
+    on_metric_missing: show_dash
+    on_filter_no_results: show_empty_state
+
+  refresh:
+    auto: false
+    interval_seconds: 600
+
+  accessibility:
+    wcag_level: AA
+    keyboard_nav: true
+    screen_reader_optimised: true

@@ -1,0 +1,854 @@
+# PDA Platform: Assumption Drift Dashboard (P11)
+# Three-persona view of assumption health: PM / Portfolio Manager / Assurance Lead.
+# Data sources: pda-api/assumptions (http://localhost:8000/api/assumptions)
+#               pda-api/portfolio   (http://localhost:8000/api/portfolio)
+#               pda-api/projects    (http://localhost:8000/api/projects)
+
+uds: "0.1.0"
+
+metadata:
+  id: "pda-assumption-drift-v1"
+  name: "assumption-drift"
+  version: "1.0.0"
+  created_at: "2026-03-29T00:00:00Z"
+  authors:
+    - name: "PDA Task Force"
+      email: "pda@tortoiseai.co.uk"
+  tags: ["assurance", "assumptions", "drift", "p11", "governance"]
+
+dashboard:
+  title: "Assumption Drift — P11 Assumption Health"
+  description: "Monitor the health of project assumptions across the portfolio. Surface drift, staleness, and cascade risk before they become gate blockers."
+  intent: "Enable project managers, portfolio managers, and assurance leads to detect assumption drift early, prioritise re-validation activities, and understand cascade impact before gate reviews"
+
+  decisions:
+    - "Which assumptions are drifting most significantly?"
+    - "Are any assumptions stale and overdue for re-validation?"
+    - "What is the cascade impact if a critical assumption is breached?"
+    - "Which projects carry the highest overall assumption risk?"
+    - "Are CHAOTIC-domain projects accumulating unresolved assumption drift?"
+
+  persona:
+    type: mixed
+    characteristics:
+      attention_span: medium
+      data_literacy: medium
+      interaction_preference: selective
+      primary_device: desktop
+
+  semantic_sources:
+    - id: pda-api
+      label: "PDA Assurance API"
+      type: custom
+      endpoint: "${PDA_ASSURANCE_API_URL}"
+      authentication:
+        type: bearer
+        token_env: "PDA_API_TOKEN"
+      capabilities:
+        metrics: true
+        dimensions: true
+        filters: true
+        time_grains: ["day", "week", "month"]
+
+  variables:
+    - id: project_id
+      label: "Project"
+      type: string
+      default: ""
+      source:
+        type: dimension
+        ref: "pda-api.project_id"
+
+  filters:
+    - id: domain_filter
+      label: "Complexity Domain"
+      type: multi_select
+      options:
+        - value: "CLEAR"
+          label: "CLEAR"
+        - value: "COMPLICATED"
+          label: "COMPLICATED"
+        - value: "COMPLEX"
+          label: "COMPLEX"
+        - value: "CHAOTIC"
+          label: "CHAOTIC"
+      default: []
+
+    - id: severity_filter
+      label: "Minimum Drift Severity"
+      type: single_select
+      options:
+        - value: "NONE"
+          label: "All"
+        - value: "MINOR"
+          label: "MINOR+"
+        - value: "MODERATE"
+          label: "MODERATE+"
+        - value: "SIGNIFICANT"
+          label: "SIGNIFICANT+"
+        - value: "CRITICAL"
+          label: "CRITICAL only"
+      default: "NONE"
+
+  derived_metrics:
+    - id: overall_drift_score
+      name: "Overall Drift Score"
+      description: "Weighted average drift score across all assumptions (0=stable, 1=critical)"
+      expression:
+        type: reference
+        ref: "pda-api.overall_drift_score"
+      format:
+        style: decimal
+        precision: 2
+
+    - id: assumption_health_pct
+      name: "Assumption Health"
+      description: "Proportion of assumptions with no significant drift"
+      expression:
+        type: arithmetic
+        operator: divide
+        operands:
+          - metric: "pda-api.healthy_assumptions_count"
+          - metric: "pda-api.total_assumptions_count"
+      format:
+        style: percent
+        precision: 0
+
+  time_context:
+    default_range: "last_12_months"
+    timezone: "Europe/London"
+
+  layout:
+    type: sections
+
+  sections:
+    # -------------------------------------------------------------------------
+    # Section 1: PM View — single project assumption health
+    # -------------------------------------------------------------------------
+    - id: pm_view
+      title: "PM View — Project Assumption Health"
+      description: "Assumption drift status for the selected project. Use the Project filter to switch between projects."
+      collapsible: true
+      layout:
+        type: grid
+        columns: 12
+        row_height: 80
+
+    # -------------------------------------------------------------------------
+    # Section 2: Portfolio Manager View — cross-project assumption risk
+    # -------------------------------------------------------------------------
+    - id: portfolio_view
+      title: "Portfolio Manager View — Assumption Risk Across Portfolio"
+      description: "Cross-project view of assumption drift and staleness. Identify which projects need attention before their next gate."
+      collapsible: true
+      layout:
+        type: grid
+        columns: 12
+        row_height: 80
+
+    # -------------------------------------------------------------------------
+    # Section 3: Assurance Lead View — deep drift and cascade analysis
+    # -------------------------------------------------------------------------
+    - id: assurance_view
+      title: "Assurance Lead View — Drift Analysis and Cascade Risk"
+      description: "Detailed assumption drift analysis with category breakdown, validation history, and cascade impact assessment."
+      collapsible: true
+      layout:
+        type: grid
+        columns: 12
+        row_height: 80
+
+  panels:
+
+    # =========================================================================
+    # PM VIEW PANELS
+    # =========================================================================
+
+    - id: pm_drift_score
+      type: gauge
+      title: "Overall Drift Score"
+      description: "Weighted average assumption drift for the selected project. 0 = fully stable, 1 = all critical."
+      section: pm_view
+      position:
+        row: 1
+        column: 1
+        width: 3
+        height: 2
+      data:
+        source: pda-api
+        endpoint: "/assumptions/{project_id}/health"
+        metrics:
+          - id: overall_drift_score
+            label: "Drift Score"
+        time_range: "current"
+      options:
+        min: 0
+        max: 1
+        thresholds:
+          - value: 0.0
+            color: "#10B981"
+            label: "Stable"
+          - value: 0.2
+            color: "#F59E0B"
+            label: "Minor"
+          - value: 0.5
+            color: "#EF4444"
+            label: "Significant"
+          - value: 0.8
+            color: "#7F1D1D"
+            label: "Critical"
+        show_value: true
+        format: decimal
+        precision: 2
+      accessibility:
+        alt_text: "Gauge showing overall assumption drift score for the selected project"
+
+    - id: pm_stale_count
+      type: kpi
+      title: "Stale Assumptions"
+      description: "Assumptions that have not been re-validated within the required window."
+      section: pm_view
+      position:
+        row: 1
+        column: 4
+        width: 3
+        height: 2
+      data:
+        source: pda-api
+        endpoint: "/assumptions/{project_id}/stale"
+        metrics:
+          - id: stale_count
+            label: "Stale"
+      options:
+        value_field: stale_count
+        comparison:
+          type: threshold
+          warn: 1
+          critical: 3
+        icon: "clock"
+        format: integer
+      accessibility:
+        alt_text: "Count of stale assumptions for the selected project"
+
+    - id: pm_critical_count
+      type: kpi
+      title: "Critical Drift Assumptions"
+      description: "Assumptions classified as CRITICAL severity drift."
+      section: pm_view
+      position:
+        row: 1
+        column: 7
+        width: 3
+        height: 2
+      data:
+        source: pda-api
+        endpoint: "/assumptions/{project_id}/health"
+        metrics:
+          - id: critical_count
+            label: "Critical"
+      options:
+        value_field: critical_count
+        comparison:
+          type: threshold
+          warn: 1
+          critical: 2
+        icon: "alert-triangle"
+        format: integer
+      accessibility:
+        alt_text: "Count of assumptions with CRITICAL drift severity for the selected project"
+
+    - id: pm_total_assumptions
+      type: kpi
+      title: "Total Assumptions"
+      description: "Total registered assumptions for the selected project."
+      section: pm_view
+      position:
+        row: 1
+        column: 10
+        width: 3
+        height: 2
+      data:
+        source: pda-api
+        endpoint: "/assumptions/{project_id}"
+        metrics:
+          - id: total_count
+            label: "Total"
+      options:
+        value_field: total_count
+        icon: "list"
+        format: integer
+      accessibility:
+        alt_text: "Total number of registered assumptions for the selected project"
+
+    - id: pm_assumption_table
+      type: table
+      title: "Assumption Register"
+      description: "All assumptions for the selected project with current drift severity and last-validated date."
+      section: pm_view
+      position:
+        row: 3
+        column: 1
+        width: 12
+        height: 5
+      data:
+        source: pda-api
+        endpoint: "/assumptions/{project_id}"
+        dimensions:
+          - id: text
+            label: "Assumption"
+          - id: category
+            label: "Category"
+          - id: baseline_value
+            label: "Baseline"
+          - id: current_value
+            label: "Current"
+          - id: drift_pct
+            label: "Drift %"
+          - id: severity
+            label: "Severity"
+          - id: last_validated
+            label: "Last Validated"
+          - id: owner
+            label: "Owner"
+        filters:
+          - ref: severity_filter
+        sort:
+          - field: severity
+            direction: desc
+          - field: drift_pct
+            direction: desc
+      options:
+        row_highlight:
+          field: severity
+          rules:
+            - value: "CRITICAL"
+              color: "#FEF2F2"
+            - value: "SIGNIFICANT"
+              color: "#FFF7ED"
+            - value: "MODERATE"
+              color: "#FEFCE8"
+        sticky_header: true
+        pagination:
+          page_size: 20
+        column_widths:
+          text: 35
+          category: 10
+          baseline_value: 8
+          current_value: 8
+          drift_pct: 8
+          severity: 10
+          last_validated: 11
+          owner: 10
+      accessibility:
+        alt_text: "Table of all assumptions with drift severity and validation status for the selected project"
+
+    - id: pm_drift_by_category
+      type: bar
+      title: "Drift by Category"
+      description: "Average drift severity score by assumption category for the selected project."
+      section: pm_view
+      position:
+        row: 8
+        column: 1
+        width: 6
+        height: 4
+      data:
+        source: pda-api
+        endpoint: "/assumptions/{project_id}/health"
+        metrics:
+          - id: avg_drift_score
+            label: "Avg Drift Score"
+        dimensions:
+          - id: category
+            label: "Category"
+        time_range: "current"
+      options:
+        orientation: horizontal
+        color_by: avg_drift_score
+        color_scale:
+          min: 0.0
+          max: 1.0
+          low: "#10B981"
+          mid: "#F59E0B"
+          high: "#EF4444"
+        show_values: true
+        sort: desc
+      accessibility:
+        alt_text: "Horizontal bar chart showing average drift score by assumption category"
+
+    - id: pm_validation_history
+      type: trend
+      title: "Assumption Value History"
+      description: "Validation history for the selected project's assumptions over time."
+      section: pm_view
+      position:
+        row: 8
+        column: 7
+        width: 6
+        height: 4
+      data:
+        source: pda-api
+        endpoint: "/assumptions/{project_id}"
+        metrics:
+          - id: current_value
+            label: "Current Value"
+          - id: baseline_value
+            label: "Baseline"
+        dimensions:
+          - id: assumption_id
+            label: "Assumption"
+        time_range: "last_12_months"
+        time_grain: month
+      options:
+        series:
+          - id: current_value
+            color: "#1F4E79"
+            style: line
+          - id: baseline_value
+            color: "#94A3B8"
+            style: dashed
+        show_legend: true
+        smooth: false
+      accessibility:
+        alt_text: "Line chart showing assumption value drift over 12 months compared to baseline"
+
+    # =========================================================================
+    # PORTFOLIO MANAGER VIEW PANELS
+    # =========================================================================
+
+    - id: pm_portfolio_summary
+      type: scorecard
+      title: "Portfolio Assumption Health Summary"
+      description: "At-a-glance health across all projects."
+      section: portfolio_view
+      position:
+        row: 1
+        column: 1
+        width: 12
+        height: 2
+      data:
+        source: pda-api
+        endpoint: "/portfolio/assumption-health"
+        metrics:
+          - id: projects_stable
+            label: "Stable Projects"
+          - id: projects_attention
+            label: "Attention Needed"
+          - id: projects_at_risk
+            label: "At Risk"
+          - id: projects_critical
+            label: "Critical"
+          - id: total_stale_assumptions
+            label: "Portfolio Stale"
+          - id: total_critical_assumptions
+            label: "Portfolio Critical"
+        time_range: "current"
+      options:
+        layout: horizontal
+        card_colors:
+          projects_stable: "#10B981"
+          projects_attention: "#F59E0B"
+          projects_at_risk: "#EF4444"
+          projects_critical: "#7F1D1D"
+          total_stale_assumptions: "#6366F1"
+          total_critical_assumptions: "#DC2626"
+      accessibility:
+        alt_text: "Scorecard showing portfolio-wide assumption health summary"
+
+    - id: portfolio_drift_heatmap
+      type: heatmap
+      title: "Portfolio Drift Heatmap"
+      description: "Assumption drift severity by project and category. Darker cells indicate higher average drift."
+      section: portfolio_view
+      position:
+        row: 3
+        column: 1
+        width: 8
+        height: 5
+      data:
+        source: pda-api
+        endpoint: "/portfolio/assumption-heatmap"
+        metrics:
+          - id: avg_drift_score
+            label: "Avg Drift Score"
+        dimensions:
+          - id: project_id
+            label: "Project"
+          - id: category
+            label: "Category"
+        filters:
+          - ref: domain_filter
+        time_range: "current"
+      options:
+        x_axis: category
+        y_axis: project_id
+        value_field: avg_drift_score
+        color_scale:
+          min: 0.0
+          max: 1.0
+          low: "#ECFDF5"
+          mid: "#FEF3C7"
+          high: "#FEE2E2"
+          critical: "#7F1D1D"
+        cell_labels: true
+        format: decimal
+        precision: 2
+      accessibility:
+        alt_text: "Heatmap of average assumption drift score by project and category across the portfolio"
+
+    - id: portfolio_domain_comparison
+      type: bar
+      title: "Average Drift Score by Domain"
+      description: "Comparison of overall assumption drift scores across complexity domains."
+      section: portfolio_view
+      position:
+        row: 3
+        column: 9
+        width: 4
+        height: 5
+      data:
+        source: pda-api
+        endpoint: "/portfolio/assumption-health"
+        metrics:
+          - id: avg_drift_score
+            label: "Avg Drift Score"
+        dimensions:
+          - id: domain
+            label: "Domain"
+        time_range: "current"
+      options:
+        orientation: vertical
+        color_by: domain
+        colors:
+          CLEAR: "#10B981"
+          COMPLICATED: "#F59E0B"
+          COMPLEX: "#EF4444"
+          CHAOTIC: "#7F1D1D"
+        show_values: true
+        y_axis:
+          min: 0
+          max: 1.0
+          label: "Drift Score"
+      accessibility:
+        alt_text: "Bar chart comparing average assumption drift score by complexity domain"
+
+    - id: portfolio_projects_table
+      type: table
+      title: "Project Assumption Risk Register"
+      description: "All projects ranked by overall assumption drift score with stale and critical counts."
+      section: portfolio_view
+      position:
+        row: 8
+        column: 1
+        width: 12
+        height: 4
+      data:
+        source: pda-api
+        endpoint: "/portfolio/assumption-health"
+        dimensions:
+          - id: project_id
+            label: "Project ID"
+          - id: project_name
+            label: "Project Name"
+          - id: domain
+            label: "Domain"
+          - id: overall_drift_score
+            label: "Drift Score"
+          - id: total_assumptions
+            label: "Total"
+          - id: stale_count
+            label: "Stale"
+          - id: critical_count
+            label: "Critical"
+          - id: health_status
+            label: "Health"
+        filters:
+          - ref: domain_filter
+        sort:
+          - field: overall_drift_score
+            direction: desc
+      options:
+        row_highlight:
+          field: health_status
+          rules:
+            - value: "CRITICAL"
+              color: "#FEF2F2"
+            - value: "AT_RISK"
+              color: "#FFF7ED"
+        sticky_header: true
+        pagination:
+          page_size: 15
+      accessibility:
+        alt_text: "Table of all projects ranked by assumption drift score with staleness and critical assumption counts"
+
+    # =========================================================================
+    # ASSURANCE LEAD VIEW PANELS
+    # =========================================================================
+
+    - id: al_drift_distribution
+      type: pie
+      title: "Portfolio Drift Severity Distribution"
+      description: "Distribution of all portfolio assumptions by drift severity classification."
+      section: assurance_view
+      position:
+        row: 1
+        column: 1
+        width: 4
+        height: 4
+      data:
+        source: pda-api
+        endpoint: "/portfolio/assumption-health"
+        metrics:
+          - id: count
+            label: "Count"
+        dimensions:
+          - id: severity
+            label: "Severity"
+        time_range: "current"
+      options:
+        colors:
+          NONE: "#10B981"
+          MINOR: "#86EFAC"
+          MODERATE: "#F59E0B"
+          SIGNIFICANT: "#EF4444"
+          CRITICAL: "#7F1D1D"
+        donut: true
+        show_legend: true
+        show_labels: true
+        label_format: "{label}: {value} ({percent})"
+      accessibility:
+        alt_text: "Donut chart showing distribution of portfolio assumptions across drift severity categories"
+
+    - id: al_stale_by_domain
+      type: bar
+      title: "Stale Assumptions by Domain"
+      description: "Count of stale assumptions per complexity domain — indicates re-validation backlog."
+      section: assurance_view
+      position:
+        row: 1
+        column: 5
+        width: 4
+        height: 4
+      data:
+        source: pda-api
+        endpoint: "/portfolio/assumption-health"
+        metrics:
+          - id: stale_count
+            label: "Stale Assumptions"
+        dimensions:
+          - id: domain
+            label: "Domain"
+        time_range: "current"
+      options:
+        orientation: vertical
+        color_by: domain
+        colors:
+          CLEAR: "#10B981"
+          COMPLICATED: "#F59E0B"
+          COMPLEX: "#EF4444"
+          CHAOTIC: "#7F1D1D"
+        show_values: true
+        y_axis:
+          label: "Stale Count"
+      accessibility:
+        alt_text: "Bar chart showing stale assumption count by complexity domain"
+
+    - id: al_critical_projects
+      type: table
+      title: "Critical Drift Assumptions — Immediate Attention"
+      description: "All assumptions with CRITICAL or SIGNIFICANT drift, ordered by severity. These require re-validation before the next gate."
+      section: assurance_view
+      position:
+        row: 1
+        column: 9
+        width: 4
+        height: 4
+      data:
+        source: pda-api
+        endpoint: "/portfolio/critical-assumptions"
+        dimensions:
+          - id: project_id
+            label: "Project"
+          - id: category
+            label: "Category"
+          - id: text
+            label: "Assumption"
+          - id: drift_pct
+            label: "Drift %"
+          - id: severity
+            label: "Severity"
+          - id: owner
+            label: "Owner"
+        sort:
+          - field: severity
+            direction: desc
+          - field: drift_pct
+            direction: desc
+      options:
+        row_highlight:
+          field: severity
+          rules:
+            - value: "CRITICAL"
+              color: "#FEF2F2"
+            - value: "SIGNIFICANT"
+              color: "#FFF7ED"
+        pagination:
+          page_size: 10
+      accessibility:
+        alt_text: "Table of assumptions with critical or significant drift requiring immediate re-validation"
+
+    - id: al_drift_trend
+      type: trend
+      title: "Portfolio Drift Trend — 12 Months"
+      description: "Average portfolio-wide drift score over time by domain. Rising trends indicate deteriorating assumption health."
+      section: assurance_view
+      position:
+        row: 5
+        column: 1
+        width: 8
+        height: 4
+      data:
+        source: pda-api
+        endpoint: "/portfolio/assumption-trend"
+        metrics:
+          - id: avg_drift_score
+            label: "Avg Drift Score"
+        dimensions:
+          - id: domain
+            label: "Domain"
+        time_range: "last_12_months"
+        time_grain: month
+      options:
+        series_by: domain
+        series_colors:
+          CLEAR: "#10B981"
+          COMPLICATED: "#F59E0B"
+          COMPLEX: "#EF4444"
+          CHAOTIC: "#7F1D1D"
+        y_axis:
+          min: 0
+          max: 1.0
+          label: "Drift Score"
+          reference_lines:
+            - value: 0.5
+              color: "#EF4444"
+              label: "High risk threshold"
+            - value: 0.8
+              color: "#7F1D1D"
+              label: "Critical threshold"
+        show_legend: true
+        smooth: true
+      accessibility:
+        alt_text: "Line chart showing portfolio drift score trend over 12 months by complexity domain"
+
+    - id: al_cascade_risk
+      type: text
+      title: "Cascade Risk Analysis"
+      description: "Summary of assumption dependency chains at risk. Assumptions with critical drift and downstream dependents are highlighted."
+      section: assurance_view
+      position:
+        row: 5
+        column: 9
+        width: 4
+        height: 4
+      data:
+        source: pda-api
+        endpoint: "/portfolio/cascade-risk"
+        metrics:
+          - id: assumptions_with_dependents
+            label: "With Dependents"
+          - id: critical_with_dependents
+            label: "Critical With Dependents"
+          - id: max_cascade_depth
+            label: "Max Cascade Depth"
+          - id: cascade_risk_summary
+            label: "Summary"
+        time_range: "current"
+      options:
+        display: rich_text
+        fields:
+          - id: assumptions_with_dependents
+            label: "Assumptions with downstream dependents"
+            format: integer
+          - id: critical_with_dependents
+            label: "Critical assumptions with cascade risk"
+            format: integer
+            highlight_nonzero: true
+          - id: max_cascade_depth
+            label: "Longest dependency chain"
+            format: integer
+          - id: cascade_risk_summary
+            label: "Summary"
+            format: text
+      accessibility:
+        alt_text: "Text panel showing cascade risk summary across the portfolio"
+
+    - id: al_validation_backlog
+      type: bar
+      title: "Re-validation Backlog by Project"
+      description: "Projects with the most overdue assumption re-validations. Bars represent combined stale + critical drift counts."
+      section: assurance_view
+      position:
+        row: 9
+        column: 1
+        width: 12
+        height: 4
+      data:
+        source: pda-api
+        endpoint: "/portfolio/assumption-health"
+        metrics:
+          - id: stale_count
+            label: "Stale"
+          - id: critical_count
+            label: "Critical Drift"
+        dimensions:
+          - id: project_id
+            label: "Project"
+        filters:
+          - ref: domain_filter
+        sort:
+          - field: stale_count
+            direction: desc
+      options:
+        orientation: horizontal
+        stacked: true
+        series:
+          - id: stale_count
+            color: "#6366F1"
+            label: "Stale"
+          - id: critical_count
+            color: "#EF4444"
+            label: "Critical Drift"
+        show_legend: true
+        y_axis:
+          label: "Count"
+      accessibility:
+        alt_text: "Stacked horizontal bar chart showing re-validation backlog by project, split by stale and critical drift"
+
+  theme:
+    mode: light
+    primary_colour: "#1F4E79"
+    secondary_colour: "#334155"
+    accent_colour: "#10B981"
+    font_family: "Inter, system-ui, sans-serif"
+
+  i18n:
+    default_locale: en-GB
+    date_format: "DD/MM/YYYY"
+    number_format:
+      decimal_separator: "."
+      thousands_separator: ","
+
+  error_handling:
+    on_source_unavailable: show_stale_banner
+    on_metric_missing: show_dash
+    on_filter_no_results: show_empty_state
+
+  refresh:
+    auto: false
+    interval_seconds: 300
+
+  accessibility:
+    wcag_level: AA
+    keyboard_nav: true
+    screen_reader_optimised: true
