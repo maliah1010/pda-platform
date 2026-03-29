@@ -146,6 +146,17 @@ from .classifier import (
     DomainIndicator,
     ProjectDomainClassifier,
 )
+from .assumptions import (
+    AssumptionTracker,
+    Assumption,
+    AssumptionCategory,
+    AssumptionConfig,
+    AssumptionSource,
+    AssumptionValidation,
+    DriftSeverity,
+    DriftResult,
+    AssumptionHealthReport,
+)
 from .scheduler import (
     AdaptiveReviewScheduler,
     ReviewUrgency,
@@ -220,6 +231,16 @@ __all__ = [
     "ComplexityDomain",
     "DomainAssuranceProfile",
     "DomainIndicator",
+    # P11 — Assumption Drift Tracker
+    "AssumptionTracker",
+    "Assumption",
+    "AssumptionCategory",
+    "AssumptionConfig",
+    "AssumptionSource",
+    "AssumptionValidation",
+    "DriftSeverity",
+    "DriftResult",
+    "AssumptionHealthReport",
     # Deprecated aliases — will be removed in v0.5.0
     "Recommendation",
     "RecommendationExtractionResult",

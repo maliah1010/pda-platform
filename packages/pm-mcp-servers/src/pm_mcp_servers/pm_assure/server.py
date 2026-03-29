@@ -739,6 +739,94 @@ async def list_tools() -> list[Tool]:
                 "required": ["project_id"],
             },
         ),
+        Tool(
+            name="ingest_assumption",
+            description=(
+                "Ingest a project assumption with its baseline value into the "
+                "assumption tracker.  Supports cost, schedule, resource, technical, "
+                "commercial, regulatory, stakeholder, and external assumption types."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "project_id": {"type": "string", "description": "Project identifier."},
+                    "text": {"type": "string", "description": "Human-readable assumption statement."},
+                    "category": {
+                        "type": "string",
+                        "enum": ["COST", "SCHEDULE", "RESOURCE", "TECHNICAL", "COMMERCIAL", "REGULATORY", "STAKEHOLDER", "EXTERNAL"],
+                        "description": "Assumption category.",
+                    },
+                    "baseline_value": {"type": "number", "description": "The original assumed value."},
+                    "unit": {"type": "string", "description": "Measurement unit (e.g. '%', 'GBP', 'days')."},
+                    "tolerance_pct": {"type": "number", "description": "Acceptable drift percentage (default 10)."},
+                    "source": {
+                        "type": "string",
+                        "enum": ["MANUAL", "EXTERNAL_API", "DERIVED"],
+                        "description": "Source of the assumption value.",
+                    },
+                    "external_ref": {"type": "string", "description": "External data source identifier (e.g. 'ONS_CPI')."},
+                    "owner": {"type": "string", "description": "Name or role responsible for this assumption."},
+                    "notes": {"type": "string", "description": "Optional free-text notes."},
+                    "db_path": {"type": "string", "description": "Optional path to the SQLite store."},
+                },
+                "required": ["project_id", "text", "category", "baseline_value"],
+            },
+        ),
+        Tool(
+            name="validate_assumption",
+            description=(
+                "Update an assumption's current value, record the validation, "
+                "and compute drift against the baseline.  Returns drift percentage "
+                "and severity classification."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "assumption_id": {"type": "string", "description": "UUID of the assumption to update."},
+                    "new_value": {"type": "number", "description": "The updated current value."},
+                    "source": {
+                        "type": "string",
+                        "enum": ["MANUAL", "EXTERNAL_API", "DERIVED"],
+                        "description": "Source of the new value (default MANUAL).",
+                    },
+                    "notes": {"type": "string", "description": "Optional notes about this update."},
+                    "db_path": {"type": "string", "description": "Optional path to the SQLite store."},
+                },
+                "required": ["assumption_id", "new_value"],
+            },
+        ),
+        Tool(
+            name="get_assumption_drift",
+            description=(
+                "Run a full assumption health analysis for a project.  "
+                "Returns drift status for all assumptions, stale count, "
+                "cascade warnings, and an overall drift score (0–1)."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "project_id": {"type": "string", "description": "Project identifier."},
+                    "db_path": {"type": "string", "description": "Optional path to the SQLite store."},
+                },
+                "required": ["project_id"],
+            },
+        ),
+        Tool(
+            name="get_cascade_impact",
+            description=(
+                "Find all assumptions that depend on the given assumption "
+                "(direct and transitive).  Returns affected assumption IDs "
+                "with their texts and current drift status."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "assumption_id": {"type": "string", "description": "UUID of the source assumption."},
+                    "db_path": {"type": "string", "description": "Optional path to the SQLite store."},
+                },
+                "required": ["assumption_id"],
+            },
+        ),
     ]
 
 
@@ -782,6 +870,14 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
         return await _classify_project_domain(arguments)
     if name == "reclassify_from_store":
         return await _reclassify_from_store(arguments)
+    if name == "ingest_assumption":
+        return await _ingest_assumption(arguments)
+    if name == "validate_assumption":
+        return await _validate_assumption(arguments)
+    if name == "get_assumption_drift":
+        return await _get_assumption_drift(arguments)
+    if name == "get_cascade_impact":
+        return await _get_cascade_impact(arguments)
     return [TextContent(type="text", text=f"Unknown tool: {name}")]
 
 
@@ -1732,6 +1828,190 @@ async def _reclassify_from_store(arguments: dict[str, Any]) -> list[TextContent]
                 text=json.dumps(output, indent=2, default=str),
             )
         ]
+
+    except Exception as exc:
+        return [TextContent(type="text", text=f"Error: {exc}")]
+
+
+# ---------------------------------------------------------------------------
+# P11 — Assumption Drift Tracker handlers
+# ---------------------------------------------------------------------------
+
+
+async def _ingest_assumption(arguments: dict[str, Any]) -> list[TextContent]:
+    """Ingest a project assumption with its baseline value."""
+    try:
+        from pathlib import Path
+
+        from pm_data_tools.assurance.assumptions import (
+            Assumption,
+            AssumptionCategory,
+            AssumptionSource,
+            AssumptionTracker,
+        )
+        from pm_data_tools.db.store import AssuranceStore
+
+        raw_db_path = arguments.get("db_path")
+        db_path = Path(raw_db_path) if raw_db_path else None
+        store = AssuranceStore(db_path=db_path)
+        tracker = AssumptionTracker(store=store)
+
+        assumption = Assumption(
+            project_id=arguments["project_id"],
+            text=arguments["text"],
+            category=AssumptionCategory(arguments["category"]),
+            baseline_value=float(arguments["baseline_value"]),
+            unit=arguments.get("unit", ""),
+            tolerance_pct=float(arguments.get("tolerance_pct", 10.0)),
+            source=AssumptionSource(arguments.get("source", "MANUAL")),
+            external_ref=arguments.get("external_ref"),
+            owner=arguments.get("owner"),
+            notes=arguments.get("notes"),
+        )
+        tracker.ingest(assumption)
+
+        output: dict[str, Any] = {
+            "id": assumption.id,
+            "project_id": assumption.project_id,
+            "text": assumption.text,
+            "category": assumption.category.value,
+            "baseline_value": assumption.baseline_value,
+            "unit": assumption.unit,
+            "tolerance_pct": assumption.tolerance_pct,
+            "source": assumption.source.value,
+        }
+        return [TextContent(type="text", text=json.dumps(output, indent=2, default=str))]
+
+    except Exception as exc:
+        return [TextContent(type="text", text=f"Error: {exc}")]
+
+
+async def _validate_assumption(arguments: dict[str, Any]) -> list[TextContent]:
+    """Update an assumption's current value and record the validation."""
+    try:
+        from pathlib import Path
+
+        from pm_data_tools.assurance.assumptions import AssumptionSource, AssumptionTracker
+        from pm_data_tools.db.store import AssuranceStore
+
+        raw_db_path = arguments.get("db_path")
+        db_path = Path(raw_db_path) if raw_db_path else None
+        store = AssuranceStore(db_path=db_path)
+        tracker = AssumptionTracker(store=store)
+
+        validation = tracker.update_value(
+            assumption_id=arguments["assumption_id"],
+            new_value=float(arguments["new_value"]),
+            source=AssumptionSource(arguments.get("source", "MANUAL")),
+            notes=arguments.get("notes"),
+        )
+
+        output: dict[str, Any] = {
+            "id": validation.id,
+            "assumption_id": validation.assumption_id,
+            "validated_at": validation.validated_at.isoformat(),
+            "previous_value": validation.previous_value,
+            "new_value": validation.new_value,
+            "drift_pct": validation.drift_pct,
+            "severity": validation.severity.value,
+            "notes": validation.notes,
+        }
+        return [TextContent(type="text", text=json.dumps(output, indent=2, default=str))]
+
+    except Exception as exc:
+        return [TextContent(type="text", text=f"Error: {exc}")]
+
+
+async def _get_assumption_drift(arguments: dict[str, Any]) -> list[TextContent]:
+    """Run a full assumption health analysis for a project."""
+    try:
+        from pathlib import Path
+
+        from pm_data_tools.assurance.assumptions import AssumptionTracker
+        from pm_data_tools.db.store import AssuranceStore
+
+        raw_db_path = arguments.get("db_path")
+        db_path = Path(raw_db_path) if raw_db_path else None
+        store = AssuranceStore(db_path=db_path)
+        tracker = AssumptionTracker(store=store)
+
+        report = tracker.analyse_project(arguments["project_id"])
+
+        output: dict[str, Any] = {
+            "project_id": report.project_id,
+            "timestamp": report.timestamp.isoformat(),
+            "total_assumptions": report.total_assumptions,
+            "validated_count": report.validated_count,
+            "stale_count": report.stale_count,
+            "overall_drift_score": report.overall_drift_score,
+            "by_severity": report.by_severity,
+            "by_category": report.by_category,
+            "cascade_warnings": report.cascade_warnings,
+            "message": report.message,
+            "drift_results": [
+                {
+                    "assumption_id": dr.assumption.id,
+                    "text": dr.assumption.text,
+                    "category": dr.assumption.category.value,
+                    "baseline_value": dr.assumption.baseline_value,
+                    "current_value": dr.assumption.current_value,
+                    "unit": dr.assumption.unit,
+                    "drift_pct": dr.drift_pct,
+                    "severity": dr.severity.value,
+                    "days_since_validation": dr.days_since_validation,
+                    "cascade_impact_count": len(dr.cascade_impact),
+                    "message": dr.message,
+                }
+                for dr in report.drift_results
+            ],
+        }
+        return [TextContent(type="text", text=json.dumps(output, indent=2, default=str))]
+
+    except Exception as exc:
+        return [TextContent(type="text", text=f"Error: {exc}")]
+
+
+async def _get_cascade_impact(arguments: dict[str, Any]) -> list[TextContent]:
+    """Find all assumptions affected by drift in the given assumption."""
+    try:
+        from pathlib import Path
+
+        from pm_data_tools.assurance.assumptions import (
+            AssumptionTracker,
+            _row_to_assumption,
+        )
+        from pm_data_tools.db.store import AssuranceStore
+
+        raw_db_path = arguments.get("db_path")
+        db_path = Path(raw_db_path) if raw_db_path else None
+        store = AssuranceStore(db_path=db_path)
+        tracker = AssumptionTracker(store=store)
+
+        assumption_id: str = arguments["assumption_id"]
+        impacted_ids = tracker.get_cascade_impact(assumption_id)
+
+        items: list[dict[str, Any]] = []
+        for aid in impacted_ids:
+            row = store.get_assumption_by_id(aid)
+            if row is not None:
+                a = _row_to_assumption(row)
+                dr = tracker.compute_drift(a)
+                items.append({
+                    "assumption_id": aid,
+                    "text": a.text,
+                    "category": a.category.value,
+                    "baseline_value": a.baseline_value,
+                    "current_value": a.current_value,
+                    "drift_pct": dr.drift_pct,
+                    "severity": dr.severity.value,
+                })
+
+        output: dict[str, Any] = {
+            "source_assumption_id": assumption_id,
+            "impacted_count": len(items),
+            "impacted_assumptions": items,
+        }
+        return [TextContent(type="text", text=json.dumps(output, indent=2, default=str))]
 
     except Exception as exc:
         return [TextContent(type="text", text=f"Error: {exc}")]

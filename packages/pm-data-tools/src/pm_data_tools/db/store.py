@@ -206,6 +206,37 @@ class AssuranceStore:
                     classified_at   TEXT NOT NULL,
                     result_json     TEXT NOT NULL
                 );
+
+                CREATE TABLE IF NOT EXISTS assumptions (
+                    id              TEXT PRIMARY KEY,
+                    project_id      TEXT NOT NULL,
+                    text            TEXT NOT NULL,
+                    category        TEXT NOT NULL,
+                    baseline_value  REAL NOT NULL,
+                    current_value   REAL,
+                    unit            TEXT NOT NULL,
+                    tolerance_pct   REAL NOT NULL,
+                    source          TEXT NOT NULL,
+                    external_ref    TEXT,
+                    dependencies    TEXT NOT NULL,
+                    owner           TEXT,
+                    last_validated  TEXT,
+                    created_date    TEXT NOT NULL,
+                    notes           TEXT
+                );
+
+                CREATE TABLE IF NOT EXISTS assumption_validations (
+                    id              TEXT PRIMARY KEY,
+                    assumption_id   TEXT NOT NULL,
+                    validated_at    TEXT NOT NULL,
+                    previous_value  REAL,
+                    new_value       REAL NOT NULL,
+                    source          TEXT NOT NULL,
+                    drift_pct       REAL NOT NULL,
+                    severity        TEXT NOT NULL,
+                    notes           TEXT,
+                    FOREIGN KEY (assumption_id) REFERENCES assumptions(id)
+                );
                 """
             )
 
@@ -1079,6 +1110,196 @@ class AssuranceStore:
                 ORDER BY classified_at ASC
                 """,
                 (project_id,),
+            )
+            rows = cursor.fetchall()
+        return [dict(row) for row in rows]
+
+    # ------------------------------------------------------------------
+    # Assumptions (P11)
+    # ------------------------------------------------------------------
+
+    def upsert_assumption(self, data: dict[str, object]) -> None:
+        """Insert or replace an assumption record.
+
+        Args:
+            data: Dict with keys matching the ``assumptions`` table columns.
+                Must include ``id``, ``project_id``, ``text``, ``category``,
+                ``baseline_value``, ``unit``, ``tolerance_pct``, ``source``,
+                ``dependencies``, ``created_date``.
+        """
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO assumptions
+                    (id, project_id, text, category, baseline_value,
+                     current_value, unit, tolerance_pct, source,
+                     external_ref, dependencies, owner, last_validated,
+                     created_date, notes)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    data["id"],
+                    data["project_id"],
+                    data["text"],
+                    data["category"],
+                    data["baseline_value"],
+                    data.get("current_value"),
+                    data.get("unit", ""),
+                    data.get("tolerance_pct", 10.0),
+                    data["source"],
+                    data.get("external_ref"),
+                    data.get("dependencies", "[]"),
+                    data.get("owner"),
+                    data.get("last_validated"),
+                    data["created_date"],
+                    data.get("notes"),
+                ),
+            )
+        logger.debug(
+            "assumption_persisted",
+            id=data["id"],
+            project_id=data["project_id"],
+        )
+
+    def get_assumptions(
+        self,
+        project_id: str,
+        category: Optional[str] = None,
+    ) -> list[dict[str, object]]:
+        """Retrieve assumptions for a project, optionally filtered by category.
+
+        Args:
+            project_id: The project identifier.
+            category: Optional category string to filter by.
+
+        Returns:
+            List of row dicts ordered by ``created_date`` ascending.
+        """
+        if category is not None:
+            with self._connect() as conn:
+                cursor = conn.execute(
+                    """
+                    SELECT * FROM assumptions
+                    WHERE project_id = ? AND category = ?
+                    ORDER BY created_date ASC
+                    """,
+                    (project_id, category),
+                )
+                rows = cursor.fetchall()
+        else:
+            with self._connect() as conn:
+                cursor = conn.execute(
+                    """
+                    SELECT * FROM assumptions
+                    WHERE project_id = ?
+                    ORDER BY created_date ASC
+                    """,
+                    (project_id,),
+                )
+                rows = cursor.fetchall()
+        return [dict(row) for row in rows]
+
+    def get_assumption_by_id(
+        self, assumption_id: str
+    ) -> dict[str, object] | None:
+        """Retrieve a single assumption by its ID.
+
+        Args:
+            assumption_id: The assumption identifier.
+
+        Returns:
+            Row dict, or ``None`` if not found.
+        """
+        with self._connect() as conn:
+            cursor = conn.execute(
+                "SELECT * FROM assumptions WHERE id = ?",
+                (assumption_id,),
+            )
+            row = cursor.fetchone()
+        return dict(row) if row else None
+
+    def update_assumption_value(
+        self,
+        assumption_id: str,
+        current_value: float,
+        last_validated: str,
+    ) -> None:
+        """Update the current value and last validated date of an assumption.
+
+        Args:
+            assumption_id: The assumption identifier.
+            current_value: New current value.
+            last_validated: ISO-8601 date string of the validation.
+        """
+        with self._connect() as conn:
+            conn.execute(
+                """
+                UPDATE assumptions
+                SET current_value = ?, last_validated = ?
+                WHERE id = ?
+                """,
+                (current_value, last_validated, assumption_id),
+            )
+        logger.debug(
+            "assumption_value_updated",
+            assumption_id=assumption_id,
+            current_value=current_value,
+        )
+
+    def insert_assumption_validation(self, data: dict[str, object]) -> None:
+        """Persist an assumption validation record.
+
+        Args:
+            data: Dict with keys matching the ``assumption_validations``
+                table columns.  Must include ``id``, ``assumption_id``,
+                ``validated_at``, ``new_value``, ``source``, ``drift_pct``,
+                ``severity``.
+        """
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO assumption_validations
+                    (id, assumption_id, validated_at, previous_value,
+                     new_value, source, drift_pct, severity, notes)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    data["id"],
+                    data["assumption_id"],
+                    data["validated_at"],
+                    data.get("previous_value"),
+                    data["new_value"],
+                    data["source"],
+                    data["drift_pct"],
+                    data["severity"],
+                    data.get("notes"),
+                ),
+            )
+        logger.debug(
+            "assumption_validation_persisted",
+            id=data["id"],
+            assumption_id=data["assumption_id"],
+        )
+
+    def get_assumption_validations(
+        self, assumption_id: str
+    ) -> list[dict[str, object]]:
+        """Retrieve all validation records for an assumption, oldest first.
+
+        Args:
+            assumption_id: The assumption identifier.
+
+        Returns:
+            List of row dicts ordered by ``validated_at`` ascending.
+        """
+        with self._connect() as conn:
+            cursor = conn.execute(
+                """
+                SELECT * FROM assumption_validations
+                WHERE assumption_id = ?
+                ORDER BY validated_at ASC
+                """,
+                (assumption_id,),
             )
             rows = cursor.fetchall()
         return [dict(row) for row in rows]

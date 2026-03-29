@@ -86,6 +86,7 @@ class WorkflowType(Enum):
     CURRENCY_FOCUS = "CURRENCY_FOCUS"
     TREND_ANALYSIS = "TREND_ANALYSIS"
     RISK_ASSESSMENT = "RISK_ASSESSMENT"
+    ASSUMPTION_HEALTH_CHECK = "ASSUMPTION_HEALTH_CHECK"
 
 
 class ProjectHealth(Enum):
@@ -207,6 +208,12 @@ _WORKFLOW_STEPS: dict[str, list[str]] = {
         "p6_override_analysis",
         "p7_lessons_summary",
         "p8_overhead_analysis",
+        "p11_assumption_drift",
+    ],
+    "ASSUMPTION_HEALTH_CHECK": [
+        "p11_assumption_drift",
+        "p2_compliance_trend",
+        "p5_schedule_recommendation",
     ],
     "COMPLIANCE_FOCUS": [
         "p2_compliance_trend",
@@ -438,6 +445,7 @@ class AssuranceWorkflowEngine:
             "p6_override_analysis": self._step_override_analysis,
             "p7_lessons_summary": self._step_lessons_summary,
             "p8_overhead_analysis": self._step_overhead_analysis,
+            "p11_assumption_drift": self._step_assumption_drift,
         }
 
         executor = _executor_map.get(step_name)
@@ -1093,6 +1101,10 @@ class AssuranceWorkflowEngine:
                 actions.append(
                     "Rebalance assurance activities to improve efficiency and findings yield."
                 )
+            elif signal.source == "P11":
+                actions.append(
+                    "Review and re-validate stale or drifting assumptions before the next gate review."
+                )
 
         # Deduplicate while preserving insertion order
         seen: set[str] = set()
@@ -1102,6 +1114,62 @@ class AssuranceWorkflowEngine:
                 seen.add(action)
                 unique.append(action)
         return unique
+
+    def _step_assumption_drift(
+        self,
+        project_id: str,
+        artefacts: list[dict[str, Any]] | None,
+        gate_date: str | datetime | None,
+        intermediate: dict[str, Any],
+    ) -> WorkflowStepResult:
+        """P11: Assumption drift analysis."""
+        if self._store is None:
+            return WorkflowStepResult(
+                step_name="p11_assumption_drift",
+                status=WorkflowStepStatus.NOT_APPLICABLE,
+                duration_ms=0.0,
+                output={"reason": "No store configured."},
+            )
+
+        from .assumptions import AssumptionTracker
+
+        tracker = AssumptionTracker(store=self._store)
+        report = tracker.analyse_project(project_id)
+
+        if report.total_assumptions == 0:
+            return WorkflowStepResult(
+                step_name="p11_assumption_drift",
+                status=WorkflowStepStatus.NOT_APPLICABLE,
+                duration_ms=0.0,
+                output={"reason": "No assumptions tracked for this project."},
+            )
+
+        severity = report.overall_drift_score
+
+        return WorkflowStepResult(
+            step_name="p11_assumption_drift",
+            status=WorkflowStepStatus.COMPLETED,
+            duration_ms=0.0,
+            output={
+                "total_assumptions": report.total_assumptions,
+                "stale_count": report.stale_count,
+                "overall_drift_score": report.overall_drift_score,
+                "by_severity": report.by_severity,
+                "cascade_warnings": report.cascade_warnings,
+                "message": report.message,
+            },
+            risk_signal=WorkflowRiskSignal(
+                source="P11",
+                signal_name="assumption_drift",
+                severity=severity,
+                detail=(
+                    f"{report.total_assumptions} assumption(s), "
+                    f"{report.stale_count} stale.  "
+                    f"Overall drift score {severity:.2f}.  "
+                    f"{len(report.cascade_warnings)} cascade warning(s)."
+                ),
+            ),
+        )
 
     def _build_executive_summary(
         self,

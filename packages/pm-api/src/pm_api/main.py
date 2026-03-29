@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .config import get_artefacts, get_registry, get_store, settings
 from .routers import (
     actions,
+    assumptions,
     classifier,
     compliance,
     currency,
@@ -47,6 +48,7 @@ app.include_router(overhead.router)
 app.include_router(workflows.router)
 app.include_router(classifier.router)
 app.include_router(currency.router)
+app.include_router(assumptions.router)
 
 
 @app.on_event("startup")
