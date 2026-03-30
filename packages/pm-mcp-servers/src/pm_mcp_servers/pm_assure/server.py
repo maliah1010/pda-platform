@@ -1,7 +1,9 @@
 """PM Assure MCP Server.
 
-Provides MCP tools for assurance quality tracking including longitudinal
-compliance score trend analysis and review action lifecycle management.
+Provides MCP tools for the OPAL (Open Project Assurance Library) framework
+including longitudinal compliance score trend analysis, review action
+lifecycle management, domain classification, assumption drift tracking,
+ARMM maturity assessment, and workflow orchestration.
 """
 
 from __future__ import annotations
@@ -833,9 +835,9 @@ async def list_tools() -> list[Tool]:
         Tool(
             name="create_project_from_profile",
             description=(
-                "Create a full assurance project from a Claude-extracted PDF profile.  "
-                "Generates 12 months of P1–P12 data (compliance scores, review actions, "
-                "divergence snapshots, schedule recommendations, overrides, activities, "
+                "Create a full OPAL assurance project from a Claude-extracted PDF profile.  "
+                "Generates 12 months of OPAL-1 to OPAL-12 data (compliance scores, review "
+                "actions, divergence snapshots, schedule recommendations, overrides, activities, "
                 "assumptions, ARMM assessments, workflow executions, domain classification) "
                 "calibrated to the project's complexity domain and indicators.  "
                 "Returns the project_id and an executive summary."

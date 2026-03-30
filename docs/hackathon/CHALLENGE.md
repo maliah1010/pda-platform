@@ -25,7 +25,7 @@ Key risks: legacy system integration, teacher adoption resistance,
 data migration from 22,000 schools, ministerial timeline pressure.
 
 I need a full assurance baseline before my Investment Committee tomorrow:
-1. Create the project and run the full P1-P12 pipeline
+1. Create the project and run the full OPAL pipeline
 2. Classify the complexity domain
 3. Set up assumption tracking for the £2.4bn cost envelope
 4. Run the full assurance workflow
@@ -41,10 +41,10 @@ Claude reads the prompt and calls 9+ MCP tools in sequence:
 
 | # | Tool | What it does |
 |---|------|-------------|
-| 1 | `create_project_from_profile` | Creates project + generates 12 months of P1-P12 data |
+| 1 | `create_project_from_profile` | Creates project + generates 12 months of OPAL data |
 | 2 | `classify_project_domain` | Classifies as COMPLEX using 7 indicators |
 | 3 | `ingest_assumption` | Registers £2.4bn cost assumption with baseline |
-| 4 | `run_assurance_workflow` | Runs FULL_ASSURANCE across P1-P8 |
+| 4 | `run_assurance_workflow` | Runs FULL_ASSURANCE across OPAL-1 to OPAL-8 |
 | 5 | `get_assumption_drift` | Shows assumption health baseline |
 | 6 | `nista_longitudinal_trend` | 12-month compliance trend |
 | 7 | `review_action_status` | Open review actions from P3 |
@@ -58,7 +58,7 @@ The output: a complete assurance baseline with dashboard, ready to email.
 ## The Numbers
 
 - **28** MCP tools available
-- **12** assurance modules (P1-P12)
+- **12** assurance modules (OPAL)
 - **251** ARMM maturity criteria
 - **4** Cynefin complexity domains
 - **~60 seconds** end to end

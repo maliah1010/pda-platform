@@ -35,7 +35,7 @@
 
 ### 12-17s: TOOL 1 — CREATE PROJECT
 **Visual:** Claude calls `create_project_from_profile`. Tool call visible, result streams in.
-**Caption:** `Creating 12 months of P1-P12 data...`
+**Caption:** `Creating 12 months of OPAL data...`
 **Counter badge (top-right):** `1/9`
 
 ### 17-22s: TOOLS 2-3 — CLASSIFY + WORKFLOW

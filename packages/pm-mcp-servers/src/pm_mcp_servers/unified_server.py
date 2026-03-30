@@ -4,6 +4,9 @@ Combines tools from pm-assure (23 tools) and pm-nista (5 tools) into
 a single MCP server with 28 tools.  This is the server exposed via
 the SSE web transport for remote MCP clients (claude.ai, Claude Desktop).
 
+Provides the OPAL (Open Project Assurance Library) framework, ARMM
+(Agent Readiness Maturity Model), GMPP reporting, and UDS dashboard export.
+
 Tools are imported as private handler functions from each sub-server
 and re-registered on a single Server instance.
 """

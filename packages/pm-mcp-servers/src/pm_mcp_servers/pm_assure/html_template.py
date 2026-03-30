@@ -6,7 +6,7 @@ Produces a single .html file that works offline, with:
 - Inter font via Google Fonts
 - All data embedded as JSON
 - TortoiseAI branded header/footer with Ant Newman attribution
-- SVG gauge, KPI cards, P1-P12 grid, trend chart, domain card, risk indicators
+- SVG gauge, KPI cards, OPAL module grid, trend chart, domain card, risk indicators
 """
 
 from __future__ import annotations
@@ -158,7 +158,7 @@ def render_html(data: dict[str, Any]) -> str:
       </div>
       <div>
         <h1 class="text-white font-bold text-lg leading-tight">TortoiseAI</h1>
-        <p class="text-slate-400 text-xs">Project Delivery Assurance</p>
+        <p class="text-slate-400 text-xs">OPAL &middot; Open Project Assurance Library</p>
       </div>
     </div>
     <div class="flex items-center gap-3">
@@ -208,7 +208,7 @@ def render_html(data: dict[str, Any]) -> str:
         <p class="text-3xl font-bold mt-2" style="color: {'#16a34a' if (compliance or 0) >= 80 else '#d97706' if (compliance or 0) >= 65 else '#dc2626'}">
           {compliance if compliance else 'N/A'}{'%' if compliance else ''}
         </p>
-        <p class="text-xs text-slate-400 mt-1">P2 longitudinal score</p>
+        <p class="text-xs text-slate-400 mt-1">OPAL-2 longitudinal score</p>
       </div>
 
       <!-- Action Closure -->
@@ -217,7 +217,7 @@ def render_html(data: dict[str, Any]) -> str:
         <p class="text-3xl font-bold mt-2" style="color: {'#16a34a' if action_closure >= 0.7 else '#d97706' if action_closure >= 0.4 else '#dc2626'}">
           {round(action_closure * 100)}%
         </p>
-        <p class="text-xs text-slate-400 mt-1">P3 closed / total</p>
+        <p class="text-xs text-slate-400 mt-1">OPAL-3 closed / total</p>
       </div>
 
       <!-- Next Review -->
@@ -226,7 +226,7 @@ def render_html(data: dict[str, Any]) -> str:
         <p class="text-3xl font-bold mt-2" style="color: {'#dc2626' if review_days <= 7 else '#d97706' if review_days <= 14 else '#16a34a'}">
           {review_days} <span class="text-lg font-normal text-slate-400">days</span>
         </p>
-        <p class="text-xs text-slate-400 mt-1">P5 adaptive scheduling</p>
+        <p class="text-xs text-slate-400 mt-1">OPAL-5 adaptive scheduling</p>
       </div>
     </div>
 
@@ -246,7 +246,7 @@ def render_html(data: dict[str, Any]) -> str:
     <div class="grid grid-cols-2 gap-6">
       <!-- Artefact Status -->
       <div class="bg-white rounded-2xl border border-slate-200 p-6">
-        <h3 class="font-semibold text-slate-800 mb-4">Artefact Currency (P1)</h3>
+        <h3 class="font-semibold text-slate-800 mb-4">Artefact Currency (OPAL-1)</h3>
         <div class="space-y-3">
           {''.join(f'''
           <div class="flex items-center justify-between">
@@ -264,7 +264,7 @@ def render_html(data: dict[str, Any]) -> str:
 
       <!-- Domain Classification -->
       <div class="rounded-2xl border-2 p-6" style="background: {_domain_bg(domain)}; border-color: {_domain_colour(domain)}40;">
-        <h3 class="font-semibold text-slate-800 mb-2">Domain Classification (P10)</h3>
+        <h3 class="font-semibold text-slate-800 mb-2">Domain Classification (OPAL-10)</h3>
         <p class="text-4xl font-bold mb-2" style="color: {_domain_colour(domain)};">{domain_val}</p>
         <p class="text-sm text-slate-600 mb-3">Cynefin complexity domain based on 7 indicators</p>
         <div class="grid grid-cols-2 gap-2 text-xs">
@@ -276,7 +276,7 @@ def render_html(data: dict[str, Any]) -> str:
 
     <!-- ========== OPEN ACTIONS TABLE ========== -->
     <div class="bg-white rounded-2xl border border-slate-200 p-6">
-      <h3 class="font-semibold text-slate-800 mb-4">Open Actions (P3)</h3>
+      <h3 class="font-semibold text-slate-800 mb-4">Open Actions (OPAL-3)</h3>
       <table class="w-full">
         <thead>
           <tr class="border-b border-slate-200">
