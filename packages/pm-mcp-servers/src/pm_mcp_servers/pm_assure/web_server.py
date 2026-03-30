@@ -17,7 +17,7 @@ from starlette.responses import JSONResponse
 
 from mcp.server.sse import SseServerTransport
 
-from pm_mcp_servers.pm_assure.server import app as mcp_app
+from pm_mcp_servers.unified_server import app as mcp_app
 
 
 # SSE transport — client connects to /sse, posts messages to /messages/
@@ -45,7 +45,7 @@ async def handle_messages(request):
 
 async def health(request):
     """Health check endpoint."""
-    return JSONResponse({"status": "ok", "server": "pm-assure", "transport": "sse"})
+    return JSONResponse({"status": "ok", "server": "pda-platform", "transport": "sse", "tools": 28})
 
 
 # Build Starlette app
