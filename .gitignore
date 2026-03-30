@@ -52,3 +52,21 @@ Thumbs.db
 .env
 .env.local
 *.local
+
+# SQLite databases (demo/debug)
+*.db
+*.sqlite
+
+# Claude worktrees
+.claude/worktrees/
+
+# Temp/debug files
+*_debug.db
+demo_*.json
+
+# Internal docs (not for public repo)
+ASSUMPTION_DRIFT_PROMPT.md
+
+# Office temp files
+~$*
+*.docx
