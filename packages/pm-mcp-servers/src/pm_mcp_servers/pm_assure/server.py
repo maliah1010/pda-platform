@@ -996,6 +996,34 @@ async def list_tools() -> list[Tool]:
                 "required": ["project_id", "project_name"],
             },
         ),
+        Tool(
+            name="get_armm_report",
+            description=(
+                "Retrieve the ARMM (Agent Readiness Maturity Model) report for a project.  "
+                "Returns overall maturity level (0-4), score percentage, criteria met/total, "
+                "dimension breakdown (TC, OR, GA, CC), topic scores, blocking topics, "
+                "and improvement priorities.  251 criteria across 28 topics and 4 dimensions."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "project_id": {
+                        "type": "string",
+                        "description": "Project identifier.",
+                    },
+                    "include_criteria": {
+                        "type": "boolean",
+                        "description": "Include individual criterion results (251 items). Default false.",
+                        "default": False,
+                    },
+                    "db_path": {
+                        "type": "string",
+                        "description": "Optional path to the SQLite store.",
+                    },
+                },
+                "required": ["project_id"],
+            },
+        ),
     ]
 
 
@@ -1053,6 +1081,8 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
         return await _export_dashboard_data(arguments)
     if name == "export_dashboard_html":
         return await _export_dashboard_html(arguments)
+    if name == "get_armm_report":
+        return await _get_armm_report(arguments)
     return [TextContent(type="text", text=f"Unknown tool: {name}")]
 
 
@@ -2441,6 +2471,117 @@ async def _export_dashboard_data(arguments: dict[str, Any]) -> list[TextContent]
             "url": f"http://localhost:5173/?dashboard=assurance-overview.uds.yaml&project_id={project_id}&data_mode=static&branded=true",
         }
         return [TextContent(type="text", text=json.dumps(output, indent=2, default=str))]
+
+    except Exception as exc:
+        import traceback
+        return [TextContent(type="text", text=f"Error: {exc}\n{traceback.format_exc()}")]
+
+
+# ---------------------------------------------------------------------------
+# ARMM report
+# ---------------------------------------------------------------------------
+
+
+_LEVEL_LABELS = {0: "EXPERIMENTING", 1: "SUPERVISED", 2: "RELIABLE", 3: "RESILIENT", 4: "MISSION_CRITICAL"}
+_DIMENSION_NAMES = {"TC": "Technical Controls", "OR": "Operational Resilience", "GA": "Governance & Accountability", "CC": "Capability & Culture"}
+
+
+async def _get_armm_report(arguments: dict[str, Any]) -> list[TextContent]:
+    """Return the full ARMM maturity report for a project."""
+    try:
+        from pm_data_tools.db.store import AssuranceStore
+
+        project_id: str = arguments["project_id"]
+        include_criteria: bool = arguments.get("include_criteria", False)
+        raw_db_path = arguments.get("db_path")
+        db_path = Path(raw_db_path) if raw_db_path else None
+        store = AssuranceStore(db_path=db_path)
+
+        assessments = store.get_armm_assessments(project_id)
+        if not assessments:
+            return [TextContent(type="text", text=json.dumps({
+                "error": "NO_ARMM_DATA",
+                "message": f"No ARMM assessments found for {project_id}. Run create_project_from_profile first.",
+            }, indent=2))]
+
+        latest = assessments[-1]
+
+        # Parse stored JSON fields
+        topic_scores = json.loads(latest.get("topic_scores_json", "{}"))
+        topic_levels = json.loads(latest.get("topic_levels_json", "{}"))
+        dim_scores = json.loads(latest.get("dimension_scores_json", "{}"))
+        dim_levels = json.loads(latest.get("dimension_levels_json", "{}"))
+        dim_blocking = json.loads(latest.get("dimension_blocking_json", "{}"))
+
+        # Build dimension breakdown
+        dimensions = []
+        for code in ["TC", "OR", "GA", "CC"]:
+            level = dim_levels.get(code, 0)
+            dimensions.append({
+                "code": code,
+                "name": _DIMENSION_NAMES.get(code, code),
+                "score_pct": round(dim_scores.get(code, 0), 1),
+                "level": level,
+                "level_label": _LEVEL_LABELS.get(level, "UNKNOWN"),
+                "blocking_topic": dim_blocking.get(code),
+            })
+
+        # Build topic breakdown
+        topics = []
+        for topic_code, score in sorted(topic_scores.items()):
+            dim_code = topic_code.split("-")[0]
+            topics.append({
+                "topic_code": topic_code,
+                "dimension": dim_code,
+                "score_pct": round(score, 1),
+                "level": topic_levels.get(topic_code, 0),
+                "level_label": _LEVEL_LABELS.get(topic_levels.get(topic_code, 0), "UNKNOWN"),
+            })
+
+        # Identify improvement priorities (lowest scoring topics)
+        priorities = sorted(topics, key=lambda t: t["score_pct"])[:5]
+
+        overall_level = latest.get("overall_level", 0)
+
+        report: dict[str, Any] = {
+            "project_id": project_id,
+            "assessment_id": latest["id"],
+            "assessed_at": latest.get("assessed_at"),
+            "assessed_by": latest.get("assessed_by"),
+            "overall_level": overall_level,
+            "overall_level_label": _LEVEL_LABELS.get(overall_level, "UNKNOWN"),
+            "overall_score_pct": round(latest.get("overall_score_pct", 0), 1),
+            "criteria_met": latest.get("criteria_met", 0),
+            "criteria_total": latest.get("criteria_total", 251),
+            "assessment_count": len(assessments),
+            "dimensions": dimensions,
+            "topics": topics,
+            "improvement_priorities": [
+                {
+                    "topic": p["topic_code"],
+                    "dimension": p["dimension"],
+                    "current_score": p["score_pct"],
+                    "current_level": p["level_label"],
+                }
+                for p in priorities
+            ],
+        }
+
+        # Optionally include individual criterion results
+        if include_criteria:
+            criteria = store.get_armm_criterion_results(latest["id"])
+            report["criteria"] = [
+                {
+                    "criterion_id": c["criterion_id"],
+                    "topic": c.get("topic_code", ""),
+                    "dimension": c.get("dimension_code", ""),
+                    "met": bool(c.get("met")),
+                    "evidence_ref": c.get("evidence_ref", ""),
+                }
+                for c in criteria
+            ]
+
+        return [TextContent(type="text", text=json.dumps(report, indent=2, default=str))]
 
     except Exception as exc:
         import traceback

@@ -45,7 +45,7 @@ async def handle_messages(request):
 
 async def health(request):
     """Health check endpoint."""
-    return JSONResponse({"status": "ok", "server": "pda-platform", "transport": "sse", "tools": 28})
+    return JSONResponse({"status": "ok", "server": "pda-platform", "transport": "sse", "tools": 29})
 
 
 # Build Starlette app

@@ -39,13 +39,21 @@ async def list_tools() -> list[Tool]:
     return [
         Tool(
             name="load_project",
-            description="Load a project file from various PM tools (MS Project, P6, Jira, Monday, Asana, Smartsheet, GMPP, NISTA) and return canonical representation",
+            description="Load a project from file path or inline content. Supports MS Project, P6, Jira, Monday, Asana, Smartsheet, GMPP, NISTA. For remote MCP clients, use file_content instead of file_path.",
             inputSchema={
                 "type": "object",
                 "properties": {
                     "file_path": {
                         "type": "string",
-                        "description": "Path to project file"
+                        "description": "Path to project file (for local/Claude Desktop use)"
+                    },
+                    "file_content": {
+                        "type": "string",
+                        "description": "Inline file content — base64 for binary formats (.mpp), raw text for XML/CSV/JSON. Use this for remote MCP clients (claude.ai) where file paths are not accessible."
+                    },
+                    "file_name": {
+                        "type": "string",
+                        "description": "Original filename with extension (e.g. 'schedule.mpp'). Required when using file_content for format detection."
                     },
                     "format": {
                         "type": "string",
@@ -53,8 +61,7 @@ async def list_tools() -> list[Tool]:
                         "default": "auto",
                         "description": "File format (auto-detect by default)"
                     }
-                },
-                "required": ["file_path"]
+                }
             }
         ),
         Tool(

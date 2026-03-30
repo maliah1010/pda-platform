@@ -73,10 +73,14 @@ def _serialize_date(d: Optional[date]) -> Optional[str]:
 
 
 async def load_project(arguments: dict, store: ProjectStore = _store) -> dict:
-    """Load project from file using real pm-data-tools parsers.
-    
+    """Load project from file path or inline file content.
+
     Supports automatic format detection or explicit format specification.
     Handles all 8 pm-data-tools formats with comprehensive error handling.
+
+    For remote MCP clients (claude.ai via SSE), use ``file_content`` +
+    ``file_name`` instead of ``file_path`` — the content will be written
+    to a temporary file before parsing.
     """
     if not HAS_PM_DATA_TOOLS:
         return {
@@ -87,10 +91,39 @@ async def load_project(arguments: dict, store: ProjectStore = _store) -> dict:
         }
 
     file_path = arguments.get("file_path")
+    file_content = arguments.get("file_content")
+    file_name = arguments.get("file_name", "project_upload")
     format_hint = arguments.get("format", "auto")
 
+    # --- Resolve to a local file path ---
+    import tempfile
+    import base64
+
+    temp_file = None
+
+    if file_content:
+        # Remote mode: content provided inline (base64 or raw text)
+        try:
+            # Try base64 decode first (for binary formats like .mpp)
+            raw_bytes = base64.b64decode(file_content)
+        except Exception:
+            # Treat as raw text (for XML, CSV, JSON formats)
+            raw_bytes = file_content.encode("utf-8")
+
+        # Write to temp file preserving the original extension
+        suffix = ""
+        if "." in file_name:
+            suffix = "." + file_name.rsplit(".", 1)[-1]
+        temp_file = tempfile.NamedTemporaryFile(
+            delete=False, suffix=suffix, prefix="pda_upload_"
+        )
+        temp_file.write(raw_bytes)
+        temp_file.close()
+        file_path = temp_file.name
+        logger.info(f"Remote upload: wrote {len(raw_bytes)} bytes to {file_path}")
+
     if not file_path:
-        return {"error": {"code": "MISSING_PARAMETER", "message": "file_path is required"}}
+        return {"error": {"code": "MISSING_PARAMETER", "message": "file_path or file_content is required"}}
 
     path = Path(file_path)
     if not path.exists():
@@ -179,6 +212,15 @@ async def load_project(arguments: dict, store: ProjectStore = _store) -> dict:
                 "message": f"Failed to load project: {str(e)}"
             }
         }
+
+    finally:
+        # Clean up temp file from remote uploads
+        if temp_file is not None:
+            import os
+            try:
+                os.unlink(temp_file.name)
+            except OSError:
+                pass
 
 
 
