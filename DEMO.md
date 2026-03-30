@@ -61,7 +61,7 @@ With the API running:
 python scripts/check_demo.py
 ```
 
-Runs 20 checks across all P1–P12 endpoints for PROJ-001.
+Runs 20 checks across all OPAL-1 to OPAL-12 endpoints for PROJ-001.
 All checks should pass.
 
 ---
@@ -157,7 +157,7 @@ GET /api/armm/{project_id}/history           — P12 assessment history
                                      ┌─────▼──────────────┐
                                      │  demo_store.db      │
                                      │  14 tables          │
-                                     │  P1–P12 assurance   │
+                                     │  OPAL assurance      │
                                      │  15 UK gov projects │
                                      └────────────────────┘
 ```
