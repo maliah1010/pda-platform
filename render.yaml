@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: pda-platform
+    runtime: python
+    buildCommand: pip install -e packages/pm-data-tools && pip install -e packages/pm-mcp-servers && pip install uvicorn
+    startCommand: pda-platform-remote
+    envVars:
+      - key: PORT
+        value: "10000"
+      - key: ANTHROPIC_API_KEY
+        sync: false
