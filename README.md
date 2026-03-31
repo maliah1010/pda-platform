@@ -37,7 +37,40 @@ UK major infrastructure projects have a success rate of approximately 0.5%. The 
 | **Longitudinal Compliance Tracker** | Compliance score trend analysis and threshold alerting | v0.3.0 ✅ |
 | **Cross-Cycle Finding Analyzer** | AI extraction, deduplication, and cross-cycle recurrence detection | v0.3.0 ✅ |
 
-## Quick Start
+## Connect to PDA Platform
+
+PDA Platform works with Claude, ChatGPT, Gemini, and any MCP-compatible client. **41 tools, one connection.**
+
+**Quickest start — Claude Desktop:**
+
+```bash
+pip install pm-mcp-servers
+```
+
+Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "pda-platform": {
+      "command": "pda-platform-server",
+      "args": []
+    }
+  }
+}
+```
+
+**Remote — no install needed:**
+
+Connect any MCP client to the SSE endpoint: `https://pda-platform-i33p.onrender.com/sse`
+
+**Host your own:**
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/antnewman/pda-platform)
+
+See the full **[Connection Guide](docs/connection-guide.md)** for Claude.ai, ChatGPT, Gemini, and other clients.
+
+## Quick Start (Library)
 
 ```bash
 # Install the core library
