@@ -1,13 +1,14 @@
 """Tests for MSPDI parser."""
 
-import pytest
-from pathlib import Path
 from decimal import Decimal
+from pathlib import Path
 
-from pm_data_tools.schemas.mspdi.parser import MspdiParser
-from pm_data_tools.models.task import TaskStatus
+import pytest
+
 from pm_data_tools.models.dependency import DependencyType
 from pm_data_tools.models.resource import ResourceType
+from pm_data_tools.models.task import TaskStatus
+from pm_data_tools.schemas.mspdi.parser import MspdiParser
 
 
 @pytest.fixture

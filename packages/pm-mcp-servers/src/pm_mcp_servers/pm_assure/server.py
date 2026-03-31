@@ -25,10 +25,7 @@ app = Server("pm-assure-server")
 # ---------------------------------------------------------------------------
 
 
-@app.list_tools()
-async def list_tools() -> list[Tool]:
-    """List available PM Assure tools."""
-    return [
+ASSURE_TOOLS: list[Tool] = [
         Tool(
             name="nista_longitudinal_trend",
             description=(
@@ -1027,6 +1024,12 @@ async def list_tools() -> list[Tool]:
     ]
 
 
+@app.list_tools()
+async def list_tools() -> list[Tool]:
+    """List available PM Assure tools."""
+    return ASSURE_TOOLS
+
+
 # ---------------------------------------------------------------------------
 # Tool dispatch
 # ---------------------------------------------------------------------------
@@ -1149,7 +1152,6 @@ async def _track_review_actions(
     """Extract and persist review actions from project review text."""
     try:
         import anthropic as _anthropic_module  # noqa: F401 — import check
-
         from agent_planning.confidence import ConfidenceExtractor
         from agent_planning.providers.anthropic import AnthropicProvider
         from pm_data_tools.assurance import FindingAnalyzer
@@ -1371,7 +1373,6 @@ async def _log_override_decision(
         from pm_data_tools.assurance.overrides import (
             OverrideDecision,
             OverrideDecisionLogger,
-            OverrideOutcome,
             OverrideType,
         )
         from pm_data_tools.db.store import AssuranceStore

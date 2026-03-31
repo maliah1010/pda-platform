@@ -5,8 +5,8 @@ in both XER (text) and PMXML (XML) formats.
 """
 
 from .constants import (
-    ActivityType,
     ActivityStatus,
+    ActivityType,
     RelationshipType,
     ResourceType,
 )

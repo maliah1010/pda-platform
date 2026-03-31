@@ -9,13 +9,12 @@ across multiple review cycles.
 from __future__ import annotations
 
 from datetime import date, datetime, timezone
-from typing import Optional
 
 import structlog
 from agent_planning.confidence import ConfidenceExtractor, SchemaType
 
 from ..db.store import AssuranceStore
-from .models import ReviewAction, FindingAnalysisResult, ReviewActionStatus
+from .models import FindingAnalysisResult, ReviewAction, ReviewActionStatus
 from .recurrence import RecurrenceDetector
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
@@ -57,8 +56,8 @@ class FindingAnalyzer:
         self,
         extractor: ConfidenceExtractor,
         min_confidence: float = 0.60,
-        store: Optional[AssuranceStore] = None,
-        recurrence_detector: Optional[RecurrenceDetector] = None,
+        store: AssuranceStore | None = None,
+        recurrence_detector: RecurrenceDetector | None = None,
     ) -> None:
         """Initialise the finding analyzer.
 

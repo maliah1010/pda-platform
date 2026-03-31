@@ -4,7 +4,7 @@ import csv
 from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from ...models import (
     DeliveryConfidence,
@@ -56,7 +56,7 @@ class GMPPParser:
         Returns:
             List of parsed Projects (one per row)
         """
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             reader = csv.DictReader(f)
             return self.parse(list(reader))
 
@@ -78,7 +78,7 @@ class GMPPParser:
 
         return projects
 
-    def _parse_row(self, row: dict[str, Any]) -> Optional[Project]:
+    def _parse_row(self, row: dict[str, Any]) -> Project | None:
         """Parse single GMPP CSV row to Project.
 
         Args:
@@ -172,7 +172,7 @@ class GMPPParser:
 
         return project
 
-    def _find_value(self, row: dict[str, Any], column_names: list[str]) -> Optional[str]:
+    def _find_value(self, row: dict[str, Any], column_names: list[str]) -> str | None:
         """Find value in row by trying multiple column name variants.
 
         Args:
@@ -189,7 +189,7 @@ class GMPPParser:
                     return value
         return None
 
-    def _parse_date(self, date_str: Optional[str]) -> Optional[datetime]:
+    def _parse_date(self, date_str: str | None) -> datetime | None:
         """Parse date string to datetime.
 
         Args:
@@ -218,7 +218,7 @@ class GMPPParser:
 
         return None
 
-    def _parse_money(self, amount_str: Optional[str]) -> Optional[Money]:
+    def _parse_money(self, amount_str: str | None) -> Money | None:
         """Parse money string to Money object.
 
         Args:

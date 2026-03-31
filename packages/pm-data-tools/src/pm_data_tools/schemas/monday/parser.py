@@ -3,7 +3,7 @@
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 from uuid import UUID
 
 from ...models import (
@@ -39,7 +39,7 @@ class MondayParser:
     - People columns → Resources
     """
 
-    def __init__(self, board_name: Optional[str] = None):
+    def __init__(self, board_name: str | None = None):
         """Initialize parser.
 
         Args:
@@ -59,7 +59,7 @@ class MondayParser:
         Returns:
             Parsed Project
         """
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             data = json.load(f)
         return self.parse(data)
 
@@ -152,7 +152,7 @@ class MondayParser:
 
         return project
 
-    def _parse_group(self, group: dict[str, Any], board_id: str) -> Optional[Task]:
+    def _parse_group(self, group: dict[str, Any], board_id: str) -> Task | None:
         """Parse Monday.com group to summary Task.
 
         Args:
@@ -187,7 +187,7 @@ class MondayParser:
 
     def _parse_item(
         self, item: dict[str, Any], board_id: str, parent_id: UUID
-    ) -> Optional[Task]:
+    ) -> Task | None:
         """Parse Monday.com item to Task.
 
         Args:
@@ -245,7 +245,7 @@ class MondayParser:
 
     def _parse_subitem(
         self, subitem: dict[str, Any], board_id: str, parent_id: UUID
-    ) -> Optional[Task]:
+    ) -> Task | None:
         """Parse Monday.com subitem to Task.
 
         Args:
@@ -316,7 +316,7 @@ class MondayParser:
 
     def _extract_dates(
         self, column_values: list[dict[str, Any]]
-    ) -> tuple[Optional[datetime], Optional[datetime]]:
+    ) -> tuple[datetime | None, datetime | None]:
         """Extract start and finish dates from column values.
 
         Args:
@@ -325,8 +325,8 @@ class MondayParser:
         Returns:
             Tuple of (start_date, finish_date)
         """
-        start_date: Optional[datetime] = None
-        finish_date: Optional[datetime] = None
+        start_date: datetime | None = None
+        finish_date: datetime | None = None
 
         for col in column_values:
             col_type = col.get("type")
@@ -364,7 +364,7 @@ class MondayParser:
 
     def _extract_percent_complete(
         self, column_values: list[dict[str, Any]]
-    ) -> Optional[float]:
+    ) -> float | None:
         """Extract percent complete from column values.
 
         Args:
@@ -385,7 +385,7 @@ class MondayParser:
                         if isinstance(value_data, dict):
                             return float(value_data.get("value", 0))
                         return float(value_data)
-                    elif isinstance(value, (int, float)):
+                    elif isinstance(value, int | float):
                         return float(value)
                 except (json.JSONDecodeError, ValueError, TypeError):
                     continue
@@ -395,9 +395,7 @@ class MondayParser:
                 title = col.get("title", "").lower()
                 if "progress" in title or "complete" in title:
                     try:
-                        if isinstance(value, str) and value != "null":
-                            return float(value)
-                        elif isinstance(value, (int, float)):
+                        if isinstance(value, str) and value != "null" or isinstance(value, int | float):
                             return float(value)
                     except (ValueError, TypeError):
                         continue
@@ -462,7 +460,7 @@ class MondayParser:
 
         return resources
 
-    def _parse_date_string(self, date_str: str) -> Optional[datetime]:
+    def _parse_date_string(self, date_str: str) -> datetime | None:
         """Parse date string to datetime.
 
         Args:

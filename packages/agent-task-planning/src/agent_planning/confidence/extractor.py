@@ -3,31 +3,31 @@
 import asyncio
 import json
 import time
-from typing import Any, Optional, Union, Callable
+from collections.abc import Callable
+from typing import Any
 
-from ..providers.base import BaseProvider
 from ..guardrails.limits import GuardrailConfig
+from ..providers.base import BaseProvider
+from .aggregation import (
+    aggregate_categorical,
+    aggregate_list_fields,
+    aggregate_numeric,
+    aggregate_text_exact,
+    check_early_stop,
+    compute_field_confidence,
+    compute_overall_confidence,
+    detect_numeric_outliers,
+)
 from .models import (
-    ConfidenceResult,
     BatchConfidenceResult,
+    ConfidenceResult,
     OutlierReport,
     ReviewLevel,
 )
 from .schemas import (
-    SchemaType,
     CustomSchema,
+    SchemaType,
     get_schema_definition,
-    SCHEMA_DEFINITIONS,
-)
-from .aggregation import (
-    detect_numeric_outliers,
-    aggregate_numeric,
-    aggregate_categorical,
-    aggregate_text_exact,
-    aggregate_list_fields,
-    compute_field_confidence,
-    compute_overall_confidence,
-    check_early_stop,
 )
 
 
@@ -37,7 +37,7 @@ class ConfidenceExtractor:
     def __init__(
         self,
         provider: BaseProvider,
-        guardrails: Optional[GuardrailConfig] = None,
+        guardrails: GuardrailConfig | None = None,
     ):
         """Initialise the confidence extractor.
 
@@ -58,10 +58,10 @@ class ConfidenceExtractor:
     async def extract(
         self,
         query: str,
-        context: Optional[str] = None,
-        schema: Union[SchemaType, CustomSchema] = SchemaType.RISK,
-        samples: Optional[int] = None,
-        temperature: Optional[float] = None,
+        context: str | None = None,
+        schema: SchemaType | CustomSchema = SchemaType.RISK,
+        samples: int | None = None,
+        temperature: float | None = None,
         early_stop: bool = True,
     ) -> ConfidenceResult:
         """Extract structured data with confidence scoring.
@@ -201,10 +201,10 @@ class ConfidenceExtractor:
     async def extract_batch(
         self,
         queries: list[str],
-        context: Optional[str] = None,
-        schemas: Optional[list[Union[SchemaType, CustomSchema]]] = None,
+        context: str | None = None,
+        schemas: list[SchemaType | CustomSchema] | None = None,
         max_concurrent: int = 3,
-        progress_callback: Optional[Callable] = None,
+        progress_callback: Callable | None = None,
     ) -> BatchConfidenceResult:
         """Extract from multiple queries with concurrency control.
 
@@ -229,7 +229,7 @@ class ConfidenceExtractor:
         completed = 0
         failed = 0
 
-        async def process_one(query: str, schema: Union[SchemaType, CustomSchema]):
+        async def process_one(query: str, schema: SchemaType | CustomSchema):
             nonlocal completed, failed
             async with semaphore:
                 try:
@@ -238,7 +238,7 @@ class ConfidenceExtractor:
                     if progress_callback:
                         await progress_callback(completed, len(queries))
                     return result
-                except Exception as e:
+                except Exception:
                     failed += 1
                     if progress_callback:
                         await progress_callback(completed, len(queries))
@@ -264,7 +264,7 @@ class ConfidenceExtractor:
     def _build_extraction_prompt(
         self,
         query: str,
-        context: Optional[str],
+        context: str | None,
         schema_prompt: str
     ) -> str:
         """Build the full extraction prompt."""
@@ -298,7 +298,7 @@ class ConfidenceExtractor:
 
         return "\n".join(parts)
 
-    def _parse_extraction(self, content: str) -> Optional[dict[str, Any]]:
+    def _parse_extraction(self, content: str) -> dict[str, Any] | None:
         """Parse extraction response into structured data."""
         # Clean up common formatting issues
         content = content.strip()
@@ -351,7 +351,7 @@ class ConfidenceExtractor:
         # Categorise fields
         numeric_fields = aggregation_fields.get("numeric", [])
         categorical_fields = aggregation_fields.get("categorical", [])
-        text_fields = aggregation_fields.get("text", [])
+        aggregation_fields.get("text", [])
         list_fields = aggregation_fields.get("list", [])
 
         for field in all_fields:
@@ -407,7 +407,7 @@ class ConfidenceExtractor:
         confidence: float,
         outliers: list[OutlierReport],
         field_confidence: dict[str, float]
-    ) -> tuple[ReviewLevel, Optional[str]]:
+    ) -> tuple[ReviewLevel, str | None]:
         """Determine appropriate human review level."""
 
         # Expert required if outliers detected or very low confidence
@@ -440,9 +440,9 @@ class ConfidenceExtractor:
 async def confidence_extract(
     query: str,
     provider: BaseProvider,
-    context: Optional[str] = None,
-    schema: Union[SchemaType, CustomSchema] = SchemaType.RISK,
-    guardrails: Optional[GuardrailConfig] = None,
+    context: str | None = None,
+    schema: SchemaType | CustomSchema = SchemaType.RISK,
+    guardrails: GuardrailConfig | None = None,
     **kwargs
 ) -> ConfidenceResult:
     """Convenience function for single extraction.
@@ -465,9 +465,9 @@ async def confidence_extract(
 async def confidence_extract_batch(
     queries: list[str],
     provider: BaseProvider,
-    context: Optional[str] = None,
-    schemas: Optional[list[Union[SchemaType, CustomSchema]]] = None,
-    guardrails: Optional[GuardrailConfig] = None,
+    context: str | None = None,
+    schemas: list[SchemaType | CustomSchema] | None = None,
+    guardrails: GuardrailConfig | None = None,
     **kwargs
 ) -> BatchConfidenceResult:
     """Convenience function for batch extraction.

@@ -46,7 +46,7 @@ import uuid
 from collections import Counter
 from datetime import date, datetime, timezone
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 import structlog
 from pydantic import BaseModel, Field
@@ -129,14 +129,14 @@ class OverrideDecision(BaseModel):
     decision_date: date
     authoriser: str
     rationale: str
-    overridden_finding_id: Optional[str] = None
-    overridden_value: Optional[str] = None
-    override_value: Optional[str] = None
+    overridden_finding_id: str | None = None
+    overridden_value: str | None = None
+    override_value: str | None = None
     conditions: list[str] = Field(default_factory=list)
     evidence_refs: list[str] = Field(default_factory=list)
     outcome: OverrideOutcome = OverrideOutcome.PENDING
-    outcome_date: Optional[date] = None
-    outcome_notes: Optional[str] = None
+    outcome_date: date | None = None
+    outcome_notes: str | None = None
 
 
 class OverridePatternSummary(BaseModel):

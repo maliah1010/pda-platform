@@ -2,23 +2,20 @@
 
 from __future__ import annotations
 
-import pytest
-
 from pm_data_tools.assurance.armm import (
+    DIMENSION_TOPICS,
+    TOPIC_CRITERIA_COUNT,
+    TOPIC_DIMENSION,
     ARMMConfig,
     ARMMDimension,
     ARMMScorer,
     ARMMTopic,
     CriterionResult,
     MaturityLevel,
-    TOPIC_CRITERIA_COUNT,
-    TOPIC_DIMENSION,
-    DIMENSION_TOPICS,
     _criterion_to_topic,
     _score_to_level,
 )
 from pm_data_tools.db.store import AssuranceStore
-
 
 # ---------------------------------------------------------------------------
 # Helpers

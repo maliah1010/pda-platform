@@ -1,8 +1,8 @@
 """Response clustering using UMAP + HDBSCAN with fallbacks."""
 
-import numpy as np
 from dataclasses import dataclass
-from typing import Optional
+
+import numpy as np
 
 # Optional dependencies with fallbacks
 try:
@@ -24,8 +24,8 @@ except ImportError:
     SENTENCE_TRANSFORMERS_AVAILABLE = False
 
 try:
-    from sklearn.metrics import silhouette_score
     from sklearn.cluster import AgglomerativeClustering
+    from sklearn.metrics import silhouette_score
     SKLEARN_AVAILABLE = True
 except ImportError:
     SKLEARN_AVAILABLE = False
@@ -38,7 +38,7 @@ class ClusterResult:
     n_clusters: int                         # Number of clusters found
     silhouette: float                       # Cluster quality score
     embeddings: np.ndarray                  # Original embeddings
-    reduced_embeddings: Optional[np.ndarray]  # UMAP-reduced embeddings
+    reduced_embeddings: np.ndarray | None  # UMAP-reduced embeddings
     cluster_centers: dict[int, np.ndarray]  # Centroid per cluster
 
 

@@ -8,14 +8,14 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from .longitudinal import LongitudinalComplianceTracker
 
 try:
-    import jsonschema
-    from jsonschema import Draft7Validator, ValidationError
+    import jsonschema  # noqa: F401
+    from jsonschema import Draft7Validator, ValidationError  # noqa: F401
 
     JSONSCHEMA_AVAILABLE = True
 except ImportError:
@@ -119,7 +119,7 @@ class NISTAValidator:
         self,
         version: str = "1.0",
         strictness: StrictnessLevel = StrictnessLevel.STANDARD,
-        schema_path: Optional[Path] = None,
+        schema_path: Path | None = None,
     ):
         """Initialize NISTA validator.
 
@@ -144,7 +144,7 @@ class NISTAValidator:
         current_dir = Path(__file__).parent
         return current_dir / "v1.0" / "project.schema.json"
 
-    def _load_schema(self) -> Optional[dict[str, Any]]:
+    def _load_schema(self) -> dict[str, Any] | None:
         """Load JSON schema.
 
         Returns:
@@ -153,14 +153,14 @@ class NISTAValidator:
         if not self.schema_path.exists():
             return None
 
-        with open(self.schema_path, "r", encoding="utf-8") as f:
+        with open(self.schema_path, encoding="utf-8") as f:
             return json.load(f)
 
     def validate(
         self,
         data: dict[str, Any],
-        project_id: Optional[str] = None,
-        history: Optional["LongitudinalComplianceTracker"] = None,
+        project_id: str | None = None,
+        history: LongitudinalComplianceTracker | None = None,
     ) -> ValidationResult:
         """Validate NISTA data dictionary.
 
@@ -352,11 +352,11 @@ class NISTAValidator:
         """
         if not file_path.suffix.lower() == ".json":
             raise ValueError(
-                f"Only JSON files can be validated directly. "
-                f"For CSV/Excel, parse first then validate the Project."
+                "Only JSON files can be validated directly. "
+                "For CSV/Excel, parse first then validate the Project."
             )
 
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             data = json.load(f)
 
         return self.validate(data)

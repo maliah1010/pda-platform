@@ -2,7 +2,6 @@
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Optional
 
 
 class SchemaType(Enum):
@@ -25,9 +24,9 @@ class RiskItem:
     probability: int                        # 1-5 scale
     impact: int                             # 1-5 scale
     mitigation: str
-    owner: Optional[str] = None
+    owner: str | None = None
     status: str = "Open"                    # Open, Mitigating, Closed, Accepted
-    id: Optional[str] = None                # Auto-generated if not provided
+    id: str | None = None                # Auto-generated if not provided
 
     @property
     def score(self) -> int:
@@ -41,12 +40,12 @@ class EstimateItem:
     description: str
     value: float                            # Point estimate
     unit: str                               # days, hours, GBP, etc.
-    range_low: Optional[float] = None       # Lower bound
-    range_high: Optional[float] = None      # Upper bound
-    optimistic: Optional[float] = None      # For three-point estimates
-    pessimistic: Optional[float] = None     # For three-point estimates
+    range_low: float | None = None       # Lower bound
+    range_high: float | None = None      # Upper bound
+    optimistic: float | None = None      # For three-point estimates
+    pessimistic: float | None = None     # For three-point estimates
     assumptions: list[str] = field(default_factory=list)
-    confidence_notes: Optional[str] = None
+    confidence_notes: str | None = None
 
 
 @dataclass
@@ -55,8 +54,8 @@ class RecommendationItem:
     action: str
     rationale: str
     priority: str                           # High, Medium, Low
-    owner: Optional[str] = None             # Suggested owner
-    timeframe: Optional[str] = None         # When to complete
+    owner: str | None = None             # Suggested owner
+    timeframe: str | None = None         # When to complete
     dependencies: list[str] = field(default_factory=list)
 
 
@@ -65,7 +64,7 @@ class MilestoneItem:
     """A project milestone."""
     name: str
     description: str
-    target_date: Optional[str] = None       # ISO format or descriptive
+    target_date: str | None = None       # ISO format or descriptive
     dependencies: list[str] = field(default_factory=list)
     deliverables: list[str] = field(default_factory=list)
 
@@ -86,10 +85,10 @@ class OutcomeMeasureItem:
     """An outcome measure or KPI."""
     measure: str
     description: str
-    target: Optional[str] = None
-    baseline: Optional[str] = None
-    measurement_method: Optional[str] = None
-    frequency: Optional[str] = None         # How often measured
+    target: str | None = None
+    baseline: str | None = None
+    measurement_method: str | None = None
+    frequency: str | None = None         # How often measured
 
 
 @dataclass
@@ -99,7 +98,7 @@ class StakeholderImpactItem:
     impact_description: str
     sentiment: str                          # Positive, Negative, Neutral, Mixed
     actions_required: list[str] = field(default_factory=list)
-    communication_needs: Optional[str] = None
+    communication_needs: str | None = None
 
 
 # Schema definitions for extraction prompts
@@ -249,4 +248,4 @@ class CustomSchema:
     name: str
     extraction_prompt: str
     aggregation_fields: dict[str, list[str]]
-    output_class: Optional[type] = None  # Optional dataclass for typed output
+    output_class: type | None = None  # Optional dataclass for typed output

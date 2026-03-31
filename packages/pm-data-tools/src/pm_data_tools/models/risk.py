@@ -7,10 +7,9 @@ with probability, impact, and mitigation tracking aligned with GMPP standards.
 from dataclasses import dataclass, field
 from datetime import date
 from enum import Enum
-from typing import Optional
 from uuid import UUID
 
-from .base import SourceInfo, CustomField
+from .base import CustomField, SourceInfo
 
 
 class RiskStatus(Enum):
@@ -50,26 +49,26 @@ class Risk:
     source: SourceInfo
 
     # Description
-    description: Optional[str] = None
-    cause: Optional[str] = None
-    effect: Optional[str] = None
+    description: str | None = None
+    cause: str | None = None
+    effect: str | None = None
 
     # Classification
     category: RiskCategory = RiskCategory.TECHNICAL
     status: RiskStatus = RiskStatus.IDENTIFIED
 
     # Assessment (1-5 scale, aligned with GMPP)
-    probability: Optional[int] = None  # 1=Very Low, 5=Very High
-    impact: Optional[int] = None  # 1=Very Low, 5=Very High
+    probability: int | None = None  # 1=Very Low, 5=Very High
+    impact: int | None = None  # 1=Very Low, 5=Very High
 
     # Response
-    mitigation: Optional[str] = None
-    contingency: Optional[str] = None
-    owner: Optional[str] = None
+    mitigation: str | None = None
+    contingency: str | None = None
+    owner: str | None = None
 
     # Dates
-    identified_date: Optional[date] = None
-    target_resolution_date: Optional[date] = None
+    identified_date: date | None = None
+    target_resolution_date: date | None = None
 
     # Linked tasks
     related_task_ids: list[UUID] = field(default_factory=list)
@@ -83,7 +82,7 @@ class Risk:
         return f"Risk({self.name}, {self.category.value}, {self.status.value}{score_str})"
 
     @property
-    def score(self) -> Optional[int]:
+    def score(self) -> int | None:
         """Calculate risk score (probability × impact).
 
         Returns:

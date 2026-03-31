@@ -6,12 +6,16 @@ in v0.5.0.  All symbols have been moved to :mod:`.longitudinal`.
 
 from .longitudinal import (  # noqa: F401
     ComplianceThresholdConfig,
-    ComplianceThresholdConfig as NISTAThresholdConfig,
     ConfidenceScoreRecord,
     LongitudinalComplianceTracker,
-    LongitudinalComplianceTracker as NISTAScoreHistory,
     ThresholdBreach,
     TrendDirection,
+)
+from .longitudinal import (
+    ComplianceThresholdConfig as NISTAThresholdConfig,
+)
+from .longitudinal import (
+    LongitudinalComplianceTracker as NISTAScoreHistory,
 )
 
 __all__ = [

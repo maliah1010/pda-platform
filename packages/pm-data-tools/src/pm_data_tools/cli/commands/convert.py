@@ -1,8 +1,8 @@
 """Convert command for format conversion."""
 
-import click
 from pathlib import Path
-from typing import Optional
+
+import click
 
 
 @click.command()
@@ -35,7 +35,7 @@ from typing import Optional
 def convert(
     input_file: Path,
     output_file: Path,
-    source_format: Optional[str],
+    source_format: str | None,
     target_format: str,
     validate: bool,
 ) -> None:

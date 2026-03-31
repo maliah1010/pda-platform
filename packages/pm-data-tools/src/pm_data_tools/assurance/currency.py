@@ -39,10 +39,10 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 import structlog
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, field_validator
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
@@ -168,7 +168,7 @@ class ArtefactCurrencyValidator:
         # score.status == CurrencyStatus.ANOMALOUS_UPDATE
     """
 
-    def __init__(self, config: Optional[CurrencyConfig] = None) -> None:
+    def __init__(self, config: CurrencyConfig | None = None) -> None:
         """Initialise the validator.
 
         Args:

@@ -1,10 +1,11 @@
 """Tests for Resource model."""
 
-import pytest
 from decimal import Decimal
 from uuid import uuid4
 
-from pm_data_tools.models import Resource, ResourceType, Money, SourceInfo
+import pytest
+
+from pm_data_tools.models import Money, Resource, ResourceType, SourceInfo
 
 
 @pytest.fixture

@@ -15,11 +15,9 @@ from pm_data_tools.assurance.overrides import (
     OverrideDecision,
     OverrideDecisionLogger,
     OverrideOutcome,
-    OverridePatternSummary,
     OverrideType,
 )
 from pm_data_tools.db.store import AssuranceStore
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -217,7 +215,7 @@ def test_analyse_patterns_mixed_outcomes(tmp_path: Path) -> None:
     d1 = log.log_override(_make_override())
     d2 = log.log_override(_make_override())
     d3 = log.log_override(_make_override())
-    d4 = log.log_override(_make_override())
+    log.log_override(_make_override())
 
     log.record_outcome(d1.id, OverrideOutcome.NO_IMPACT)
     log.record_outcome(d2.id, OverrideOutcome.MINOR_IMPACT)

@@ -1,137 +1,31 @@
 # PM MCP Servers
 
-MCP servers for AI-enabled project management. Provides the **OPAL** (Open Project Assurance Library), **ARMM** (Agent Readiness Maturity Model), and **GMPP/NISTA** reporting tools via the Model Context Protocol.
+MCP servers for AI-enabled project management. Enables Claude to interact with PM
+data, validate NISTA compliance, and track assurance quality over time.
 
 Part of the [PDA Platform](https://github.com/antnewman/pda-platform).
 
-## Live Server
+<!-- mcp-name: io.github.antnewman/pm-data -->
+<!-- mcp-name: io.github.antnewman/pm-validate -->
+<!-- mcp-name: io.github.antnewman/pm-analyse -->
+<!-- mcp-name: io.github.antnewman/pm-assure -->
 
-Connect from claude.ai or any MCP client — no install needed:
+## Overview
 
-```
-https://pda-platform-i33p.onrender.com/sse
-```
+PM MCP Servers provides Model Context Protocol (MCP) servers that enable Claude
+Desktop and other MCP clients to interact with project management data and assurance
+tooling. Built to support the NISTA Programme and Project Data Standard trial.
 
-See [QUICKSTART](../../docs/hackathon/QUICKSTART.md) for setup instructions.
+## Unified Server (Recommended)
 
-## Available Servers (28 tools)
-
-### pm-assure-server (23 tools)
-
-The OPAL assurance framework — continuous project assurance across 12 modules:
-
-| Module | Tools | Capability |
-|--------|-------|-----------|
-| OPAL-1 | `check_artefact_currency` | Stale document detection, anomalous update alerts |
-| OPAL-2 | `nista_longitudinal_trend` | Compliance score history, trend analysis, threshold breaches |
-| OPAL-3 | `track_review_actions`, `review_action_status` | AI action extraction, cross-cycle recurrence detection |
-| OPAL-4 | `check_confidence_divergence` | AI confidence monitoring, sample consensus scoring |
-| OPAL-5 | `recommend_review_schedule` | Adaptive scheduling driven by OPAL-1 to OPAL-4 signals |
-| OPAL-6 | `log_override_decision`, `analyse_override_patterns` | Governance override logging with full audit trail |
-| OPAL-7 | `ingest_lesson`, `search_lessons` | Knowledge engine with category, sentiment, impact tracking |
-| OPAL-8 | `log_assurance_activity`, `analyse_assurance_overhead` | Effort tracking and efficiency optimisation |
-| OPAL-9 | `run_assurance_workflow`, `get_workflow_history` | Multi-step agentic workflow orchestration |
-| OPAL-10 | `classify_project_domain`, `reclassify_from_store` | Cynefin domains (CLEAR/COMPLICATED/COMPLEX/CHAOTIC) |
-| OPAL-11 | `ingest_assumption`, `validate_assumption`, `get_assumption_drift`, `get_cascade_impact` | Assumption drift tracking with cascade analysis |
-| OPAL-12 | Via `create_project_from_profile` | ARMM maturity assessment (251 criteria, 4 dimensions) |
-
-**Hackathon tools:**
-
-| Tool | Description |
-|------|-------------|
-| `create_project_from_profile` | Create full OPAL project from metadata — runs entire pipeline |
-| `export_dashboard_data` | Export static JSON for UDS Renderer |
-| `export_dashboard_html` | Generate self-contained branded HTML dashboard |
-
-### pm-nista-server (5 tools)
-
-GMPP quarterly reporting and NISTA integration:
-
-| Tool | Description |
-|------|-------------|
-| `generate_gmpp_report` | Complete quarterly report from project data |
-| `generate_narrative` | AI-powered DCA, cost, schedule, benefits, risk narratives |
-| `validate_gmpp_report` | NISTA compliance validation (LENIENT/STANDARD/STRICT) |
-| `submit_to_nista` | Submit to NISTA API (sandbox or production) |
-| `fetch_nista_metadata` | Fetch from NISTA master registry |
-
-### pm-data-server (6 tools)
-
-Project data ingestion and querying:
-
-| Tool | Description |
-|------|-------------|
-| `load_project` | Parse 9 formats (MS Project, P6, Jira, Monday, Asana, Smartsheet, GMPP, NISTA) |
-| `query_tasks` | Filter by status, critical path, milestone, assignee, dates |
-| `get_critical_path` | Critical path + near-critical tasks |
-| `get_dependencies` | Predecessor/successor analysis |
-| `convert_format` | Export to MSPDI, JSON, NISTA |
-| `get_project_summary` | High-level project statistics |
-
-### pm-validate-server (4 tools)
-
-Data integrity and compliance:
-
-| Tool | Description |
-|------|-------------|
-| `validate_structure` | Orphan tasks, circular deps, duplicate IDs, hierarchy |
-| `validate_semantic` | Schedule logic, overallocation, cost consistency |
-| `validate_nista` | NISTA standard compliance (3 strictness levels) |
-| `validate_custom` | Organisation-specific custom rules |
-
-### pm-analyse-server (6 tools)
-
-AI-powered analysis:
-
-| Tool | Description |
-|------|-------------|
-| `identify_risks` | 8 risk dimensions with confidence scoring |
-| `forecast_completion` | Monte Carlo, EVM, Reference Class, ML Ensemble |
-| `detect_outliers` | Duration, progress, float, date anomalies |
-| `assess_health` | 5-dimension weighted health scoring |
-| `suggest_mitigations` | AI-generated strategies with effectiveness ratings |
-| `compare_baseline` | Schedule, duration, cost variance analysis |
-
-## UK Government Compliance
-
-| Framework | Status |
-|-----------|--------|
-| Model for Responsible Innovation | Aligned |
-| AI Playbook for UK Government | Aligned |
-| Data and AI Ethics Framework | Aligned |
-| NISTA Programme and Project Data Standard | Supported |
-
-See [`docs/compliance/`](docs/compliance/) and [`docs/model-cards/`](docs/model-cards/) for full compliance documentation.
-
-## Installation
-
-```bash
-pip install pm-mcp-servers
-```
-
-## Quick Start
-
-### Option 1: Remote server (no install)
-
-Add to `claude_desktop_config.json`:
+The **`pda-platform-server`** is a single MCP endpoint that exposes all 41 tools
+from all 5 modules. This is the recommended way to use PDA.
 
 ```json
 {
   "mcpServers": {
     "pda-platform": {
-      "url": "https://pda-platform-i33p.onrender.com/sse"
-    }
-  }
-}
-```
-
-### Option 2: Local server
-
-```json
-{
-  "mcpServers": {
-    "pm-assure": {
-      "command": "pm-assure-server",
+      "command": "pda-platform-server",
       "args": [],
       "env": {
         "ANTHROPIC_API_KEY": "sk-ant-..."
@@ -141,21 +35,138 @@ Add to `claude_desktop_config.json`:
 }
 ```
 
+For remote access (e.g., from Claude.ai), use `pda-platform-remote` which adds
+SSE transport over HTTP. See the deployment section below.
+
+## Individual Servers
+
+Individual servers are still available for use cases where you only need a
+subset of tools.
+
+### pm-data-server
+
+Core server for PM data interaction.
+
+**Tools:** `load_project`, `query_tasks`, `get_critical_path`, `export_project`
+
+### pm-validate-server
+
+Validation server for PM data quality.
+
+**Tools:** `validate_nista`, `validate_structure`, `check_dependencies`
+
+### pm-analyse-server
+
+Analysis server for PM insights.
+
+**Tools:** `analyze_risks`, `forecast_completion`, `resource_utilization`
+
+### pm-benchmark-server
+
+Benchmarking server for PM AI evaluation.
+
+**Tools:** `run_benchmark`, `compare_results`
+
+### pm-assure-server
+
+Assurance quality tracking server. Covers longitudinal compliance score analysis,
+cross-cycle review action management, and artefact currency checking.
+
+**Tools:**
+
+| Tool | Description |
+|------|-------------|
+| `nista_longitudinal_trend` | Retrieve NISTA compliance score history, trend direction (IMPROVING / STAGNATING / DEGRADING), and active threshold breaches for a project. |
+| `track_review_actions` | Extract review actions from project review text using AI, deduplicate within the current review, and detect cross-cycle recurrences. Requires `ANTHROPIC_API_KEY`. |
+| `review_action_status` | Retrieve tracked review actions for a project, optionally filtered by status (OPEN / IN_PROGRESS / CLOSED / RECURRING). |
+
+See [`docs/assurance.md`](../../docs/assurance.md) for full API reference.
+
+## UK Government Compliance
+
+pda-platform is designed to support compliance with UK government AI and data
+ethics frameworks.
+
+| Framework | Status |
+|-----------|--------|
+| Model for Responsible Innovation | ✅ Aligned |
+| AI Playbook for UK Government | ✅ Aligned |
+| Data and AI Ethics Framework | ✅ Aligned |
+| NISTA Programme and Project Data Standard | ✅ Supported |
+
+Key properties:
+- **Transparency**: MIT open source licence; full code visibility
+- **Accountability**: Evidence trails on all AI outputs
+- **Human Oversight**: Advisory outputs with confidence scoring (0.0–1.0)
+- **Fairness**: No personal or demographic data processing
+- **Safety**: Documented limitations and risk assessment
+
+See [`docs/compliance/`](docs/compliance/), [`docs/model-cards/`](docs/model-cards/),
+and [`docs/guides/`](docs/guides/) for full compliance documentation.
+
+## Installation
+
+```bash
+pip install pm-mcp-servers
+```
+
+For assurance features with recurrence detection:
+
+```bash
+pip install "agent-task-planning[mining]"
+```
+
+## Quick Start
+
+### Configure Claude Desktop
+
+Add to `claude_desktop_config.json`
+(`%APPDATA%\Claude\claude_desktop_config.json` on Windows,
+`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
+
+```json
+{
+  "mcpServers": {
+    "pda-platform": {
+      "command": "pda-platform-server",
+      "args": [],
+      "env": {
+        "ANTHROPIC_API_KEY": "sk-ant-..."
+      }
+    }
+  }
+}
+```
+
+This gives Claude access to all 41 tools across data loading, analysis,
+validation, NISTA reporting, and assurance.
+
+### Remote Deployment
+
+For remote access from Claude.ai, deploy `pda-platform-remote`:
+
+```bash
+PORT=8080 pda-platform-remote
+```
+
+This starts an SSE server at `/sse` with a health check at `/health`.
+
 ### Example prompts
 
-```
-Create a COMPLEX domain project called "Digital Infrastructure Programme"
-for the Department for Education, then export a dashboard.
-```
+Once configured you can ask Claude:
 
-```
-Ingest an assumption that construction inflation will stay below 4.5%,
-then validate it with a current value of 7.8%.
-```
+**Project data:**
+- "Load /projects/building.mpp and show the critical path"
+- "Validate this project against NISTA requirements"
 
-```
-Run a full assurance workflow for my project and tell me the health status.
-```
+**Longitudinal compliance (P2):**
+- "Show me the NISTA compliance trend for project PROJ-001."
+- "Have there been any threshold breaches for PROJ-001 recently?"
+
+**Review action tracking (P3):**
+- "Extract the actions from this review document and track them for PROJ-001."
+- "Show me all open review actions for PROJ-001."
+- "Which actions for PROJ-001 are recurring from previous reviews?"
 
 ## Development
 
@@ -168,19 +179,15 @@ pip install -e ".[dev]"
 pytest
 ```
 
-## Citation
-
-```
-Newman, A. (2026) From Policy to Practice: An Open Framework for AI-Ready Project Delivery.
-London: Tortoise AI. DOI: https://doi.org/10.5281/zenodo.18711384
-```
-
 ## License
 
 MIT License — see [LICENSE](LICENSE) for details.
 
 ## Acknowledgments
 
-Fork maintained by Ant Newman ([github.com/antnewman](https://github.com/antnewman)), CEO and Co-Founder, Tortoise AI.
+Fork maintained by Ant Newman ([github.com/antnewman](https://github.com/antnewman)).
 
-Original work by members of the PDA Task Force.
+Original work by members of the PDA Task Force. Made possible by:
+- The **PDA Task Force White Paper** identifying AI implementation barriers in UK
+  project delivery
+- The **NISTA Programme and Project Data Standard** and its 12-month trial period

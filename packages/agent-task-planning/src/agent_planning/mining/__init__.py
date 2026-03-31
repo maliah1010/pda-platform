@@ -1,20 +1,20 @@
 """Outlier mining module for diverse approach discovery."""
 
-from .miner import OutlierMiner, mine, mine_batch
 from .config import (
     MiningConfig,
-    TemperatureSchedule,
     PromptDiversification,
     SaturationMethod,
+    TemperatureSchedule,
 )
+from .miner import OutlierMiner, mine, mine_batch
 from .models import (
-    MiningCandidate,
-    MiningResult,
+    AssumptionReport,
     BatchMiningResult,
     ClusterInfo,
     DifferenceReport,
     DifferenceType,
-    AssumptionReport,
+    MiningCandidate,
+    MiningResult,
     QualityScore,
     SaturationSignal,
 )

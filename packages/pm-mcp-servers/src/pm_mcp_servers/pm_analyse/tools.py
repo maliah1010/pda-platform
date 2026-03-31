@@ -11,7 +11,7 @@ from __future__ import annotations
 import logging
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pm_mcp_servers.shared import project_store
 
@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 
 
-async def identify_risks(params: Dict[str, Any]) -> Dict[str, Any]:
+async def identify_risks(params: dict[str, Any]) -> dict[str, Any]:
     """
     Identify project risks using AI-powered risk engine.
 
@@ -107,7 +107,7 @@ async def identify_risks(params: Dict[str, Any]) -> Dict[str, Any]:
         high_count = sum(1 for r in risks if r.severity.value == "high")
 
         # Count by category
-        by_category: Dict[str, int] = {}
+        by_category: dict[str, int] = {}
         for risk in risks:
             cat = risk.category.value
             by_category[cat] = by_category.get(cat, 0) + 1
@@ -143,7 +143,7 @@ async def identify_risks(params: Dict[str, Any]) -> Dict[str, Any]:
 # ============================================================================
 
 
-async def forecast_completion(params: Dict[str, Any]) -> Dict[str, Any]:
+async def forecast_completion(params: dict[str, Any]) -> dict[str, Any]:
     """
     Forecast project completion date using multiple methods.
 
@@ -253,7 +253,7 @@ async def forecast_completion(params: Dict[str, Any]) -> Dict[str, Any]:
 # ============================================================================
 
 
-async def detect_outliers(params: Dict[str, Any]) -> Dict[str, Any]:
+async def detect_outliers(params: dict[str, Any]) -> dict[str, Any]:
     """
     Detect anomalies in project data.
 
@@ -340,7 +340,7 @@ async def detect_outliers(params: Dict[str, Any]) -> Dict[str, Any]:
         critical_count = sum(1 for o in outliers if o.severity.value == "critical")
 
         # Count by field
-        by_field: Dict[str, int] = {}
+        by_field: dict[str, int] = {}
         for outlier in outliers:
             field = outlier.field_name
             by_field[field] = by_field.get(field, 0) + 1
@@ -375,7 +375,7 @@ async def detect_outliers(params: Dict[str, Any]) -> Dict[str, Any]:
 # ============================================================================
 
 
-async def assess_health(params: Dict[str, Any]) -> Dict[str, Any]:
+async def assess_health(params: dict[str, Any]) -> dict[str, Any]:
     """
     Assess multi-dimensional project health.
 
@@ -480,7 +480,7 @@ async def assess_health(params: Dict[str, Any]) -> Dict[str, Any]:
 # ============================================================================
 
 
-async def suggest_mitigations(params: Dict[str, Any]) -> Dict[str, Any]:
+async def suggest_mitigations(params: dict[str, Any]) -> dict[str, Any]:
     """
     Generate mitigation strategies for identified risks.
 
@@ -576,7 +576,7 @@ async def suggest_mitigations(params: Dict[str, Any]) -> Dict[str, Any]:
         high_effectiveness = sum(1 for m in mitigations if m.effectiveness >= 0.75)
 
         # Count by strategy
-        by_strategy: Dict[str, int] = {}
+        by_strategy: dict[str, int] = {}
         for mitigation in mitigations:
             strategy = mitigation.strategy
             by_strategy[strategy] = by_strategy.get(strategy, 0) + 1
@@ -611,7 +611,7 @@ async def suggest_mitigations(params: Dict[str, Any]) -> Dict[str, Any]:
 # ============================================================================
 
 
-async def compare_baseline(params: Dict[str, Any]) -> Dict[str, Any]:
+async def compare_baseline(params: dict[str, Any]) -> dict[str, Any]:
     """
     Compare current project state against baseline.
 
@@ -704,7 +704,7 @@ async def compare_baseline(params: Dict[str, Any]) -> Dict[str, Any]:
         avg_variance = sum(abs(v.variance_percent) for v in variances) / len(variances) if variances else 0
 
         # Count by field
-        by_field: Dict[str, int] = {}
+        by_field: dict[str, int] = {}
         for variance in variances:
             field = variance.field_name
             by_field[field] = by_field.get(field, 0) + 1

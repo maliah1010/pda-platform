@@ -44,7 +44,6 @@ import uuid
 from collections import Counter
 from datetime import date, datetime, timezone
 from enum import Enum
-from typing import Any, Optional
 
 import structlog
 from pydantic import BaseModel, Field

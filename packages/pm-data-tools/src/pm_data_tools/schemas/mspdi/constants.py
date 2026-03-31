@@ -6,9 +6,9 @@ model enums, based on the official Microsoft Project Data Interchange schema.
 Schema reference: https://schemas.microsoft.com/project/2007/mspdi_pj12.xsd
 """
 
-from pm_data_tools.models.task import ConstraintType, TaskStatus
 from pm_data_tools.models.dependency import DependencyType
 from pm_data_tools.models.resource import ResourceType
+from pm_data_tools.models.task import ConstraintType, TaskStatus
 
 # MSPDI namespace
 MSPDI_NAMESPACE = "http://schemas.microsoft.com/project"

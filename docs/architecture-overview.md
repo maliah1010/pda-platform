@@ -191,33 +191,28 @@ openai         # Optional: GPT integration
     └──────────────────────────┘
 ```
 
-#### Server Types
+#### Unified Server
 
-**1. pm-data-server**
-- Tools: `read_project`, `list_tasks`, `get_resource`, `export_project`
-- Purpose: Basic CRUD operations on PM data
+The **`pda-platform-server`** is a single MCP endpoint that aggregates all 41 tools
+from 5 modules. Each module exports a `registry.py` with its tool definitions and a
+`dispatch()` function. The unified server imports and combines them at startup.
 
-**2. pm-validate-server**
-- Tools: `validate_nista`, `validate_structure`, `check_compliance`
-- Purpose: Data quality and compliance checking
+For remote access (e.g., from Claude.ai), **`pda-platform-remote`** wraps the unified
+server in an SSE transport layer using Starlette and uvicorn.
 
-**3. pm-analyse-server**
-- Tools: `analyze_schedule`, `find_critical_path`, `identify_risks`, `calculate_metrics`
-- Purpose: Advanced analytics and insights
+#### Server Modules
 
-**4. pm-benchmark-server**
-- Tools: `compare_projects`, `benchmark_performance`, `generate_report`
-- Purpose: Cross-project comparison
+| Module | Tools | Purpose |
+|--------|-------|---------|
+| **pm-data** | 6 | Project data loading, querying, critical path, conversion |
+| **pm-analyse** | 6 | AI-powered risk identification, forecasting, health assessment |
+| **pm-validate** | 4 | Structural, semantic, and NISTA compliance validation |
+| **pm-nista** | 5 | GMPP reporting, AI narratives, NISTA API integration |
+| **pm-assure** | 20 | Assurance lifecycle: assumptions, compliance, findings, scheduling, overrides, lessons, overhead, workflows, domain classification |
+| **Total** | **41** | |
 
-**5. pm-nista-server**
-- Tools: `nista_export`, `nista_validate`, `nista_transform`
-- Purpose: NISTA-specific operations
-
-**6. pm-assure-server**
-- Tools: 16 tools across P1–P10 (see [docs/assurance.md](./assurance.md))
-- Purpose: Full assurance quality lifecycle — artefact currency, compliance trends,
-  review action tracking, confidence monitoring, adaptive scheduling, override logging,
-  lessons learned, overhead optimisation, workflow orchestration, domain classification
+Individual servers (`pm-data-server`, `pm-assure-server`, etc.) remain available for
+use cases where only a subset of tools is needed.
 
 **Design Decisions**:
 - **Stateless**: Each request is independent

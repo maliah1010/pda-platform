@@ -1,8 +1,8 @@
 """Inspect command for examining project structure."""
 
-import click
 from pathlib import Path
-from typing import Optional
+
+import click
 
 
 @click.command(name="inspect")
@@ -39,7 +39,7 @@ from typing import Optional
 )
 def inspect_cmd(
     input_file: Path,
-    file_format: Optional[str],
+    file_format: str | None,
     show_tasks: bool,
     show_resources: bool,
     show_risks: bool,

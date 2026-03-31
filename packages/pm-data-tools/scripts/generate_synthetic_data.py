@@ -19,7 +19,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import random
 import sys
 import uuid
@@ -40,7 +39,6 @@ from pm_data_tools.assurance import (
     AssuranceOverheadOptimiser,
     AssuranceWorkflowEngine,
     ClassificationInput,
-    ComplexityDomain,
     LessonCategory,
     LessonRecord,
     LessonSentiment,
@@ -274,7 +272,7 @@ def complex_trajectory(project_id: str) -> list[float]:
     """COMPLEX: volatile 55–80."""
     base = random.uniform(68.0, 76.0)
     scores: list[float] = []
-    for i in range(MONTHS):
+    for _i in range(MONTHS):
         swing = random.uniform(-8.0, 8.0)
         s = max(55.0, min(80.0, base + swing))
         scores.append(round(s, 1))
@@ -1126,7 +1124,7 @@ def generate_workflow_executions(store: AssuranceStore, project_id: str, domain:
         d = month_date(month_idx)
 
         try:
-            result = engine.execute(project_id=project_id, workflow_type=wf_type)
+            engine.execute(project_id=project_id, workflow_type=wf_type)
         except Exception:
             # Fall back to direct insert if engine execution fails (no artefact data)
             health = health_pool[i % len(health_pool)]
@@ -1339,7 +1337,7 @@ _DOMAIN_ASSUMPTION_COUNTS = {"CLEAR": 5, "COMPLICATED": 7, "COMPLEX": 9, "CHAOTI
 _DOMAIN_DRIFT_SCALE = {"CLEAR": 0.02, "COMPLICATED": 0.08, "COMPLEX": 0.25, "CHAOTIC": 0.50}
 
 
-def generate_assumptions(store: "AssuranceStore", project_id: str, domain: str, months: int = 12) -> None:
+def generate_assumptions(store: AssuranceStore, project_id: str, domain: str, months: int = 12) -> None:
     """Generate P11 assumption data for a project.
 
     Args:
@@ -1348,13 +1346,14 @@ def generate_assumptions(store: "AssuranceStore", project_id: str, domain: str, 
         domain: Complexity domain (CLEAR/COMPLICATED/COMPLEX/CHAOTIC).
         months: Number of months in the history window.
     """
+    from datetime import date, timedelta
+
     from pm_data_tools.assurance.assumptions import (
         Assumption,
         AssumptionCategory,
         AssumptionSource,
         AssumptionTracker,
     )
-    from datetime import date, timedelta
 
     n_assumptions = _DOMAIN_ASSUMPTION_COUNTS.get(domain, 5)
     drift_scale = _DOMAIN_DRIFT_SCALE.get(domain, 0.05)
@@ -1408,7 +1407,7 @@ def generate_assumptions(store: "AssuranceStore", project_id: str, domain: str, 
         for v in range(effective_validations):
             # Each validation adds cumulative drift
             months_elapsed = int((v + 1) * (months / effective_validations)) if effective_validations else 0
-            val_date = base_date + timedelta(days=months_elapsed * 30)
+            base_date + timedelta(days=months_elapsed * 30)
 
             drift_factor = 1.0 + drift_scale * (v + 1) * random.uniform(0.5, 1.5)
             # Some assumptions drift down (costs rise, timelines slip)
@@ -1456,7 +1455,7 @@ _ARMM_ASSESSORS: list[str] = [
 
 
 def generate_armm_assessments(
-    store: "AssuranceStore", project_id: str, domain: str, months: int = 12
+    store: AssuranceStore, project_id: str, domain: str, months: int = 12
 ) -> None:
     """Generate P12 ARMM assessment data for a project.
 
@@ -1470,12 +1469,13 @@ def generate_armm_assessments(
         months: History window in months.
     """
     from datetime import date, timedelta
+
     from pm_data_tools.assurance.armm import (
+        TOPIC_CRITERIA_COUNT,
+        TOPIC_DIMENSION,
         ARMMScorer,
         ARMMTopic,
         CriterionResult,
-        TOPIC_CRITERIA_COUNT,
-        TOPIC_DIMENSION,
     )
 
     scorer = ARMMScorer(store=store)
@@ -1619,7 +1619,7 @@ def main() -> None:
 
     output: Path = args.output.resolve()
     print(f"Generating synthetic data -> {output}")
-    print(f"15 projects  |  12 months  |  14 tables (P1-P12)\n")
+    print("15 projects  |  12 months  |  14 tables (P1-P12)\n")
 
     generate(output)
 

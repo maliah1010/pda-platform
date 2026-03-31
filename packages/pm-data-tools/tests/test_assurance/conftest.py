@@ -7,8 +7,6 @@ tracking), P3 (finding analyzer), and P4 (confidence divergence) tests.
 
 from __future__ import annotations
 
-import json
-import tempfile
 from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -17,25 +15,22 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from agent_planning.confidence.models import ConfidenceResult, ReviewLevel
 
-from pm_data_tools.assurance.currency import ArtefactCurrencyValidator, CurrencyConfig
+from pm_data_tools.assurance.assumptions import (
+    Assumption,
+    AssumptionCategory,
+    AssumptionTracker,
+)
+from pm_data_tools.assurance.classifier import (
+    ClassificationInput,
+    ProjectDomainClassifier,
+)
+from pm_data_tools.assurance.currency import ArtefactCurrencyValidator
 from pm_data_tools.assurance.divergence import DivergenceConfig, DivergenceMonitor
 from pm_data_tools.assurance.lessons import (
     LessonCategory,
     LessonRecord,
     LessonSentiment,
     LessonsKnowledgeEngine,
-)
-from pm_data_tools.assurance.assumptions import (
-    Assumption,
-    AssumptionCategory,
-    AssumptionConfig,
-    AssumptionSource,
-    AssumptionTracker,
-)
-from pm_data_tools.assurance.classifier import (
-    ClassificationInput,
-    ClassifierConfig,
-    ProjectDomainClassifier,
 )
 from pm_data_tools.assurance.overhead import (
     ActivityType,
@@ -45,21 +40,18 @@ from pm_data_tools.assurance.overhead import (
 from pm_data_tools.assurance.overrides import (
     OverrideDecision,
     OverrideDecisionLogger,
-    OverrideOutcome,
     OverrideType,
 )
 from pm_data_tools.assurance.scheduler import AdaptiveReviewScheduler
 from pm_data_tools.assurance.workflows import (
     AssuranceWorkflowEngine,
-    WorkflowConfig,
 )
 from pm_data_tools.db.store import AssuranceStore
 from pm_data_tools.schemas.nista.longitudinal import (
-    ConfidenceScoreRecord,
     ComplianceThresholdConfig,
+    ConfidenceScoreRecord,
     LongitudinalComplianceTracker,
 )
-
 
 # ---------------------------------------------------------------------------
 # SQLite store (temp file per test)
@@ -396,8 +388,8 @@ def make_assumption(
     baseline_value: float = 100.0,
     unit: str = "GBP",
     dependencies: list[str] | None = None,
-    last_validated: "date | None" = None,
-    created_date: "date | None" = None,
+    last_validated: date | None = None,
+    created_date: date | None = None,
     **kwargs: object,
 ) -> Assumption:
     """Helper to build an Assumption with sensible defaults."""
@@ -419,7 +411,7 @@ def make_assumption(
 @pytest.fixture()
 def populated_assumption_tracker(store: AssuranceStore) -> AssumptionTracker:
     """AssumptionTracker pre-loaded with 8 diverse assumptions including dependency chains."""
-    from datetime import date, timedelta
+    from datetime import date
 
     tracker = AssumptionTracker(store=store)
 
@@ -441,7 +433,7 @@ def populated_assumption_tracker(store: AssuranceStore) -> AssumptionTracker:
 
     tracker.ingest_batch([a0, a1, a2, a3, a4, a5, a6, a7])
 
-    today = date.today()
+    date.today()
     # Validate most assumptions recently
     for a, drift in [(a0, 3.1), (a1, 920.0), (a2, 16.0), (a3, 2.5), (a4, 220.0), (a5, 0.9), (a6, 0.8)]:
         tracker.update_value(a.id, new_value=drift)
@@ -459,7 +451,7 @@ def make_activity(
     project_id: str = "PROJ-001",
     activity_type: ActivityType = ActivityType.GATE_REVIEW,
     description: str = "Test activity",
-    activity_date: "date | None" = None,
+    activity_date: date | None = None,
     effort_hours: float = 8.0,
     participants: int = 2,
     findings_count: int = 2,

@@ -1,16 +1,17 @@
 """Tests for PM-Data MCP Server - Basic functionality tests."""
 
-import pytest
-from pathlib import Path
-
 # Import tools for testing
 import sys
+from pathlib import Path
+
+import pytest
+
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from pm_mcp_servers.pm_data.tools import (
+    ProjectStore,
     load_project,
     query_tasks,
-    ProjectStore,
 )
 
 

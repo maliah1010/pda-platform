@@ -7,13 +7,12 @@ Shows how to use the same planner logic with different LLM providers.
 
 import asyncio
 import os
-from typing import Optional
 
-from agent_planning import TodoListPlanner, GuardrailConfig
+from agent_planning import GuardrailConfig, TodoListPlanner
 from agent_planning.providers.base import BaseProvider
 
 
-def get_provider(name: str) -> Optional[BaseProvider]:
+def get_provider(name: str) -> BaseProvider | None:
     """Get a provider by name."""
     if name == "anthropic":
         from agent_planning.providers import AnthropicProvider

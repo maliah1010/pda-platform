@@ -1,10 +1,11 @@
 """Tests for Risk model."""
 
-import pytest
 from datetime import date
 from uuid import uuid4
 
-from pm_data_tools.models import Risk, RiskStatus, RiskCategory, SourceInfo
+import pytest
+
+from pm_data_tools.models import Risk, RiskCategory, RiskStatus, SourceInfo
 
 
 @pytest.fixture

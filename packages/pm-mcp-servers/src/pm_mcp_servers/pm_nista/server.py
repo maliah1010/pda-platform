@@ -5,16 +5,14 @@ AI narrative generation, and quarterly return submission.
 """
 
 import asyncio
-import os
 import json
-from typing import Any
+import os
 
 from mcp.server import Server
-from mcp.types import Tool, TextContent
-
+from mcp.types import TextContent, Tool
 from pm_data_tools import parse_project
 from pm_data_tools.gmpp import GMPPDataAggregator, NarrativeGenerator
-from pm_data_tools.integrations.nista import NISTAAuthClient, NISTAAPIClient, NISTAAuthConfig
+from pm_data_tools.integrations.nista import NISTAAPIClient, NISTAAuthClient, NISTAAuthConfig
 
 app = Server("pm-nista-server")
 
@@ -287,7 +285,7 @@ async def _submit_to_nista(arguments: dict) -> list[TextContent]:
         environment = arguments.get("environment", "sandbox")
 
         # Load report
-        with open(report_file, "r") as f:
+        with open(report_file) as f:
             report_data = json.load(f)
 
         from pm_data_tools.gmpp.models import QuarterlyReport
@@ -417,7 +415,7 @@ async def _validate_gmpp_report(arguments: dict) -> list[TextContent]:
         strictness = arguments.get("strictness", "STANDARD")
 
         # Load report
-        with open(report_file, "r") as f:
+        with open(report_file) as f:
             report_data = json.load(f)
 
         # Validate using NISTA validator

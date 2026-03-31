@@ -1,10 +1,9 @@
 """Pytest configuration and fixtures."""
 
+
 import pytest
-from unittest.mock import AsyncMock
 
 from agent_planning.core.state import TaskState
-from agent_planning.core.task import Task, TaskStatus
 from agent_planning.providers.base import BaseProvider, ProviderResponse
 
 

@@ -5,13 +5,11 @@ appropriate parsers without needing to know internal schema structure.
 """
 
 from pathlib import Path
-from typing import Optional
-import mimetypes
 
 from .models import Project
 
 
-def detect_format(file_path: str | Path) -> Optional[str]:
+def detect_format(file_path: str | Path) -> str | None:
     """Auto-detect project file format.
 
     Args:
@@ -30,7 +28,7 @@ def detect_format(file_path: str | Path) -> Optional[str]:
     if ext in ['.xml', '.mpp']:
         # Check if MSPDI by reading first few lines
         try:
-            with open(path, 'r', encoding='utf-8') as f:
+            with open(path, encoding='utf-8') as f:
                 header = f.read(500)
                 if 'schemas.microsoft.com/project' in header or 'MSPDI' in header:
                     return 'mspdi'
@@ -47,7 +45,7 @@ def detect_format(file_path: str | Path) -> Optional[str]:
         # Try to determine if it's NISTA, Jira, Monday, etc.
         try:
             import json
-            with open(path, 'r', encoding='utf-8') as f:
+            with open(path, encoding='utf-8') as f:
                 data = json.load(f)
 
                 # Check for NISTA-specific fields
@@ -69,7 +67,7 @@ def detect_format(file_path: str | Path) -> Optional[str]:
     elif ext in ['.csv']:
         # Could be GMPP or generic CSV
         try:
-            with open(path, 'r', encoding='utf-8') as f:
+            with open(path, encoding='utf-8') as f:
                 header = f.readline()
                 if 'GMPP' in header or 'Delivery Confidence' in header:
                     return 'gmpp'
@@ -100,8 +98,9 @@ def create_parser(format_name: str):
         return MspdiParser()
 
     elif format_name == 'p6_xer' or format_name == 'p6':
-        from .schemas.p6.xer_parser import XERParser
         from pathlib import Path
+
+        from .schemas.p6.xer_parser import XERParser
 
         # XERParser has non-standard interface - needs file_path in __init__
         # Create wrapper to match standard interface
@@ -109,11 +108,11 @@ def create_parser(format_name: str):
             def __init__(self):
                 self.source_tool = "primavera-p6"
 
-            def parse_file(self, file_path: str | Path) -> Optional[Project]:
+            def parse_file(self, file_path: str | Path) -> Project | None:
                 parser = XERParser(Path(file_path))
                 return parser.parse()
 
-            def parse_string(self, content: str) -> Optional[Project]:
+            def parse_string(self, content: str) -> Project | None:
                 # XER parser doesn't support string parsing
                 raise NotImplementedError("XER parser requires file path")
 
@@ -151,7 +150,7 @@ def create_parser(format_name: str):
         )
 
 
-def parse_project(file_path: str | Path, format: Optional[str] = None) -> Optional[Project]:
+def parse_project(file_path: str | Path, format: str | None = None) -> Project | None:
     """Convenience function to parse a project file.
 
     Auto-detects format if not specified, creates appropriate parser,

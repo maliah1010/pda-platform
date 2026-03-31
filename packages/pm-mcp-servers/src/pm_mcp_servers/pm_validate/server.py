@@ -8,14 +8,15 @@ Developed by members of the PDA Task Force to support NISTA Programme and Projec
 
 import asyncio
 import logging
+
 from mcp.server import Server
-from mcp.types import Tool, TextContent
+from mcp.types import TextContent, Tool
 
 from pm_mcp_servers.pm_validate.tools import (
-    validate_structure,
-    validate_semantic,
-    validate_nista,
     validate_custom,
+    validate_nista,
+    validate_semantic,
+    validate_structure,
 )
 
 logger = logging.getLogger(__name__)
@@ -133,10 +134,10 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             result = await validate_custom(arguments)
         else:
             return [TextContent(type="text", text=f"Unknown tool: {name}")]
-        
+
         import json
         return [TextContent(type="text", text=json.dumps(result, indent=2, default=str))]
-    
+
     except Exception as e:
         logger.exception(f"Error in {name}: {e}")
         return [TextContent(type="text", text=f"Error: {str(e)}")]
@@ -145,7 +146,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
 async def main():
     """Run the MCP server."""
     from mcp.server.stdio import stdio_server
-    
+
     async with stdio_server() as (read_stream, write_stream):
         await app.run(
             read_stream,

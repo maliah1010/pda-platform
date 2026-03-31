@@ -1,8 +1,7 @@
 """Configuration for outlier mining."""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
 
 
 class TemperatureSchedule(Enum):
@@ -83,7 +82,7 @@ class MiningConfig:
     characterise_clusters: bool = True         # Generate cluster summaries
     extract_assumptions: bool = True           # Extract implicit assumptions
     explain_differences: bool = True           # Pairwise difference explanations
-    characterisation_model: Optional[str] = None  # Use different model for characterisation
+    characterisation_model: str | None = None  # Use different model for characterisation
 
     # === Output ===
     max_candidates_returned: int = 5           # Top N candidates to return

@@ -1,7 +1,5 @@
 """Tests for Task model."""
 
-import pytest
-from datetime import datetime
 
 from agent_planning.core.task import Task, TaskStatus
 

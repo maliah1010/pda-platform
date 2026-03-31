@@ -1,13 +1,14 @@
 """Basic test suite for PM-Validate MCP Server."""
 
 import pytest
+
 from pm_mcp_servers.pm_validate.tools import (
     Severity,
     ValidationIssue,
-    validate_structure,
-    validate_semantic,
-    validate_nista,
     validate_custom,
+    validate_nista,
+    validate_semantic,
+    validate_structure,
 )
 
 

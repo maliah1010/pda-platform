@@ -39,7 +39,6 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Optional
 
 import structlog
 from pydantic import BaseModel, Field, field_validator
@@ -181,7 +180,7 @@ class DivergenceSignal(BaseModel):
     review_id: str
     confidence_score: float
     spread: float
-    previous_confidence: Optional[float]
+    previous_confidence: float | None
     message: str
 
 
@@ -242,8 +241,8 @@ class DivergenceMonitor:
 
     def __init__(
         self,
-        config: Optional[DivergenceConfig] = None,
-        store: Optional[object] = None,
+        config: DivergenceConfig | None = None,
+        store: object | None = None,
     ) -> None:
         """Initialise the monitor.
 
@@ -299,7 +298,7 @@ class DivergenceMonitor:
         scores = [r["confidence_score"] for r in recent]
         return all(scores[i] > scores[i + 1] for i in range(len(scores) - 1))
 
-    def _previous_confidence(self, project_id: str) -> Optional[float]:
+    def _previous_confidence(self, project_id: str) -> float | None:
         """Return the confidence score from the most recent prior snapshot.
 
         Args:

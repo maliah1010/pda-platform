@@ -1,14 +1,13 @@
 """Content validation for tasks and outputs."""
 
 import re
-from typing import Optional
 
 from agent_planning.guardrails.limits import GuardrailConfig, GuardrailViolation
 
 
 def validate_task_content(
     content: str,
-    config: Optional[GuardrailConfig] = None,
+    config: GuardrailConfig | None = None,
 ) -> None:
     """
     Validate task content against guardrails.
@@ -39,7 +38,7 @@ def validate_task_content(
 
 def validate_tool_usage(
     tool_name: str,
-    config: Optional[GuardrailConfig] = None,
+    config: GuardrailConfig | None = None,
 ) -> None:
     """
     Validate that a tool is allowed.

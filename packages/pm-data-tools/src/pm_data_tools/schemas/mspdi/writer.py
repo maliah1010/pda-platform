@@ -5,25 +5,23 @@ management data models into MSPDI (Microsoft Project Data Interchange) XML files
 """
 
 from pathlib import Path
-from typing import Optional
 
 from lxml import etree
 
 from pm_data_tools.models import (
-    Project,
-    Task,
-    Resource,
     Assignment,
-    Dependency,
     Calendar,
+    Project,
+    Resource,
+    Task,
 )
-from pm_data_tools.utils.xml_helpers import write_xml_string
 from pm_data_tools.utils.dates import format_iso_datetime, format_mspdi_duration
+from pm_data_tools.utils.xml_helpers import write_xml_string
 
 from .constants import (
-    MSPDI_NAMESPACE,
     CONSTRAINT_TYPE_TO_MSPDI,
     DEPENDENCY_TYPE_TO_MSPDI,
+    MSPDI_NAMESPACE,
     RESOURCE_TYPE_TO_MSPDI,
     mspdi_bool,
 )
@@ -350,7 +348,7 @@ class MspdiWriter:
         self._add_element(calendar_elem, "IsBaseCalendar", is_base)
 
     def _add_element(
-        self, parent: etree._Element, tag: str, text: Optional[str]
+        self, parent: etree._Element, tag: str, text: str | None
     ) -> None:
         """Add a child element with text content.
 

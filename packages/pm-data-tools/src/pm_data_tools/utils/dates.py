@@ -7,14 +7,13 @@ MSPDI-style duration formats.
 
 import re
 from datetime import datetime, timedelta
-from typing import Optional
 
 from dateutil import parser as dateutil_parser
 
 from ..models.base import Duration
 
 
-def parse_iso_datetime(value: Optional[str]) -> Optional[datetime]:
+def parse_iso_datetime(value: str | None) -> datetime | None:
     """Parse ISO 8601 datetime string.
 
     Args:
@@ -32,7 +31,7 @@ def parse_iso_datetime(value: Optional[str]) -> Optional[datetime]:
         return None
 
 
-def parse_datetime(value: Optional[str]) -> Optional[datetime]:
+def parse_datetime(value: str | None) -> datetime | None:
     """Parse datetime string in various formats.
 
     Tries ISO 8601 first, then falls back to dateutil parser for

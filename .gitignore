@@ -70,3 +70,6 @@ ASSUMPTION_DRIFT_PROMPT.md
 # Office temp files
 ~$*
 *.docx
+*.pdf
+*.pptx
+PROJ-MPA-HACK-005-dashboard.html

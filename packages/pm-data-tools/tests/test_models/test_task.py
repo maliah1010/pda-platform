@@ -1,18 +1,19 @@
 """Tests for Task model."""
 
-import pytest
 from datetime import datetime
 from decimal import Decimal
 from uuid import uuid4
 
+import pytest
+
 from pm_data_tools.models import (
-    Task,
-    TaskStatus,
     ConstraintType,
+    CustomField,
     Duration,
     Money,
     SourceInfo,
-    CustomField,
+    Task,
+    TaskStatus,
 )
 
 

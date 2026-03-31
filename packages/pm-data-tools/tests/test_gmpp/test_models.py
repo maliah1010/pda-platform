@@ -1,17 +1,18 @@
 """Unit tests for GMPP data models."""
 
-import pytest
 from datetime import date, datetime
 from decimal import Decimal
 
+import pytest
+
 from pm_data_tools.gmpp.models import (
-    QuarterPeriod,
-    ReviewLevel,
+    BenefitsPerformance,
     DCANarrative,
     FinancialPerformance,
-    SchedulePerformance,
-    BenefitsPerformance,
     QuarterlyReport,
+    QuarterPeriod,
+    ReviewLevel,
+    SchedulePerformance,
 )
 
 

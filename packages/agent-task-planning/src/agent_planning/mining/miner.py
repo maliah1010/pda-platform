@@ -2,28 +2,25 @@
 
 import asyncio
 import time
-from typing import Any, Optional, Union
 
+from ..confidence.schemas import CustomSchema, SchemaType, get_schema_definition
 from ..providers.base import BaseProvider
-from ..confidence.schemas import SchemaType, CustomSchema, get_schema_definition
+from .clustering import ResponseClusterer
 from .config import MiningConfig
 from .models import (
-    MiningCandidate,
-    MiningResult,
     BatchMiningResult,
     ClusterInfo,
-    SaturationSignal,
-    QualityScore,
+    MiningCandidate,
+    MiningResult,
 )
-from .clustering import ResponseClusterer
 from .utils import (
+    assess_quality,
+    compute_coherence,
+    compute_composite_score,
+    compute_coverage,
+    compute_novelty,
     diversify_prompt,
     parse_json_response,
-    assess_quality,
-    compute_novelty,
-    compute_coherence,
-    compute_coverage,
-    compute_composite_score,
 )
 
 
@@ -33,7 +30,7 @@ class OutlierMiner:
     def __init__(
         self,
         provider: BaseProvider,
-        config: Optional[MiningConfig] = None,
+        config: MiningConfig | None = None,
     ):
         """Initialise the outlier miner.
 
@@ -54,8 +51,8 @@ class OutlierMiner:
     async def mine(
         self,
         query: str,
-        context: Optional[str] = None,
-        schema: Union[SchemaType, CustomSchema] = SchemaType.RISK,
+        context: str | None = None,
+        schema: SchemaType | CustomSchema = SchemaType.RISK,
     ) -> MiningResult:
         """Mine for diverse approaches and outlier insights.
 
@@ -279,8 +276,8 @@ class OutlierMiner:
     async def mine_batch(
         self,
         queries: list[str],
-        context: Optional[str] = None,
-        schemas: Optional[list[Union[SchemaType, CustomSchema]]] = None,
+        context: str | None = None,
+        schemas: list[SchemaType | CustomSchema] | None = None,
         max_concurrent: int = 2,
     ) -> BatchMiningResult:
         """Mine multiple queries with concurrency control.
@@ -303,14 +300,14 @@ class OutlierMiner:
         succeeded = 0
         failed = 0
 
-        async def mine_one(query: str, schema: Union[SchemaType, CustomSchema]):
+        async def mine_one(query: str, schema: SchemaType | CustomSchema):
             nonlocal succeeded, failed
             async with semaphore:
                 try:
                     result = await self.mine(query, context, schema)
                     succeeded += 1
                     return result
-                except Exception as e:
+                except Exception:
                     failed += 1
                     return None
 
@@ -331,7 +328,7 @@ class OutlierMiner:
     def _build_extraction_prompt(
         self,
         query: str,
-        context: Optional[str],
+        context: str | None,
         schema_prompt: str
     ) -> str:
         """Build the full extraction prompt."""
@@ -368,7 +365,7 @@ class OutlierMiner:
     def _empty_result(
         self,
         query: str,
-        context: Optional[str],
+        context: str | None,
         schema_name: str,
         tokens: int,
         cost: float,
@@ -406,9 +403,9 @@ class OutlierMiner:
 async def mine(
     query: str,
     provider: BaseProvider,
-    context: Optional[str] = None,
-    schema: Union[SchemaType, CustomSchema] = SchemaType.RISK,
-    config: Optional[MiningConfig] = None,
+    context: str | None = None,
+    schema: SchemaType | CustomSchema = SchemaType.RISK,
+    config: MiningConfig | None = None,
 ) -> MiningResult:
     """Convenience function for single mining operation."""
     miner = OutlierMiner(provider, config)
@@ -418,9 +415,9 @@ async def mine(
 async def mine_batch(
     queries: list[str],
     provider: BaseProvider,
-    context: Optional[str] = None,
-    schemas: Optional[list[Union[SchemaType, CustomSchema]]] = None,
-    config: Optional[MiningConfig] = None,
+    context: str | None = None,
+    schemas: list[SchemaType | CustomSchema] | None = None,
+    config: MiningConfig | None = None,
     max_concurrent: int = 2,
 ) -> BatchMiningResult:
     """Convenience function for batch mining."""

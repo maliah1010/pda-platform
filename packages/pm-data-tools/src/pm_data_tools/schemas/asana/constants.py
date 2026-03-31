@@ -2,6 +2,7 @@
 
 from ...models import TaskStatus
 
+
 # Asana completed boolean to canonical TaskStatus mapping
 def get_status_from_completed(completed: bool) -> TaskStatus:
     """Map Asana completed status to canonical TaskStatus.

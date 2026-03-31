@@ -1,9 +1,10 @@
 """Tests for Assignment model."""
 
-import pytest
-from decimal import Decimal
 from datetime import datetime
+from decimal import Decimal
 from uuid import uuid4
+
+import pytest
 
 from pm_data_tools.models import Assignment, Duration, Money, SourceInfo
 

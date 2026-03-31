@@ -7,8 +7,6 @@ with 25+ test cases covering normal operation, edge cases, and error handling.
 
 from datetime import date, timedelta
 
-import pytest
-
 from pm_mcp_servers.pm_analyse.analyzers import (
     BaselineComparator,
     HealthAnalyzer,
@@ -21,7 +19,7 @@ from pm_mcp_servers.pm_analyse.models import (
 )
 
 # Import mock classes from conftest
-from .conftest import MockProject, MockTask, MockResource, MockCost
+from .conftest import MockCost, MockProject, MockResource, MockTask
 
 
 class TestOutlierDetector:
@@ -50,7 +48,6 @@ class TestOutlierDetector:
 
     def test_detect_duration_outliers_long_task(self, long_duration_task):
         """Test detection of tasks with unusually long duration."""
-        from .conftest import MockProject
         project = MockProject(tasks=[long_duration_task])
         detector = OutlierDetector()
         outliers = detector.detect(project, focus_areas=["duration"])
@@ -60,7 +57,6 @@ class TestOutlierDetector:
 
     def test_detect_progress_outliers_stuck_task(self, stuck_task):
         """Test detection of stuck tasks."""
-        from .conftest import MockProject
         project = MockProject(tasks=[stuck_task])
         detector = OutlierDetector()
         outliers = detector.detect(project, focus_areas=["progress"])
@@ -70,7 +66,6 @@ class TestOutlierDetector:
 
     def test_detect_float_outliers_negative_float(self):
         """Test detection of negative float (critical)."""
-        from .conftest import MockProject, MockTask
         task = MockTask(
             id='task-1',
             name='Critical Float Task',
@@ -86,7 +81,6 @@ class TestOutlierDetector:
 
     def test_detect_float_outliers_excessive(self):
         """Test detection of excessive float on non-critical tasks."""
-        from .conftest import MockProject, MockTask
         task = MockTask(
             id='task-1',
             name='Loose Task',
@@ -100,7 +94,6 @@ class TestOutlierDetector:
 
     def test_detect_date_outliers_invalid_dates(self):
         """Test detection of impossible dates (finish before start)."""
-        from .conftest import MockProject, MockTask
         task = MockTask(
             id='task-1',
             name='Invalid Date Task',
@@ -115,7 +108,6 @@ class TestOutlierDetector:
 
     def test_detect_date_outliers_overdue_incomplete(self):
         """Test detection of overdue incomplete tasks."""
-        from .conftest import MockProject, MockTask
         task = MockTask(
             id='task-1',
             name='Overdue Task',
@@ -158,7 +150,6 @@ class TestOutlierDetector:
 
     def test_detect_summary_tasks_excluded(self):
         """Test that summary tasks are excluded from detection."""
-        from .conftest import MockProject, MockTask
         summary = MockTask(
             id='summary-1',
             name='Summary Task',
@@ -173,7 +164,6 @@ class TestOutlierDetector:
 
     def test_detect_outlier_has_evidence(self):
         """Test that detected outliers include evidence."""
-        from .conftest import MockProject, MockTask
         task = MockTask(
             id='task-1',
             name='Test Task',
@@ -187,7 +177,6 @@ class TestOutlierDetector:
 
     def test_detect_outlier_has_confidence(self):
         """Test that detected outliers have confidence scores."""
-        from .conftest import MockProject, MockTask
         task = MockTask(
             id='task-1',
             name='Test Task',
@@ -201,7 +190,6 @@ class TestOutlierDetector:
 
     def test_detect_date_outlier_100_percent_future_finish(self):
         """Test detection of impossible progress (100% but future finish)."""
-        from .conftest import MockProject, MockTask
         task = MockTask(
             id='task-1',
             name='Impossible Progress Task',
@@ -299,7 +287,6 @@ class TestHealthAnalyzer:
 
     def test_assess_healthy_project(self):
         """Test assessment recognizes healthy project."""
-        from .conftest import MockProject, MockTask, MockResource, MockCost
         tasks = [
             MockTask(id='t1', name='Task 1', percent_complete=80),
             MockTask(id='t2', name='Task 2', percent_complete=90)
@@ -399,7 +386,6 @@ class TestBaselineComparator:
 
     def test_compare_with_baseline_variance(self, task_with_baseline):
         """Test comparison detects baseline variance."""
-        from .conftest import MockProject
         project = MockProject(tasks=[task_with_baseline])
         comparator = BaselineComparator()
         variances = comparator.compare(project)
@@ -408,7 +394,6 @@ class TestBaselineComparator:
 
     def test_compare_variance_attributes(self, task_with_baseline):
         """Test variance has all required attributes."""
-        from .conftest import MockProject
         project = MockProject(tasks=[task_with_baseline])
         comparator = BaselineComparator()
         variances = comparator.compare(project)
@@ -424,7 +409,6 @@ class TestBaselineComparator:
 
     def test_compare_with_threshold(self, task_with_baseline):
         """Test comparison with variance threshold."""
-        from .conftest import MockProject
         project = MockProject(tasks=[task_with_baseline])
         comparator = BaselineComparator()
         variances_all = comparator.compare(project, threshold=0)
@@ -434,7 +418,6 @@ class TestBaselineComparator:
 
     def test_compare_variance_severity_classification(self, task_with_baseline):
         """Test variance severity is correctly classified."""
-        from .conftest import MockProject
         project = MockProject(tasks=[task_with_baseline])
         comparator = BaselineComparator()
         variances = comparator.compare(project)
@@ -443,7 +426,6 @@ class TestBaselineComparator:
 
     def test_compare_variance_percentage(self, task_with_baseline):
         """Test variance includes percentage calculation."""
-        from .conftest import MockProject
         project = MockProject(tasks=[task_with_baseline])
         comparator = BaselineComparator()
         variances = comparator.compare(project)
@@ -451,7 +433,6 @@ class TestBaselineComparator:
 
     def test_compare_to_dict(self, task_with_baseline):
         """Test that variance can be serialized to dict."""
-        from .conftest import MockProject
         project = MockProject(tasks=[task_with_baseline])
         comparator = BaselineComparator()
         variances = comparator.compare(project)
@@ -464,7 +445,6 @@ class TestBaselineComparator:
 
     def test_compare_multiple_tasks_with_variance(self):
         """Test comparison with multiple tasks having variance."""
-        from .conftest import MockProject, MockTask
         tasks = [
             MockTask(
                 id='task-1',
@@ -492,7 +472,6 @@ class TestBaselineComparator:
 
     def test_compare_pulls_in_vs_slips(self):
         """Test comparison detects both slippage and pull-in."""
-        from .conftest import MockProject, MockTask
         slip_task = MockTask(
             id='task-slip',
             name='Slipping Task',
@@ -516,7 +495,6 @@ class TestBaselineComparator:
 
     def test_compare_summary_tasks_excluded(self):
         """Test that summary tasks are excluded from comparison."""
-        from .conftest import MockProject, MockTask
         summary = MockTask(
             id='summary-1',
             name='Summary Task',

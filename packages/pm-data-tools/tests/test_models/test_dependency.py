@@ -1,7 +1,8 @@
 """Tests for Dependency model."""
 
-import pytest
 from uuid import uuid4
+
+import pytest
 
 from pm_data_tools.models import Dependency, DependencyType, Duration, SourceInfo
 

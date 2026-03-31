@@ -20,7 +20,6 @@ from pm_data_tools.assurance.overhead import (
 )
 from pm_data_tools.db.store import AssuranceStore
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

@@ -6,8 +6,6 @@ Tests all risk detection methods and mitigation generation.
 
 from datetime import date, timedelta
 
-import pytest
-
 from pm_mcp_servers.pm_analyse.models import AnalysisDepth, RiskCategory, Severity
 from pm_mcp_servers.pm_analyse.risk_engine import RiskEngine
 

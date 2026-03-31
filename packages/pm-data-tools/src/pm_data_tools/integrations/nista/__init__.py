@@ -19,9 +19,9 @@ Example:
     >>> result = await client.submit_quarterly_return(project_id, report)
 """
 
+from pm_data_tools.integrations.nista.audit import AuditEntry, AuditLogger
 from pm_data_tools.integrations.nista.auth import NISTAAuthClient, NISTAAuthConfig
 from pm_data_tools.integrations.nista.client import NISTAAPIClient, SubmissionResult
-from pm_data_tools.integrations.nista.audit import AuditLogger, AuditEntry
 
 __all__ = [
     "NISTAAuthClient",

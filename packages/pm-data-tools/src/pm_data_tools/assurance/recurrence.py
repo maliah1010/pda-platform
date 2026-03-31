@@ -8,7 +8,7 @@ falls back gracefully: recurrence detection is skipped and a warning is logged.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 import structlog
 
@@ -63,9 +63,9 @@ class RecurrenceDetector:
         """
         self._threshold = similarity_threshold
         self._model_name = model_name
-        self._model: Optional[object] = None  # lazy-loaded
+        self._model: object | None = None  # lazy-loaded
 
-    def _get_model(self) -> "SentenceTransformer":
+    def _get_model(self) -> SentenceTransformer:
         """Lazily load the sentence-transformer model.
 
         Returns:
@@ -77,9 +77,9 @@ class RecurrenceDetector:
 
     def detect_recurrences(
         self,
-        new_recommendations: "list[ReviewAction]",
-        prior_recommendations: "list[ReviewAction]",
-    ) -> "list[ReviewAction]":
+        new_recommendations: list[ReviewAction],
+        prior_recommendations: list[ReviewAction],
+    ) -> list[ReviewAction]:
         """Mark new recommendations as recurring where a prior match is found.
 
         Recommendations from ``new_recommendations`` are compared against

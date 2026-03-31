@@ -16,7 +16,7 @@ import sys
 # Add src to path for development
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from agent_planning import TodoListPlanner, GuardrailConfig
+from agent_planning import GuardrailConfig, TodoListPlanner
 
 
 def get_provider(provider_name: str, model: str | None = None):
@@ -73,8 +73,9 @@ async def main():
 
     # Setup logging if verbose
     if args.verbose:
-        import structlog
         import logging
+
+        import structlog
         structlog.configure(
             wrapper_class=structlog.make_filtering_bound_logger(logging.DEBUG),
         )

@@ -1,6 +1,5 @@
 """OpenAI provider implementation."""
 
-from typing import Optional
 
 try:
     import openai
@@ -11,7 +10,6 @@ except ImportError:
     )
 
 from agent_planning.providers.base import BaseProvider, ProviderResponse
-
 
 # Pricing per 1M tokens (as of Dec 2024)
 PRICING = {
@@ -34,7 +32,7 @@ class OpenAIProvider(BaseProvider):
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         model: str = "gpt-4o",
         max_tokens: int = 4096,
     ):
@@ -57,7 +55,7 @@ class OpenAIProvider(BaseProvider):
     async def complete(
         self,
         messages: list[dict],
-        system: Optional[str] = None,
+        system: str | None = None,
         **kwargs,
     ) -> ProviderResponse:
         """Generate a completion using OpenAI."""

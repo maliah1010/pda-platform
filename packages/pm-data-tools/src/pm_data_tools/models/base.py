@@ -11,7 +11,6 @@ from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Optional
 
 
 class DurationType(Enum):
@@ -151,10 +150,10 @@ class SourceInfo:
     """
 
     tool: str  # "mspdi", "p6", "jira", etc.
-    tool_version: Optional[str] = None
-    file_path: Optional[str] = None
-    extracted_at: Optional[datetime] = None
-    original_id: Optional[str] = None  # ID in source system
+    tool_version: str | None = None
+    file_path: str | None = None
+    extracted_at: datetime | None = None
+    original_id: str | None = None  # ID in source system
 
     def __str__(self) -> str:
         """String representation."""
@@ -177,7 +176,7 @@ class CustomField:
     value: str | int | float | bool | datetime | None
     field_type: str  # "text", "number", "date", "boolean", "choice"
     source_tool: str  # Which tool this came from
-    source_field_id: Optional[str] = None
+    source_field_id: str | None = None
 
     def __str__(self) -> str:
         """String representation."""

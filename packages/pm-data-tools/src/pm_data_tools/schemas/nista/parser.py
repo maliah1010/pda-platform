@@ -5,7 +5,7 @@ import json
 from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any
 
 from ...models import (
     CustomField,
@@ -28,9 +28,6 @@ from .constants import (
     DCA_MAPPINGS,
     FIELD_BENEFITS_BASELINE,
     FIELD_BENEFITS_FORECAST,
-    FIELD_BENEFITS_NARRATIVE,
-    FIELD_BENEFITS_NON_MONETISED,
-    FIELD_BUDGET_NARRATIVE,
     FIELD_CATEGORY,
     FIELD_CUSTOM_FIELDS,
     FIELD_DCA_IPA,
@@ -39,23 +36,15 @@ from .constants import (
     FIELD_DESCRIPTION,
     FIELD_END_BASELINE,
     FIELD_END_FORECAST,
-    FIELD_FY_BASELINE,
-    FIELD_FY_FORECAST,
-    FIELD_FY_VARIANCE,
-    FIELD_IPA_COMMENTARY,
-    FIELD_ISSUES,
-    FIELD_METADATA,
     FIELD_MILESTONES,
     FIELD_PROJECT_ID,
     FIELD_PROJECT_NAME,
     FIELD_RISKS,
-    FIELD_SCHEDULE_NARRATIVE,
     FIELD_SRO,
     FIELD_START_BASELINE,
     FIELD_START_FORECAST,
     FIELD_WLC_BASELINE,
     FIELD_WLC_FORECAST,
-    FIELD_WLC_NARRATIVE,
 )
 
 
@@ -88,7 +77,7 @@ class NISTAParser:
         self.source_tool = source_tool
         self.source_version = source_version
 
-    def parse_file(self, file_path: Union[str, Path]) -> Union[Project, list[Project]]:
+    def parse_file(self, file_path: str | Path) -> Project | list[Project]:
         """Parse NISTA data file (auto-detects format).
 
         Args:
@@ -124,7 +113,7 @@ class NISTAParser:
         Returns:
             Parsed Project
         """
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             data = json.load(f)
         return self.parse_json(data)
 
@@ -137,7 +126,7 @@ class NISTAParser:
         Returns:
             List of parsed Projects (one per row)
         """
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             reader = csv.DictReader(f)
             return self.parse_csv(list(reader))
 
@@ -376,7 +365,7 @@ class NISTAParser:
 
     def _parse_milestone(
         self, milestone_data: dict[str, Any], index: int, project_id: str
-    ) -> Optional[Task]:
+    ) -> Task | None:
         """Parse milestone data to Task.
 
         Args:
@@ -476,7 +465,7 @@ class NISTAParser:
 
         return risks
 
-    def _parse_date(self, date_str: Optional[Union[str, datetime]]) -> Optional[datetime]:
+    def _parse_date(self, date_str: str | datetime | None) -> datetime | None:
         """Parse date string to datetime.
 
         Args:
@@ -510,8 +499,8 @@ class NISTAParser:
         return None
 
     def _parse_money_millions(
-        self, amount: Optional[Union[str, int, float, Decimal]]
-    ) -> Optional[Money]:
+        self, amount: str | int | float | Decimal | None
+    ) -> Money | None:
         """Parse money amount in millions to Money object.
 
         Args:
@@ -544,7 +533,7 @@ class NISTAParser:
         except (ValueError, ArithmeticError):
             return None
 
-    def _parse_dca(self, dca_str: Optional[str]) -> Optional[DeliveryConfidence]:
+    def _parse_dca(self, dca_str: str | None) -> DeliveryConfidence | None:
         """Parse DCA string to DeliveryConfidence enum.
 
         Args:
@@ -569,7 +558,7 @@ class NISTAParser:
 
         return None
 
-    def _normalize_category(self, category_str: Optional[str]) -> Optional[str]:
+    def _normalize_category(self, category_str: str | None) -> str | None:
         """Normalize project category string.
 
         Args:

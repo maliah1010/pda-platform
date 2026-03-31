@@ -3,9 +3,8 @@
 import csv
 import json
 from datetime import datetime
-from decimal import Decimal
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any
 
 from ...models import DeliveryConfidence, Project
 
@@ -149,7 +148,7 @@ class NISTAExporter:
 
         return data
 
-    def to_file(self, project: Project, file_path: Union[str, Path]) -> None:
+    def to_file(self, project: Project, file_path: str | Path) -> None:
         """Export Project to NISTA JSON file.
 
         Args:
@@ -163,7 +162,7 @@ class NISTAExporter:
             json.dump(data, f, indent=2, ensure_ascii=False)
 
     def to_csv(
-        self, projects: Union[Project, list[Project]], file_path: Union[str, Path]
+        self, projects: Project | list[Project], file_path: str | Path
     ) -> None:
         """Export Project(s) to NISTA/GMPP CSV file.
 
@@ -210,7 +209,7 @@ class NISTAExporter:
                 writer.writerow(row)
 
     def to_excel(
-        self, projects: Union[Project, list[Project]], file_path: Union[str, Path]
+        self, projects: Project | list[Project], file_path: str | Path
     ) -> None:
         """Export Project(s) to NISTA/GMPP Excel file.
 

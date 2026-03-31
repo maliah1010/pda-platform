@@ -7,7 +7,7 @@ canonical project data model.
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 from uuid import UUID
 
 from pm_data_tools.models import (
@@ -37,7 +37,7 @@ class JiraParser:
     - Issue links → Dependencies (where applicable)
     """
 
-    def __init__(self, project_key: str, project_name: Optional[str] = None):
+    def __init__(self, project_key: str, project_name: str | None = None):
         """Initialize parser.
 
         Args:
@@ -57,7 +57,7 @@ class JiraParser:
         Returns:
             Parsed Project
         """
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             data = json.load(f)
 
         issues = data.get("issues", [])
@@ -122,7 +122,7 @@ class JiraParser:
             )
 
             # Parse parent relationship
-            parent_id: Optional[UUID] = None
+            parent_id: UUID | None = None
             parent = fields.get("parent")
             if parent:
                 parent_key = parent.get("key")
@@ -135,7 +135,7 @@ class JiraParser:
 
             # Parse dates
             created_date = self._parse_jira_date(fields.get("created"))
-            updated_date = self._parse_jira_date(fields.get("updated"))
+            self._parse_jira_date(fields.get("updated"))
             due_date = self._parse_jira_date(fields.get("duedate"))
 
             # Parse progress (Jira doesn't have built-in % complete)
@@ -263,7 +263,7 @@ class JiraParser:
         # Default to in progress
         return TaskStatus.IN_PROGRESS
 
-    def _parse_jira_date(self, date_str: Optional[str]) -> Optional[datetime]:
+    def _parse_jira_date(self, date_str: str | None) -> datetime | None:
         """Parse Jira date string.
 
         Jira dates can be in formats:

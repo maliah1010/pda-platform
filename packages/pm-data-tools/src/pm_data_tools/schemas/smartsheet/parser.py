@@ -3,7 +3,7 @@
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 from uuid import UUID
 
 from ...models import (
@@ -30,7 +30,7 @@ class SmartsheetParser:
     - assignedTo → Resources
     """
 
-    def __init__(self, sheet_name: Optional[str] = None):
+    def __init__(self, sheet_name: str | None = None):
         """Initialise parser.
 
         Args:
@@ -51,7 +51,7 @@ class SmartsheetParser:
         Returns:
             Parsed Project
         """
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             data = json.load(f)
         return self.parse(data)
 
@@ -145,7 +145,7 @@ class SmartsheetParser:
                     self._row_children[parent_id] = []
                 self._row_children[parent_id].append(row)
 
-    def _parse_row(self, row: dict[str, Any], sheet_id: str) -> Optional[Task]:
+    def _parse_row(self, row: dict[str, Any], sheet_id: str) -> Task | None:
         """Parse Smartsheet row to Task.
 
         Args:
@@ -165,13 +165,13 @@ class SmartsheetParser:
         is_summary = row_id_str in self._row_children
 
         # Extract column values
-        columns = {cell.get("columnId"): cell for cell in row.get("cells", [])}
+        {cell.get("columnId"): cell for cell in row.get("cells", [])}
 
         # Get task name (first column or from specific column)
         task_name = self._extract_value(row, "name") or "Untitled Row"
 
         # Get parent ID if exists
-        parent_id: Optional[UUID] = None
+        parent_id: UUID | None = None
         parent_row_id = row.get("parentId")
         if parent_row_id:
             parent_row_id_str = str(parent_row_id)
@@ -210,7 +210,7 @@ class SmartsheetParser:
             status=status,
         )
 
-    def _extract_value(self, row: dict[str, Any], field_name: str) -> Optional[str]:
+    def _extract_value(self, row: dict[str, Any], field_name: str) -> str | None:
         """Extract value from row by field name.
 
         Args:
@@ -264,7 +264,7 @@ class SmartsheetParser:
 
     def _extract_date(
         self, row: dict[str, Any], field_name: str
-    ) -> Optional[datetime]:
+    ) -> datetime | None:
         """Extract date from row.
 
         Args:
@@ -356,7 +356,7 @@ class SmartsheetParser:
 
         return resources
 
-    def _parse_date_string(self, date_str: Any) -> Optional[datetime]:
+    def _parse_date_string(self, date_str: Any) -> datetime | None:
         """Parse date string to datetime.
 
         Args:

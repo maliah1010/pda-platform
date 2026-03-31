@@ -7,10 +7,9 @@ capacity, rate, and cost tracking.
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional
 from uuid import UUID
 
-from .base import Money, SourceInfo, CustomField
+from .base import CustomField, Money, SourceInfo
 
 
 class ResourceType(Enum):
@@ -42,15 +41,15 @@ class Resource:
     max_units: float = 1.0  # 1.0 = 100% availability
 
     # Rates
-    standard_rate: Optional[Money] = None  # Per hour for work resources
-    overtime_rate: Optional[Money] = None
-    cost_per_use: Optional[Money] = None  # One-time cost per assignment
+    standard_rate: Money | None = None  # Per hour for work resources
+    overtime_rate: Money | None = None
+    cost_per_use: Money | None = None  # One-time cost per assignment
 
     # Contact
-    email: Optional[str] = None
+    email: str | None = None
 
     # Grouping
-    group: Optional[str] = None  # Department, team, etc.
+    group: str | None = None  # Department, team, etc.
 
     # Extensions
     custom_fields: list[CustomField] = field(default_factory=list)

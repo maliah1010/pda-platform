@@ -1,7 +1,6 @@
 """Tests for structural validator."""
 
 from datetime import datetime
-from decimal import Decimal
 from uuid import uuid4
 
 import pytest
@@ -9,11 +8,9 @@ import pytest
 from pm_data_tools.models import (
     Assignment,
     Calendar,
+    DeliveryConfidence,
     Dependency,
     DependencyType,
-    DeliveryConfidence,
-    Duration,
-    Money,
     Project,
     Resource,
     ResourceType,
@@ -21,7 +18,7 @@ from pm_data_tools.models import (
     Task,
     TaskStatus,
 )
-from pm_data_tools.validators import Severity, StructuralValidator
+from pm_data_tools.validators import StructuralValidator
 
 
 @pytest.fixture

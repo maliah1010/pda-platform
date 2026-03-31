@@ -16,16 +16,16 @@ Example:
     ... )
 """
 
+from pm_data_tools.gmpp.aggregator import GMPPDataAggregator
 from pm_data_tools.gmpp.models import (
-    QuarterPeriod,
+    BenefitsPerformance,
     DCANarrative,
     FinancialPerformance,
-    SchedulePerformance,
-    BenefitsPerformance,
     QuarterlyReport,
+    QuarterPeriod,
     ReviewLevel,
+    SchedulePerformance,
 )
-from pm_data_tools.gmpp.aggregator import GMPPDataAggregator
 from pm_data_tools.gmpp.narratives import NarrativeGenerator
 
 __all__ = [

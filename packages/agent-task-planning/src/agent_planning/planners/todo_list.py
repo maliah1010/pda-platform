@@ -2,7 +2,6 @@
 
 import asyncio
 import time
-from typing import Optional
 
 import structlog
 
@@ -63,8 +62,8 @@ class TodoListPlanner(BasePlanner):
     def __init__(
         self,
         provider: BaseProvider,
-        guardrails: Optional[GuardrailConfig] = None,
-        system_prompt: Optional[str] = None,
+        guardrails: GuardrailConfig | None = None,
+        system_prompt: str | None = None,
     ):
         """
         Initialise the TodoListPlanner.

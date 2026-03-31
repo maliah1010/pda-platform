@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from enum import Enum
-from typing import Optional
+
 from pydantic import BaseModel, Field
 
 
@@ -39,8 +39,8 @@ class Task(BaseModel):
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
     attempts: int = 0
-    error: Optional[str] = None
-    result: Optional[str] = None
+    error: str | None = None
+    result: str | None = None
     dependencies: list[str] = Field(default_factory=list)
 
     def mark_in_progress(self) -> "Task":
@@ -50,7 +50,7 @@ class Task(BaseModel):
         self.attempts += 1
         return self
 
-    def mark_completed(self, result: Optional[str] = None) -> "Task":
+    def mark_completed(self, result: str | None = None) -> "Task":
         """Mark task as completed with optional result."""
         self.status = TaskStatus.COMPLETED
         self.updated_at = datetime.now()
@@ -64,7 +64,7 @@ class Task(BaseModel):
         self.error = error
         return self
 
-    def mark_blocked(self, reason: Optional[str] = None) -> "Task":
+    def mark_blocked(self, reason: str | None = None) -> "Task":
         """Mark task as blocked."""
         self.status = TaskStatus.BLOCKED
         self.updated_at = datetime.now()
@@ -72,7 +72,7 @@ class Task(BaseModel):
             self.error = reason
         return self
 
-    def mark_skipped(self, reason: Optional[str] = None) -> "Task":
+    def mark_skipped(self, reason: str | None = None) -> "Task":
         """Mark task as skipped."""
         self.status = TaskStatus.SKIPPED
         self.updated_at = datetime.now()

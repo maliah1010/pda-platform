@@ -92,6 +92,38 @@ Public API::
 """
 
 from .analyzer import FindingAnalyzer
+from .armm import (
+    ARMMAssessment,
+    ARMMConfig,
+    ARMMDimension,
+    ARMMDimensionResult,
+    ARMMReport,
+    ARMMScorer,
+    ARMMTopic,
+    ARMMTopicResult,
+    CriterionResult,
+    MaturityLevel,
+)
+from .assumptions import (
+    Assumption,
+    AssumptionCategory,
+    AssumptionConfig,
+    AssumptionHealthReport,
+    AssumptionSource,
+    AssumptionTracker,
+    AssumptionValidation,
+    DriftResult,
+    DriftSeverity,
+)
+from .classifier import (
+    ClassificationInput,
+    ClassificationResult,
+    ClassifierConfig,
+    ComplexityDomain,
+    DomainAssuranceProfile,
+    DomainIndicator,
+    ProjectDomainClassifier,
+)
 from .currency import (
     ArtefactCurrencyValidator,
     CurrencyConfig,
@@ -106,22 +138,6 @@ from .divergence import (
     DivergenceSnapshot,
     SignalType,
 )
-from .models import (
-    FindingAnalysisResult,
-    ReviewAction,
-    ReviewActionStatus,
-    # Backward-compatibility aliases
-    Recommendation,
-    RecommendationExtractionResult,
-    RecommendationStatus,
-)
-from .overrides import (
-    OverrideDecision,
-    OverrideDecisionLogger,
-    OverrideOutcome,
-    OverridePatternSummary,
-    OverrideType,
-)
 from .lessons import (
     LessonCategory,
     LessonPatternSummary,
@@ -131,6 +147,15 @@ from .lessons import (
     LessonSentiment,
     LessonsKnowledgeEngine,
 )
+from .models import (
+    FindingAnalysisResult,
+    # Backward-compatibility aliases
+    Recommendation,
+    RecommendationExtractionResult,
+    RecommendationStatus,
+    ReviewAction,
+    ReviewActionStatus,
+)
 from .overhead import (
     ActivityType,
     AssuranceActivity,
@@ -139,7 +164,21 @@ from .overhead import (
     EfficiencyRating,
     OverheadAnalysis,
 )
+from .overrides import (
+    OverrideDecision,
+    OverrideDecisionLogger,
+    OverrideOutcome,
+    OverridePatternSummary,
+    OverrideType,
+)
 from .recurrence import RecurrenceDetector
+from .scheduler import (
+    AdaptiveReviewScheduler,
+    ReviewUrgency,
+    SchedulerConfig,
+    SchedulerRecommendation,
+    SchedulerSignal,
+)
 from .workflows import (
     AssuranceWorkflowEngine,
     ProjectHealth,
@@ -149,45 +188,6 @@ from .workflows import (
     WorkflowStepResult,
     WorkflowStepStatus,
     WorkflowType,
-)
-from .classifier import (
-    ClassificationInput,
-    ClassificationResult,
-    ClassifierConfig,
-    ComplexityDomain,
-    DomainAssuranceProfile,
-    DomainIndicator,
-    ProjectDomainClassifier,
-)
-from .assumptions import (
-    AssumptionTracker,
-    Assumption,
-    AssumptionCategory,
-    AssumptionConfig,
-    AssumptionSource,
-    AssumptionValidation,
-    DriftSeverity,
-    DriftResult,
-    AssumptionHealthReport,
-)
-from .armm import (
-    ARMMScorer,
-    ARMMAssessment,
-    ARMMConfig,
-    ARMMDimension,
-    ARMMDimensionResult,
-    ARMMReport,
-    ARMMTopic,
-    ARMMTopicResult,
-    CriterionResult,
-    MaturityLevel,
-)
-from .scheduler import (
-    AdaptiveReviewScheduler,
-    ReviewUrgency,
-    SchedulerConfig,
-    SchedulerRecommendation,
-    SchedulerSignal,
 )
 
 # Backward-compatibility alias for FindingAnalyzer

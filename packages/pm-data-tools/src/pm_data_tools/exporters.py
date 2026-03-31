@@ -5,6 +5,7 @@ Project models to various target formats.
 """
 
 from typing import Protocol
+
 from .models import Project
 
 
@@ -44,14 +45,14 @@ def create_exporter(format_name: str) -> Exporter:
             from .schemas.mspdi.exporter import MspdiExporter
             return MspdiExporter()
         except ImportError:
-            raise ValueError(f"MSPDI exporter not yet implemented")
+            raise ValueError("MSPDI exporter not yet implemented")
 
     elif format_name == 'gmpp':
         try:
             from .schemas.gmpp.exporter import GmppExporter
             return GmppExporter()
         except ImportError:
-            raise ValueError(f"GMPP exporter not yet implemented")
+            raise ValueError("GMPP exporter not yet implemented")
 
     else:
         raise ValueError(

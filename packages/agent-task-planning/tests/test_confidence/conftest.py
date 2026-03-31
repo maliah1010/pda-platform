@@ -1,8 +1,8 @@
 """Fixtures for confidence extraction tests."""
 
-import pytest
 from dataclasses import dataclass
-from typing import Any, Optional, List, Dict
+
+import pytest
 
 
 @dataclass
@@ -12,7 +12,7 @@ class MockResponse:
     tokens_used: int = 100
     cost_usd: float = 0.001
     model: str = "mock-model"
-    raw_response: Optional[dict] = None
+    raw_response: dict | None = None
 
 
 class MockProvider:
@@ -25,8 +25,8 @@ class MockProvider:
 
     async def complete(
         self,
-        messages: List[Dict[str, str]],
-        system: Optional[str] = None,
+        messages: list[dict[str, str]],
+        system: str | None = None,
         temperature: float = 0.7,
         max_tokens: int = 2000,
         **kwargs

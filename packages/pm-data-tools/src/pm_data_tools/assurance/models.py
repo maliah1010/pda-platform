@@ -9,7 +9,6 @@ from __future__ import annotations
 import uuid
 from datetime import date
 from enum import Enum
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -54,8 +53,8 @@ class ReviewAction(BaseModel):
     source_review_id: str
     review_date: date
     status: ReviewActionStatus = ReviewActionStatus.OPEN
-    owner: Optional[str] = None
-    recurrence_of: Optional[str] = None
+    owner: str | None = None
+    recurrence_of: str | None = None
     confidence: float
     flagged_for_review: bool = False
 

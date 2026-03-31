@@ -9,7 +9,7 @@ with cost limits, timeouts, content validation, and approval gates.
 import asyncio
 import os
 
-from agent_planning import TodoListPlanner, GuardrailConfig
+from agent_planning import GuardrailConfig, TodoListPlanner
 from agent_planning.providers import AnthropicProvider
 
 

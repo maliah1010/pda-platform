@@ -29,7 +29,6 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Optional
 
 import structlog
 from pydantic import BaseModel, Field, field_validator
@@ -155,7 +154,7 @@ class ThresholdBreach(BaseModel):
     breach_type: str  # "drop" or "floor"
     project_id: str
     current_score: float
-    previous_score: Optional[float] = None
+    previous_score: float | None = None
     threshold_value: float
     message: str
 
@@ -180,8 +179,8 @@ class LongitudinalComplianceTracker:
 
     def __init__(
         self,
-        store: Optional[AssuranceStore] = None,
-        thresholds: Optional[ComplianceThresholdConfig] = None,
+        store: AssuranceStore | None = None,
+        thresholds: ComplianceThresholdConfig | None = None,
     ) -> None:
         """Initialise the longitudinal compliance tracker.
 

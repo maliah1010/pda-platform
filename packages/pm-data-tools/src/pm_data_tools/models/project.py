@@ -7,11 +7,10 @@ tasks, resources, assignments, dependencies, risks, and calendars.
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Optional
 from uuid import UUID
 
 from .assignment import Assignment
-from .base import Money, SourceInfo, CustomField
+from .base import CustomField, Money, SourceInfo
 from .calendar import Calendar
 from .dependency import Dependency
 from .resource import Resource
@@ -43,34 +42,34 @@ class Project:
     source: SourceInfo
 
     # Description
-    description: Optional[str] = None
+    description: str | None = None
 
     # Classification (GMPP categories)
-    category: Optional[str] = None  # Infrastructure, Transformation, etc.
-    department: Optional[str] = None
+    category: str | None = None  # Infrastructure, Transformation, etc.
+    department: str | None = None
 
     # Schedule
-    start_date: Optional[datetime] = None
-    finish_date: Optional[datetime] = None
-    status_date: Optional[datetime] = None  # Data date / time now
+    start_date: datetime | None = None
+    finish_date: datetime | None = None
+    status_date: datetime | None = None  # Data date / time now
 
     # Status (GMPP DCA)
-    delivery_confidence: Optional[DeliveryConfidence] = None
+    delivery_confidence: DeliveryConfidence | None = None
 
     # Financials
-    whole_life_cost: Optional[Money] = None
-    budgeted_cost: Optional[Money] = None
-    actual_cost: Optional[Money] = None
+    whole_life_cost: Money | None = None
+    budgeted_cost: Money | None = None
+    actual_cost: Money | None = None
 
     # Benefits
-    monetised_benefits: Optional[Money] = None
+    monetised_benefits: Money | None = None
 
     # Governance
-    senior_responsible_owner: Optional[str] = None
-    project_manager: Optional[str] = None
+    senior_responsible_owner: str | None = None
+    project_manager: str | None = None
 
     # Calendars
-    default_calendar_id: Optional[UUID] = None
+    default_calendar_id: UUID | None = None
     calendars: list[Calendar] = field(default_factory=list)
 
     # Core entities
@@ -162,7 +161,7 @@ class Project:
         return (completed / len(work_tasks)) * 100.0
 
     @property
-    def cost_variance(self) -> Optional[Money]:
+    def cost_variance(self) -> Money | None:
         """Calculate cost variance (budgeted - actual).
 
         Returns:

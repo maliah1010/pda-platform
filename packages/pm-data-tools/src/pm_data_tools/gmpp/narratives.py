@@ -4,16 +4,14 @@ This module uses the agent-task-planning framework to generate professional
 civil service narratives with confidence scoring and multi-sample consensus.
 """
 
-from typing import Dict
 from datetime import datetime
 
 from agent_planning import ConfidenceExtractor
-from agent_planning.providers import AnthropicProvider
 from agent_planning.confidence import CustomSchema
 from agent_planning.guardrails import GuardrailConfig
+from agent_planning.providers import AnthropicProvider
 
 from pm_data_tools.gmpp.models import DCANarrative, ReviewLevel
-
 
 # Custom schema for GMPP narratives
 GMPP_DCA_SCHEMA = CustomSchema(
@@ -152,7 +150,7 @@ class NarrativeGenerator:
 
     async def generate_dca_narrative(
         self,
-        project_data: Dict,
+        project_data: dict,
         dca_rating: str,
     ) -> DCANarrative:
         """Generate Delivery Confidence Assessment narrative.
@@ -175,7 +173,7 @@ class NarrativeGenerator:
 
         return self._result_to_narrative(result)
 
-    async def generate_cost_narrative(self, project_data: Dict) -> DCANarrative:
+    async def generate_cost_narrative(self, project_data: dict) -> DCANarrative:
         """Generate cost performance narrative.
 
         Args:
@@ -195,7 +193,7 @@ class NarrativeGenerator:
 
         return self._result_to_narrative(result)
 
-    async def generate_schedule_narrative(self, project_data: Dict) -> DCANarrative:
+    async def generate_schedule_narrative(self, project_data: dict) -> DCANarrative:
         """Generate schedule performance narrative.
 
         Args:
@@ -215,7 +213,7 @@ class NarrativeGenerator:
 
         return self._result_to_narrative(result)
 
-    async def generate_benefits_narrative(self, project_data: Dict) -> DCANarrative:
+    async def generate_benefits_narrative(self, project_data: dict) -> DCANarrative:
         """Generate benefits realisation narrative.
 
         Args:
@@ -235,7 +233,7 @@ class NarrativeGenerator:
 
         return self._result_to_narrative(result)
 
-    async def generate_risk_narrative(self, project_data: Dict) -> DCANarrative:
+    async def generate_risk_narrative(self, project_data: dict) -> DCANarrative:
         """Generate risk status narrative.
 
         Args:
@@ -255,7 +253,7 @@ class NarrativeGenerator:
 
         return self._result_to_narrative(result)
 
-    def _build_dca_prompt(self, project_data: Dict, dca_rating: str) -> str:
+    def _build_dca_prompt(self, project_data: dict, dca_rating: str) -> str:
         """Build context-rich prompt for DCA narrative generation.
 
         Args:
@@ -301,7 +299,7 @@ Parliamentary scrutiny. Use objective, factual language. Mention key achievement
 describe critical issues and their impact, and outline mitigation actions being taken.
 """
 
-    def _build_cost_prompt(self, project_data: Dict) -> str:
+    def _build_cost_prompt(self, project_data: dict) -> str:
         """Build prompt for cost narrative.
 
         Args:
@@ -328,7 +326,7 @@ Describe any budget reallocations, contingency usage, or cost control measures.
 Use professional civil service style.
 """
 
-    def _build_schedule_prompt(self, project_data: Dict) -> str:
+    def _build_schedule_prompt(self, project_data: dict) -> str:
         """Build prompt for schedule narrative.
 
         Args:
@@ -354,7 +352,7 @@ Describe the critical path status, any schedule risks, and recovery actions bein
 Use professional civil service style.
 """
 
-    def _build_benefits_prompt(self, project_data: Dict) -> str:
+    def _build_benefits_prompt(self, project_data: dict) -> str:
         """Build prompt for benefits narrative.
 
         Args:
@@ -381,7 +379,7 @@ Describe benefits achieved, tracking approach, and any variance from plan.
 Use professional civil service style.
 """
 
-    def _build_risk_prompt(self, project_data: Dict) -> str:
+    def _build_risk_prompt(self, project_data: dict) -> str:
         """Build prompt for risk narrative.
 
         Args:
@@ -390,7 +388,7 @@ Use professional civil service style.
         Returns:
             Formatted prompt
         """
-        high_risks = project_data.get('high_risks_count', 0)
+        project_data.get('high_risks_count', 0)
 
         return f"""
 Generate a risk status narrative for UK Government GMPP quarterly reporting.

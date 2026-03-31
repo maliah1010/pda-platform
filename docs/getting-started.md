@@ -208,25 +208,13 @@ pip install pm-mcp-servers
 # or %APPDATA%/Claude/claude_desktop_config.json (Windows)
 ```
 
-Add to your Claude config:
+Add the **unified server** to your Claude config (recommended — gives access to all 41 tools):
 
 ```json
 {
   "mcpServers": {
-    "pm-data": {
-      "command": "pm-data-server",
-      "args": []
-    },
-    "pm-validate": {
-      "command": "pm-validate-server",
-      "args": []
-    },
-    "pm-analyse": {
-      "command": "pm-analyse-server",
-      "args": []
-    },
-    "pm-assure": {
-      "command": "pm-assure-server",
+    "pda-platform": {
+      "command": "pda-platform-server",
       "args": [],
       "env": { "ANTHROPIC_API_KEY": "sk-ant-..." }
     }

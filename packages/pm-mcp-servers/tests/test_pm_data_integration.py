@@ -6,22 +6,20 @@ Tests cover: unit tests, integration tests, edge cases, error paths, all formats
 Coverage target: 90%+
 """
 
+from unittest.mock import Mock
+
 import pytest
-import json
-from pathlib import Path
-from datetime import datetime
-from unittest.mock import Mock, patch
+
 from pm_mcp_servers.pm_data.tools import (
     ProjectStore,
-    load_project,
-    query_tasks,
+    _serialize_date,
+    convert_format,
     get_critical_path,
     get_dependencies,
-    convert_format,
     get_project_summary,
-    _serialize_date,
+    load_project,
+    query_tasks,
 )
-
 
 # ============================================================================
 # FIXTURES - Test Data and Utilities

@@ -9,20 +9,19 @@ complete GMPP quarterly reports, including:
 - Data lineage tracking
 """
 
-from typing import Dict, List, Optional
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from decimal import Decimal
 
-from pm_data_tools.models import Project, DeliveryConfidence
 from pm_data_tools.gmpp.models import (
-    QuarterlyReport,
-    QuarterPeriod,
-    FinancialPerformance,
-    SchedulePerformance,
     BenefitsPerformance,
     DCANarrative,
+    FinancialPerformance,
+    QuarterlyReport,
+    QuarterPeriod,
     ReviewLevel,
+    SchedulePerformance,
 )
+from pm_data_tools.models import DeliveryConfidence, Project
 
 
 class GMPPDataAggregator:
@@ -41,7 +40,7 @@ class GMPPDataAggregator:
         ... )
     """
 
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: str | None = None):
         """Initialize data aggregator.
 
         Args:
@@ -54,7 +53,7 @@ class GMPPDataAggregator:
         project: Project,
         quarter: str,
         financial_year: str,
-        previous_quarter_report: Optional[QuarterlyReport] = None,
+        previous_quarter_report: QuarterlyReport | None = None,
         generate_narratives: bool = True,
     ) -> QuarterlyReport:
         """Generate complete GMPP quarterly report from project data.
@@ -208,7 +207,7 @@ class GMPPDataAggregator:
 
         # Calculate variance
         variance_amount = forecast_cost - baseline_cost
-        variance_percent = float((variance_amount / baseline_cost * 100)) if baseline_cost > 0 else 0.0
+        variance_percent = float(variance_amount / baseline_cost * 100) if baseline_cost > 0 else 0.0
 
         # Calculate confidence based on data freshness and source
         confidence = self._score_financial_confidence(project)
@@ -281,7 +280,7 @@ class GMPPDataAggregator:
             confidence=confidence,
         )
 
-    def _map_dca_rating(self, delivery_confidence: Optional[DeliveryConfidence]) -> str:
+    def _map_dca_rating(self, delivery_confidence: DeliveryConfidence | None) -> str:
         """Map DeliveryConfidence enum to GMPP DCA rating string.
 
         Args:
@@ -347,7 +346,7 @@ class GMPPDataAggregator:
         financial: FinancialPerformance,
         schedule: SchedulePerformance,
         benefits: BenefitsPerformance,
-    ) -> Dict:
+    ) -> dict:
         """Build project context for narrative generation.
 
         Args:
@@ -502,7 +501,7 @@ class GMPPDataAggregator:
 
         return max(0.0, min(1.0, score))
 
-    def _extract_data_sources(self, project: Project) -> List[str]:
+    def _extract_data_sources(self, project: Project) -> list[str]:
         """Extract list of data sources used.
 
         Args:
@@ -528,7 +527,7 @@ class GMPPDataAggregator:
         financial: FinancialPerformance,
         schedule: SchedulePerformance,
         benefits: BenefitsPerformance,
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """Calculate field-level confidence scores.
 
         Args:
@@ -547,7 +546,7 @@ class GMPPDataAggregator:
             "risks": 0.9 if project.risks else 0.5,
         }
 
-    def _identify_missing_fields(self, project: Project) -> List[str]:
+    def _identify_missing_fields(self, project: Project) -> list[str]:
         """Identify recommended fields that are missing.
 
         Args:
@@ -576,7 +575,7 @@ class GMPPDataAggregator:
         financial: FinancialPerformance,
         schedule: SchedulePerformance,
         benefits: BenefitsPerformance,
-    ) -> List[str]:
+    ) -> list[str]:
         """Generate validation warnings.
 
         Args:
