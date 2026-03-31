@@ -50,7 +50,8 @@
       "Bash(mv /c/Users/antjs/uds-renderer/create_plan.js /c/Users/antjs/uds-renderer/create_plan.cjs)",
       "Bash(node create_plan.cjs)",
       "Bash(git pull:*)",
-      "Bash(PYTHONIOENCODING=utf-8 python packages/pm-data-tools/scripts/generate_synthetic_data.py --verify)"
+      "Bash(PYTHONIOENCODING=utf-8 python packages/pm-data-tools/scripts/generate_synthetic_data.py --verify)",
+      "Bash(git worktree:*)"
     ]
   }
 }
