@@ -16,7 +16,32 @@ PM MCP Servers provides Model Context Protocol (MCP) servers that enable Claude
 Desktop and other MCP clients to interact with project management data and assurance
 tooling. Built to support the NISTA Programme and Project Data Standard trial.
 
-## Available Servers
+## Unified Server (Recommended)
+
+The **`pda-platform-server`** is a single MCP endpoint that exposes all 41 tools
+from all 5 modules. This is the recommended way to use PDA.
+
+```json
+{
+  "mcpServers": {
+    "pda-platform": {
+      "command": "pda-platform-server",
+      "args": [],
+      "env": {
+        "ANTHROPIC_API_KEY": "sk-ant-..."
+      }
+    }
+  }
+}
+```
+
+For remote access (e.g., from Claude.ai), use `pda-platform-remote` which adds
+SSE transport over HTTP. See the deployment section below.
+
+## Individual Servers
+
+Individual servers are still available for use cases where you only need a
+subset of tools.
 
 ### pm-data-server
 
@@ -102,12 +127,8 @@ Add to `claude_desktop_config.json`
 ```json
 {
   "mcpServers": {
-    "pm-data": {
-      "command": "pm-data-server",
-      "args": []
-    },
-    "pm-assure": {
-      "command": "pm-assure-server",
+    "pda-platform": {
+      "command": "pda-platform-server",
       "args": [],
       "env": {
         "ANTHROPIC_API_KEY": "sk-ant-..."
@@ -116,6 +137,19 @@ Add to `claude_desktop_config.json`
   }
 }
 ```
+
+This gives Claude access to all 41 tools across data loading, analysis,
+validation, NISTA reporting, and assurance.
+
+### Remote Deployment
+
+For remote access from Claude.ai, deploy `pda-platform-remote`:
+
+```bash
+PORT=8080 pda-platform-remote
+```
+
+This starts an SSE server at `/sse` with a health check at `/health`.
 
 ### Example prompts
 

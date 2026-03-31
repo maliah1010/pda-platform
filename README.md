@@ -68,7 +68,9 @@ AI reliability framework with confidence extraction and outlier mining.
 
 ### pm-mcp-servers
 MCP servers enabling Claude to interact with PM data.
-- **Servers**: pm-data, pm-validate, pm-analyse, pm-benchmark
+- **Unified server**: `pda-platform-server` exposes all 41 tools through a single endpoint
+- **Modules**: pm-data (6 tools), pm-analyse (6), pm-validate (4), pm-nista (5), pm-assure (20)
+- **Remote access**: `pda-platform-remote` adds SSE transport for use with Claude.ai
 - **Install**: `pip install pm-mcp-servers`
 
 ## Specifications
@@ -78,7 +80,7 @@ All specifications are in the `specs/` directory:
 | Spec | Description |
 |------|-------------|
 | [Canonical Model](specs/canonical-model/) | 12-entity JSON Schema for PM data |
-| [MCP Servers](specs/mcp-servers/) | 4 servers, 19 tools for AI integration |
+| [MCP Servers](specs/mcp-servers/) | 5 modules, 41 tools for AI integration |
 | [Benchmarks](specs/benchmarks/) | 5 evaluation tasks for PM AI |
 | [Synthetic Data](specs/synthetic-data/) | Privacy-preserving data generation |
 
