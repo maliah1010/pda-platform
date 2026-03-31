@@ -23,10 +23,7 @@ app = Server("pm-assure-server")
 # ---------------------------------------------------------------------------
 
 
-@app.list_tools()
-async def list_tools() -> list[Tool]:
-    """List available PM Assure tools."""
-    return [
+ASSURE_TOOLS: list[Tool] = [
         Tool(
             name="nista_longitudinal_trend",
             description=(
@@ -828,6 +825,12 @@ async def list_tools() -> list[Tool]:
             },
         ),
     ]
+
+
+@app.list_tools()
+async def list_tools() -> list[Tool]:
+    """List available PM Assure tools."""
+    return ASSURE_TOOLS
 
 
 # ---------------------------------------------------------------------------

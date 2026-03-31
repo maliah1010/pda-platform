@@ -35,6 +35,7 @@ pm-analyse-server = "pm_mcp_servers.pm_analyse.server:main"
 pm-benchmark-server = "pm_mcp_servers.pm_benchmark.server:main"
 pm-nista-server = "pm_mcp_servers.pm_nista.server:main"
 pm-assure-server = "pm_mcp_servers.pm_assure.server:main"
+pda-platform-server = "pm_mcp_servers.pda_platform.server:main"
 
 [build-system]
 requires = ["setuptools>=61.0"]
