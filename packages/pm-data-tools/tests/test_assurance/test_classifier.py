@@ -12,37 +12,18 @@ Covers:
 
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
-from pathlib import Path
-
-import pytest
-
 from pm_data_tools.assurance.classifier import (
     ClassificationInput,
     ClassificationResult,
     ClassifierConfig,
     ComplexityDomain,
-    DomainAssuranceProfile,
-    DomainIndicator,
     ProjectDomainClassifier,
-)
-from pm_data_tools.assurance.overhead import (
-    ActivityType,
-    AssuranceActivity,
-    AssuranceOverheadOptimiser,
-)
-from pm_data_tools.assurance.overrides import (
-    OverrideDecision,
-    OverrideDecisionLogger,
-    OverrideOutcome,
-    OverrideType,
 )
 from pm_data_tools.db.store import AssuranceStore
 from pm_data_tools.schemas.nista.longitudinal import (
     ConfidenceScoreRecord,
     LongitudinalComplianceTracker,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -259,7 +240,7 @@ def test_indicators_list_empty_when_no_explicit(store: AssuranceStore) -> None:
 def test_indicator_contribution_correct_for_inverse() -> None:
     clf = make_classifier()
     inp = ClassificationInput(project_id="P", requirement_clarity=0.7)
-    _, indicators, _ = (
+    _, _indicators, _ = (
         clf._compute_explicit_score(inp)[0],
         clf._compute_explicit_score(inp)[0],
         clf._compute_explicit_score(inp)[1],

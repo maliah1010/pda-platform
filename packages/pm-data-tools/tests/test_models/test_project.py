@@ -1,23 +1,20 @@
 """Tests for Project model."""
 
-import pytest
 from datetime import datetime
 from decimal import Decimal
 from uuid import uuid4
 
+import pytest
+
 from pm_data_tools.models import (
-    Project,
-    Task,
-    Resource,
-    Assignment,
-    Dependency,
-    Risk,
-    Calendar,
     DeliveryConfidence,
-    TaskStatus,
-    RiskStatus,
     Money,
+    Project,
+    Resource,
+    Risk,
+    RiskStatus,
     SourceInfo,
+    Task,
 )
 
 

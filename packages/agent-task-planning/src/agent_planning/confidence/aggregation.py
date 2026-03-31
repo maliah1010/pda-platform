@@ -2,7 +2,7 @@
 
 from collections import Counter
 from statistics import mean, median, stdev
-from typing import Any, Optional
+from typing import Any
 
 from .models import OutlierReport
 
@@ -213,7 +213,7 @@ def compute_overall_confidence(field_confidences: dict[str, float]) -> float:
 def check_early_stop(
     extractions: list[dict[str, Any]],
     threshold: float,
-    key_fields: Optional[list[str]] = None
+    key_fields: list[str] | None = None
 ) -> bool:
     """Check if samples agree enough to stop early.
 

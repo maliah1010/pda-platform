@@ -6,7 +6,6 @@ for project scheduling calculations.
 
 from dataclasses import dataclass, field
 from datetime import date
-from typing import Optional
 from uuid import UUID
 
 from .base import SourceInfo
@@ -37,7 +36,7 @@ class Calendar:
     holidays: list[date] = field(default_factory=list)
 
     # Base calendar
-    base_calendar_id: Optional[UUID] = None
+    base_calendar_id: UUID | None = None
 
     def __str__(self) -> str:
         """String representation."""

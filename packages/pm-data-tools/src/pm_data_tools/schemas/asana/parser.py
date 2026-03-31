@@ -3,7 +3,7 @@
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 from uuid import UUID
 
 from ...models import (
@@ -31,7 +31,7 @@ class AsanaParser:
     - assignee → Resources
     """
 
-    def __init__(self, project_name: Optional[str] = None):
+    def __init__(self, project_name: str | None = None):
         """Initialise parser.
 
         Args:
@@ -51,7 +51,7 @@ class AsanaParser:
         Returns:
             Parsed Project
         """
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             data = json.load(f)
         return self.parse(data)
 
@@ -146,7 +146,7 @@ class AsanaParser:
 
     def _parse_section(
         self, section: dict[str, Any], project_gid: str
-    ) -> Optional[Task]:
+    ) -> Task | None:
         """Parse Asana section to summary Task.
 
         Args:
@@ -181,7 +181,7 @@ class AsanaParser:
 
     def _parse_task(
         self, task_data: dict[str, Any], project_gid: str, parent_id: UUID
-    ) -> Optional[Task]:
+    ) -> Task | None:
         """Parse Asana task to Task.
 
         Args:
@@ -231,7 +231,7 @@ class AsanaParser:
 
     def _parse_subtask(
         self, subtask_data: dict[str, Any], project_gid: str, parent_id: UUID
-    ) -> Optional[Task]:
+    ) -> Task | None:
         """Parse Asana subtask to Task.
 
         Args:
@@ -327,7 +327,7 @@ class AsanaParser:
 
         return resources
 
-    def _parse_date_string(self, date_str: Optional[str]) -> Optional[datetime]:
+    def _parse_date_string(self, date_str: str | None) -> datetime | None:
         """Parse date string to datetime.
 
         Args:

@@ -8,10 +8,9 @@ schedule, progress, cost, and work tracking.
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Optional
 from uuid import UUID
 
-from .base import Duration, Money, SourceInfo, CustomField
+from .base import CustomField, Duration, Money, SourceInfo
 
 
 class TaskStatus(Enum):
@@ -52,27 +51,27 @@ class Task:
     source: SourceInfo
 
     # Hierarchy
-    wbs_code: Optional[str] = None
+    wbs_code: str | None = None
     outline_level: int = 1
-    parent_id: Optional[UUID] = None
+    parent_id: UUID | None = None
 
     # Schedule
-    start_date: Optional[datetime] = None
-    finish_date: Optional[datetime] = None
-    actual_start: Optional[datetime] = None
-    actual_finish: Optional[datetime] = None
-    duration: Optional[Duration] = None
-    actual_duration: Optional[Duration] = None
-    remaining_duration: Optional[Duration] = None
+    start_date: datetime | None = None
+    finish_date: datetime | None = None
+    actual_start: datetime | None = None
+    actual_finish: datetime | None = None
+    duration: Duration | None = None
+    actual_duration: Duration | None = None
+    remaining_duration: Duration | None = None
 
     # Progress
     percent_complete: float = 0.0
     status: TaskStatus = TaskStatus.NOT_STARTED
 
     # Constraints
-    constraint_type: Optional[ConstraintType] = None
-    constraint_date: Optional[datetime] = None
-    deadline: Optional[datetime] = None
+    constraint_type: ConstraintType | None = None
+    constraint_date: datetime | None = None
+    deadline: datetime | None = None
 
     # Flags
     is_milestone: bool = False
@@ -80,18 +79,18 @@ class Task:
     is_critical: bool = False
 
     # Cost
-    budgeted_cost: Optional[Money] = None
-    actual_cost: Optional[Money] = None
-    remaining_cost: Optional[Money] = None
+    budgeted_cost: Money | None = None
+    actual_cost: Money | None = None
+    remaining_cost: Money | None = None
 
     # Work
-    budgeted_work: Optional[Duration] = None
-    actual_work: Optional[Duration] = None
-    remaining_work: Optional[Duration] = None
+    budgeted_work: Duration | None = None
+    actual_work: Duration | None = None
+    remaining_work: Duration | None = None
 
     # Text
-    description: Optional[str] = None
-    notes: Optional[str] = None
+    description: str | None = None
+    notes: str | None = None
 
     # Extensions
     custom_fields: list[CustomField] = field(default_factory=list)
@@ -129,7 +128,7 @@ class Task:
         return self.percent_complete > 0.0 or self.actual_start is not None
 
     @property
-    def cost_variance(self) -> Optional[Money]:
+    def cost_variance(self) -> Money | None:
         """Calculate cost variance (budgeted - actual).
 
         Returns:
@@ -140,7 +139,7 @@ class Task:
         return None
 
     @property
-    def schedule_variance_days(self) -> Optional[float]:
+    def schedule_variance_days(self) -> float | None:
         """Calculate schedule variance in days (planned finish - actual/forecast finish).
 
         Returns:

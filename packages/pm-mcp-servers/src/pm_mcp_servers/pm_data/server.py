@@ -10,15 +10,15 @@ from typing import Any
 
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
-from mcp.types import Tool, TextContent
+from mcp.types import TextContent, Tool
 
 from .tools import (
-    load_project,
-    query_tasks,
+    convert_format,
     get_critical_path,
     get_dependencies,
-    convert_format,
     get_project_summary,
+    load_project,
+    query_tasks,
 )
 
 # Configure logging

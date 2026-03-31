@@ -40,6 +40,14 @@ pm-assure-server = "pm_mcp_servers.pm_assure.server:main"
 pda-platform-server = "pm_mcp_servers.pda_platform.server:main"
 pda-platform-remote = "pm_mcp_servers.pda_platform.remote:main"
 
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+ignore = ["E501", "E722"]
+
 [build-system]
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"

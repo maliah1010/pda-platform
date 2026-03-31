@@ -6,16 +6,13 @@ to the canonical data model.
 """
 
 from datetime import datetime
-from decimal import Decimal
 from pathlib import Path
-from typing import Optional
 from uuid import UUID
 
 from pm_data_tools.models import (
     DeliveryConfidence,
     Dependency,
     DependencyType,
-    Money,
     Project,
     Resource,
     ResourceType,
@@ -24,12 +21,6 @@ from pm_data_tools.models import (
     TaskStatus,
 )
 from pm_data_tools.utils.identifiers import generate_uuid_from_source
-
-from .constants import (
-    RELATIONSHIP_TYPE_TO_DEPENDENCY_TYPE,
-    RESOURCE_TYPE_TO_CANONICAL,
-    RelationshipType,
-)
 
 
 class XERParser:
@@ -96,8 +87,8 @@ class XERParser:
 
     def _read_xer_file(self) -> None:
         """Read and parse XER file structure into tables."""
-        with open(self.file_path, "r", encoding="utf-8") as f:
-            current_table: Optional[str] = None
+        with open(self.file_path, encoding="utf-8") as f:
+            current_table: str | None = None
             current_columns: list[str] = []
 
             for line in f:
@@ -177,7 +168,7 @@ class XERParser:
             )
 
             # Parse parent WBS
-            parent_id: Optional[UUID] = None
+            parent_id: UUID | None = None
             wbs_id = task_record.get("wbs_id")
             if wbs_id:
                 # Note: In real implementation, would need to track WBS hierarchy
@@ -323,7 +314,7 @@ class XERParser:
         # Simplified for now - full implementation would parse TASKRSRC table
         return []
 
-    def _parse_date(self, date_str: Optional[str]) -> Optional[datetime]:
+    def _parse_date(self, date_str: str | None) -> datetime | None:
         """Parse P6 date string.
 
         P6 dates are typically in format: YYYY-MM-DD HH:MM

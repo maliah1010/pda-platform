@@ -6,7 +6,6 @@ validation issues, and validation results.
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
 
 
 class Severity(Enum):
@@ -32,8 +31,8 @@ class ValidationIssue:
     code: str
     message: str
     severity: Severity
-    context: Optional[str] = None
-    suggestion: Optional[str] = None
+    context: str | None = None
+    suggestion: str | None = None
 
     def __str__(self) -> str:
         """String representation."""

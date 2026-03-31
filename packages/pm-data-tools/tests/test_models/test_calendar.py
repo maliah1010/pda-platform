@@ -1,8 +1,9 @@
 """Tests for Calendar model."""
 
-import pytest
 from datetime import date
 from uuid import uuid4
+
+import pytest
 
 from pm_data_tools.models import Calendar, SourceInfo
 

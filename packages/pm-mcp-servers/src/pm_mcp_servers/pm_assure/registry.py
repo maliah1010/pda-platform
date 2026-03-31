@@ -7,7 +7,6 @@ from typing import Any
 from mcp.types import TextContent
 
 from .server import (
-    ASSURE_TOOLS as TOOLS,
     _analyse_assurance_overhead,
     _analyse_override_patterns,
     _check_artefact_currency,

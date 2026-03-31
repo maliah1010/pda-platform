@@ -1,8 +1,8 @@
 """Validation framework for project data."""
 
 from .base import Severity, ValidationIssue, ValidationResult
-from .structural import StructuralValidator
 from .semantic import SemanticValidator
+from .structural import StructuralValidator
 
 __all__ = [
     "Severity",

@@ -6,7 +6,6 @@ including dependency types (FS, FF, SS, SF) and lag/lead time.
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
 from uuid import UUID
 
 from .base import Duration, SourceInfo
@@ -39,7 +38,7 @@ class Dependency:
     dependency_type: DependencyType = DependencyType.FINISH_TO_START
 
     # Lag (positive = delay, negative = lead)
-    lag: Optional[Duration] = None
+    lag: Duration | None = None
 
     def __str__(self) -> str:
         """String representation."""

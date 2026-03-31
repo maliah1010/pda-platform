@@ -1,7 +1,7 @@
 """Base provider interface."""
 
 from abc import ABC, abstractmethod
-from typing import Optional
+
 from pydantic import BaseModel
 
 
@@ -12,7 +12,7 @@ class ProviderResponse(BaseModel):
     tokens_used: int = 0
     cost_usd: float = 0.0
     model: str = ""
-    raw_response: Optional[dict] = None
+    raw_response: dict | None = None
 
 
 class BaseProvider(ABC):
@@ -26,7 +26,7 @@ class BaseProvider(ABC):
     async def complete(
         self,
         messages: list[dict],
-        system: Optional[str] = None,
+        system: str | None = None,
         **kwargs,
     ) -> ProviderResponse:
         """

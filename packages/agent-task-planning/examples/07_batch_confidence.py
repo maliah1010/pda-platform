@@ -2,13 +2,12 @@
 
 import asyncio
 import os
+
 from agent_planning.confidence import (
-    ConfidenceExtractor,
     SchemaType,
     confidence_extract_batch,
 )
 from agent_planning.providers import AnthropicProvider
-
 
 CONTEXT = """
 Project: Digital Transformation Initiative
@@ -70,7 +69,7 @@ async def main():
         progress_callback=progress,
     )
 
-    print(f"\nBatch complete!")
+    print("\nBatch complete!")
     print(f"Succeeded: {result.queries_succeeded}")
     print(f"Failed: {result.queries_failed}")
     print(f"Total cost: ${result.total_cost_usd:.4f}")

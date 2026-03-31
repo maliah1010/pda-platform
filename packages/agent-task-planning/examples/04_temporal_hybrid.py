@@ -18,9 +18,9 @@ from datetime import timedelta
 # For actual use, install temporalio and configure a Temporal server.
 
 try:
-    from temporalio import workflow, activity
+    from temporalio import activity, workflow
     from temporalio.client import Client
-    from temporalio.worker import Worker
+    from temporalio.worker import Worker  # noqa: F401
     TEMPORAL_AVAILABLE = True
 except ImportError:
     TEMPORAL_AVAILABLE = False
@@ -67,9 +67,10 @@ if TEMPORAL_AVAILABLE:
         This is where the LLM-based planning happens, wrapped in
         a deterministic activity with timeout and retry policies.
         """
+        import os
+
         from agent_planning import TodoListPlanner
         from agent_planning.providers import AnthropicProvider
-        import os
 
         provider = AnthropicProvider(api_key=os.getenv("ANTHROPIC_API_KEY"))
         planner = TodoListPlanner(provider=provider)
@@ -164,7 +165,7 @@ async def main():
         task_queue="research-queue",
     )
 
-    print(f"Research complete!")
+    print("Research complete!")
     print(f"Summary: {result.summary[:200]}...")
     print(f"Confidence: {result.confidence}")
 

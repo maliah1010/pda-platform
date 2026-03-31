@@ -13,15 +13,13 @@ from pm_data_tools.models import (
     Duration,
     Money,
     Project,
-    Resource,
-    ResourceType,
     Risk,
     RiskStatus,
     SourceInfo,
     Task,
     TaskStatus,
 )
-from pm_data_tools.validators import SemanticValidator, Severity
+from pm_data_tools.validators import SemanticValidator
 
 
 @pytest.fixture
@@ -606,7 +604,7 @@ class TestProgressConsistencyEdgeCases:
             tasks=[task],
         )
 
-        result = validator.validate(project)
+        validator.validate(project)
         # This is caught by structural validator, so semantic skips it (line 235)
         # Should not crash
 
@@ -629,7 +627,7 @@ class TestProgressConsistencyEdgeCases:
             tasks=[task],
         )
 
-        result = validator.validate(project)
+        validator.validate(project)
         # Should not crash
 
     def test_task_with_actual_work_no_budget(
@@ -651,7 +649,7 @@ class TestProgressConsistencyEdgeCases:
             tasks=[task],
         )
 
-        result = validator.validate(project)
+        validator.validate(project)
         # Should not crash
 
 
@@ -762,7 +760,7 @@ class TestScheduleLogicEdgeCases:
             dependencies=[dep],
         )
 
-        result = validator.validate(project)
+        validator.validate(project)
         # Validator only checks FS dependencies currently, so this should not crash
         # (SS validation not yet implemented)
 
@@ -801,7 +799,7 @@ class TestScheduleLogicEdgeCases:
             dependencies=[dep],
         )
 
-        result = validator.validate(project)
+        validator.validate(project)
         # Validator only checks FS dependencies currently, so this should not crash
         # (FF validation not yet implemented)
 
@@ -840,7 +838,7 @@ class TestScheduleLogicEdgeCases:
             dependencies=[dep],
         )
 
-        result = validator.validate(project)
+        validator.validate(project)
         # Validator only checks FS dependencies currently, so this should not crash
         # (SF validation not yet implemented)
 
@@ -860,7 +858,7 @@ class TestCostAndWorkEdgeCases:
             actual_cost=None,
         )
 
-        result = validator.validate(project)
+        validator.validate(project)
         # Should not crash
 
     def test_task_cost_overrun_edge(
@@ -999,7 +997,7 @@ class TestCostAndWorkEdgeCases:
             tasks=[task],
         )
 
-        result = validator.validate(project)
+        validator.validate(project)
         # Should still check finish date against project dates
         # No error expected since finish is within project dates
 
@@ -1023,7 +1021,7 @@ class TestCostAndWorkEdgeCases:
             tasks=[task],
         )
 
-        result = validator.validate(project)
+        validator.validate(project)
         # Should not crash or have date validation issues for dateless tasks
 
     def test_risk_no_probability(

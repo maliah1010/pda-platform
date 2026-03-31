@@ -1,16 +1,15 @@
 """Tests for identifier utilities."""
 
-import pytest
 from uuid import UUID
 
 from pm_data_tools.utils.identifiers import (
-    generate_uuid_from_source,
-    get_namespace_for_tool,
-    generate_random_uuid,
-    parse_uuid,
-    is_valid_uuid,
     MSPDI_NAMESPACE,
     P6_NAMESPACE,
+    generate_random_uuid,
+    generate_uuid_from_source,
+    get_namespace_for_tool,
+    is_valid_uuid,
+    parse_uuid,
 )
 
 

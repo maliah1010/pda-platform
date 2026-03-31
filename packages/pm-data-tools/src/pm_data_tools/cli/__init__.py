@@ -14,7 +14,7 @@ def main() -> None:
 
 
 # Register commands
-from .commands import convert, validate, inspect_cmd
+from .commands import convert, inspect_cmd, validate
 
 main.add_command(convert)
 main.add_command(validate)

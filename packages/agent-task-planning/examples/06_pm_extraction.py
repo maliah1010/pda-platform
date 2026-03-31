@@ -2,13 +2,13 @@
 
 import asyncio
 import os
+
 from agent_planning.confidence import (
     ConfidenceExtractor,
-    SchemaType,
     ReviewLevel,
+    SchemaType,
 )
 from agent_planning.providers import AnthropicProvider
-
 
 PROJECT_CONTEXT = """
 Project: Legacy System Migration

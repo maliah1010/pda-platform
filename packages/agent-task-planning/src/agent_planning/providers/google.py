@@ -1,6 +1,5 @@
 """Google (Gemini) provider implementation."""
 
-from typing import Optional
 
 try:
     import google.generativeai as genai
@@ -11,7 +10,6 @@ except ImportError:
     )
 
 from agent_planning.providers.base import BaseProvider, ProviderResponse
-
 
 # Pricing per 1M tokens (as of Dec 2024)
 PRICING = {
@@ -34,7 +32,7 @@ class GoogleProvider(BaseProvider):
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         model: str = "gemini-1.5-pro",
         max_tokens: int = 4096,
     ):
@@ -59,7 +57,7 @@ class GoogleProvider(BaseProvider):
     async def complete(
         self,
         messages: list[dict],
-        system: Optional[str] = None,
+        system: str | None = None,
         **kwargs,
     ) -> ProviderResponse:
         """Generate a completion using Gemini."""

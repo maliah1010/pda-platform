@@ -4,13 +4,13 @@ This module provides safe wrappers around lxml for parsing and writing
 XML data from PM tools, with error handling and namespace support.
 """
 
-from typing import Optional, Any
 from pathlib import Path
+from typing import Any
 
 from lxml import etree
 
 
-def parse_xml_file(file_path: str | Path) -> Optional[etree._Element]:
+def parse_xml_file(file_path: str | Path) -> etree._Element | None:
     """Parse XML file safely.
 
     Args:
@@ -25,11 +25,11 @@ def parse_xml_file(file_path: str | Path) -> Optional[etree._Element]:
         )
         tree = etree.parse(str(file_path), parser)
         return tree.getroot()
-    except (etree.XMLSyntaxError, IOError, OSError):
+    except (etree.XMLSyntaxError, OSError):
         return None
 
 
-def parse_xml_string(xml_string: str | bytes) -> Optional[etree._Element]:
+def parse_xml_string(xml_string: str | bytes) -> etree._Element | None:
     """Parse XML string safely.
 
     Args:
@@ -127,7 +127,7 @@ def get_bool(element: etree._Element, xpath: str, default: bool = False) -> bool
     return default
 
 
-def create_element(tag: str, text: Optional[str] = None, **attributes: Any) -> etree._Element:
+def create_element(tag: str, text: str | None = None, **attributes: Any) -> etree._Element:
     """Create XML element with optional text and attributes.
 
     Args:

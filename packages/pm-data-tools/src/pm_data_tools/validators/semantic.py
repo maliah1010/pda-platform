@@ -8,12 +8,12 @@ This module validates the semantic correctness of project data including:
 - Risk assessment validation
 """
 
-from typing import Optional
 from collections import defaultdict, deque
 from decimal import Decimal
 
 from pm_data_tools.models import Project
-from .base import ValidationIssue, ValidationResult, Severity
+
+from .base import Severity, ValidationIssue, ValidationResult
 
 
 class SemanticValidator:
@@ -60,7 +60,7 @@ class SemanticValidator:
         # Build adjacency list (successor -> predecessors)
         graph: dict = defaultdict(list)
         in_degree: dict = defaultdict(int)
-        task_ids = {task.id for task in project.tasks}
+        {task.id for task in project.tasks}
 
         for dep in project.dependencies:
             # successor depends on predecessor
@@ -259,30 +259,28 @@ class SemanticValidator:
 
         for risk in project.risks:
             # Check probability is in valid range (typically 1-5)
-            if risk.probability is not None:
-                if not (1 <= risk.probability <= 5):
-                    issues.append(
-                        ValidationIssue(
-                            code="INVALID_RISK_PROBABILITY",
-                            message="Risk probability outside valid range (1-5)",
-                            severity=Severity.ERROR,
-                            context=f"Risk: {risk.name} (ID: {risk.id}), Probability: {risk.probability}",
-                            suggestion="Set probability to a value between 1 and 5",
-                        )
+            if risk.probability is not None and not (1 <= risk.probability <= 5):
+                issues.append(
+                    ValidationIssue(
+                        code="INVALID_RISK_PROBABILITY",
+                        message="Risk probability outside valid range (1-5)",
+                        severity=Severity.ERROR,
+                        context=f"Risk: {risk.name} (ID: {risk.id}), Probability: {risk.probability}",
+                        suggestion="Set probability to a value between 1 and 5",
                     )
+                )
 
             # Check impact is in valid range (typically 1-5)
-            if risk.impact is not None:
-                if not (1 <= risk.impact <= 5):
-                    issues.append(
-                        ValidationIssue(
-                            code="INVALID_RISK_IMPACT",
-                            message="Risk impact outside valid range (1-5)",
-                            severity=Severity.ERROR,
-                            context=f"Risk: {risk.name} (ID: {risk.id}), Impact: {risk.impact}",
-                            suggestion="Set impact to a value between 1 and 5",
-                        )
+            if risk.impact is not None and not (1 <= risk.impact <= 5):
+                issues.append(
+                    ValidationIssue(
+                        code="INVALID_RISK_IMPACT",
+                        message="Risk impact outside valid range (1-5)",
+                        severity=Severity.ERROR,
+                        context=f"Risk: {risk.name} (ID: {risk.id}), Impact: {risk.impact}",
+                        suggestion="Set impact to a value between 1 and 5",
                     )
+                )
 
             # Check for risks without mitigation strategy (high severity)
             if risk.probability and risk.impact:

@@ -5,11 +5,11 @@ This module defines the data structures for UK Government Major Projects Portfol
 metrics, and AI-generated narratives with confidence scoring.
 """
 
-from pydantic import BaseModel, Field, field_validator
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Optional, List, Dict
 from enum import Enum
+
+from pydantic import BaseModel, Field, field_validator
 
 
 class QuarterPeriod(str, Enum):
@@ -81,7 +81,7 @@ class DCANarrative(BaseModel):
         le=10,
         description="Number of AI samples used (typically 3-5)"
     )
-    review_reason: Optional[str] = Field(
+    review_reason: str | None = Field(
         None,
         description="Explanation for why review is recommended (if applicable)"
     )
@@ -137,7 +137,7 @@ class FinancialPerformance(BaseModel):
         decimal_places=2,
         description="Current forecast whole life cost (£ millions)"
     )
-    actual_cost: Optional[Decimal] = Field(
+    actual_cost: Decimal | None = Field(
         None,
         decimal_places=2,
         description="Actual cost incurred to date (£ millions)"
@@ -191,7 +191,7 @@ class SchedulePerformance(BaseModel):
         ...,
         description="Current forecast completion date"
     )
-    actual_completion: Optional[date] = Field(
+    actual_completion: date | None = Field(
         None,
         description="Actual completion date (if project completed)"
     )
@@ -352,7 +352,7 @@ class QuarterlyReport(BaseModel):
         ...,
         description="AI-generated DCA narrative with confidence metadata"
     )
-    previous_dca_rating: Optional[str] = Field(
+    previous_dca_rating: str | None = Field(
         None,
         pattern=r"^(GREEN|AMBER/GREEN|AMBER|AMBER/RED|RED|EXEMPT)$",
         description="DCA rating from previous quarter"
@@ -361,7 +361,7 @@ class QuarterlyReport(BaseModel):
         default=False,
         description="Whether DCA rating changed from previous quarter"
     )
-    dca_change_rationale: Optional[str] = Field(
+    dca_change_rationale: str | None = Field(
         None,
         max_length=500,
         description="Rationale for DCA rating change (if changed)"
@@ -400,26 +400,26 @@ class QuarterlyReport(BaseModel):
     )
 
     # ========== Metadata ==========
-    data_sources: List[str] = Field(
+    data_sources: list[str] = Field(
         default_factory=list,
         description="List of data sources used (e.g., 'MS Project', 'Jira', 'Manual entry')"
     )
-    confidence_scores: Dict[str, float] = Field(
+    confidence_scores: dict[str, float] = Field(
         default_factory=dict,
         description="Field-level confidence scores (field_name -> score)"
     )
-    missing_fields: List[str] = Field(
+    missing_fields: list[str] = Field(
         default_factory=list,
         description="List of recommended fields that are missing"
     )
-    validation_warnings: List[str] = Field(
+    validation_warnings: list[str] = Field(
         default_factory=list,
         description="Non-critical validation warnings"
     )
 
     @field_validator("dca_change_rationale")
     @classmethod
-    def validate_rationale_if_changed(cls, v: Optional[str], info) -> Optional[str]:
+    def validate_rationale_if_changed(cls, v: str | None, info) -> str | None:
         """Require rationale if DCA changed."""
         values = info.data
         if values.get("dca_changed") and not v:

@@ -1,6 +1,6 @@
 """Guardrail configuration and limits."""
 
-from typing import Optional
+
 from pydantic import BaseModel, Field
 
 
@@ -33,7 +33,7 @@ class GuardrailConfig(BaseModel):
 
     # Content validation
     blocked_patterns: list[str] = Field(default_factory=list)
-    allowed_tools: Optional[list[str]] = None
+    allowed_tools: list[str] | None = None
 
     # Confidence extraction settings
     confidence_enabled: bool = False

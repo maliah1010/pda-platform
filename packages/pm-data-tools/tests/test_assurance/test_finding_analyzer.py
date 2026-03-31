@@ -7,19 +7,15 @@ SQLite store.  All ConfidenceExtractor calls are mocked.
 from __future__ import annotations
 
 from datetime import date, datetime, timezone
-from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
-
 from pm_data_tools.assurance import (
-    ReviewAction,
     FindingAnalysisResult,
     FindingAnalyzer,
-    ReviewActionStatus,
     RecurrenceDetector,
+    ReviewAction,
+    ReviewActionStatus,
 )
-from pm_data_tools.assurance.recurrence import SENTENCE_TRANSFORMERS_AVAILABLE
 from pm_data_tools.db.store import AssuranceStore
 
 from .conftest import make_confidence_result
@@ -119,7 +115,7 @@ async def test_deduplication_within_single_review(
     )
 
     texts = [r.text for r in result.recommendations]
-    assert len(texts) == len(set(t.lower() for t in texts))
+    assert len(texts) == len({t.lower() for t in texts})
     assert len(result.recommendations) == 1
 
 

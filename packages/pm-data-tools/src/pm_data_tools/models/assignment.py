@@ -6,7 +6,6 @@ work allocation, schedule, and cost tracking.
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
 from uuid import UUID
 
 from .base import Duration, Money, SourceInfo
@@ -30,17 +29,17 @@ class Assignment:
     units: float = 1.0  # 1.0 = 100% allocation
 
     # Schedule
-    start_date: Optional[datetime] = None
-    finish_date: Optional[datetime] = None
+    start_date: datetime | None = None
+    finish_date: datetime | None = None
 
     # Work
-    budgeted_work: Optional[Duration] = None
-    actual_work: Optional[Duration] = None
-    remaining_work: Optional[Duration] = None
+    budgeted_work: Duration | None = None
+    actual_work: Duration | None = None
+    remaining_work: Duration | None = None
 
     # Cost
-    budgeted_cost: Optional[Money] = None
-    actual_cost: Optional[Money] = None
+    budgeted_cost: Money | None = None
+    actual_cost: Money | None = None
 
     def __str__(self) -> str:
         """String representation."""
@@ -56,7 +55,7 @@ class Assignment:
         return self.units * 100.0
 
     @property
-    def work_complete_percent(self) -> Optional[float]:
+    def work_complete_percent(self) -> float | None:
         """Calculate work completion percentage.
 
         Returns:
@@ -74,7 +73,7 @@ class Assignment:
         return (actual_hours / budgeted_hours) * 100.0
 
     @property
-    def cost_variance(self) -> Optional[Money]:
+    def cost_variance(self) -> Money | None:
         """Calculate cost variance (budgeted - actual).
 
         Returns:

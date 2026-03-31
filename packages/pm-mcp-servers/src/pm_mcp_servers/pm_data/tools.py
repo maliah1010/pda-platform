@@ -11,16 +11,15 @@ from __future__ import annotations
 import logging
 import uuid
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import date
 from pathlib import Path
-from typing import Any, Optional
 
 # Real imports from pm-data-tools
 try:
-    from pm_data_tools.parsers import detect_format, create_parser
-    from pm_data_tools.models import Project
     from pm_data_tools.exceptions import ParseError, UnsupportedFormatError
     from pm_data_tools.exporters import create_exporter
+    from pm_data_tools.models import Project
+    from pm_data_tools.parsers import create_parser, detect_format
     HAS_PM_DATA_TOOLS = True
 except ImportError:
     HAS_PM_DATA_TOOLS = False
@@ -38,7 +37,7 @@ class ProjectStore:
         """Store a project."""
         self._projects[project_id] = project
 
-    def get(self, project_id: str) -> Optional[Project]:
+    def get(self, project_id: str) -> Project | None:
         """Retrieve a project by ID."""
         return self._projects.get(project_id)
 
@@ -62,7 +61,7 @@ class ProjectStore:
 _store = ProjectStore()
 
 
-def _serialize_date(d: Optional[date]) -> Optional[str]:
+def _serialize_date(d: date | None) -> str | None:
     """Safely serialize date to ISO format."""
     if d is None:
         return None
@@ -74,7 +73,7 @@ def _serialize_date(d: Optional[date]) -> Optional[str]:
 
 async def load_project(arguments: dict, store: ProjectStore = _store) -> dict:
     """Load project from file using real pm-data-tools parsers.
-    
+
     Supports automatic format detection or explicit format specification.
     Handles all 8 pm-data-tools formats with comprehensive error handling.
     """

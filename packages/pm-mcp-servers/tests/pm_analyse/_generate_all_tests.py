@@ -24,15 +24,15 @@ print("=" * 70)
 try:
     from test_content_defs import (
         CONFTEST_CONTENT,
+        TEST_ANALYZERS_CONTENT,
+        TEST_FORECASTERS_CONTENT,
+        TEST_INTEGRATION_CONTENT,
         TEST_MODELS_CONTENT,
         TEST_RISK_ENGINE_CONTENT,
-        TEST_FORECASTERS_CONTENT,
-        TEST_ANALYZERS_CONTENT,
-        TEST_TOOLS_CONTENT,
         TEST_SERVER_CONTENT,
-        TEST_INTEGRATION_CONTENT
+        TEST_TOOLS_CONTENT,
     )
-    
+
     # Generate all files
     write_file('conftest.py', CONFTEST_CONTENT)
     write_file('test_models.py', TEST_MODELS_CONTENT)
@@ -42,14 +42,14 @@ try:
     write_file('test_tools.py', TEST_TOOLS_CONTENT)
     write_file('test_server.py', TEST_SERVER_CONTENT)
     write_file('test_integration.py', TEST_INTEGRATION_CONTENT)
-    
+
     print("=" * 70)
     print("All test files generated successfully!")
-    
+
 except ImportError:
     print("ERROR: test_content_defs.py not found")
     print("Creating inline instead...")
-    
+
     # We'll generate files with minimal content first
     # Then expand them iteratively
-    
+

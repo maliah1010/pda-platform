@@ -1,7 +1,7 @@
 """State management for agent planning."""
 
 from datetime import datetime
-from typing import Optional
+
 from pydantic import BaseModel, Field
 
 from agent_planning.core.task import Task, TaskStatus
@@ -23,7 +23,7 @@ class TaskState(BaseModel):
     created_at: datetime = Field(default_factory=datetime.now)
     iteration: int = 0
 
-    def add_task(self, content: str, dependencies: Optional[list[str]] = None) -> Task:
+    def add_task(self, content: str, dependencies: list[str] | None = None) -> Task:
         """Add a new task to the state."""
         task = Task(
             content=content,
@@ -32,14 +32,14 @@ class TaskState(BaseModel):
         self.tasks.append(task)
         return task
 
-    def get_task(self, task_id: str) -> Optional[Task]:
+    def get_task(self, task_id: str) -> Task | None:
         """Get a task by ID."""
         for task in self.tasks:
             if task.id == task_id:
                 return task
         return None
 
-    def get_next_pending(self) -> Optional[Task]:
+    def get_next_pending(self) -> Task | None:
         """Get the next pending task that has no unmet dependencies."""
         for task in self.tasks:
             if task.status == TaskStatus.PENDING:
@@ -115,8 +115,8 @@ class ExecutionResult(BaseModel):
     total_tokens: int = 0
     total_cost_usd: float = 0.0
     duration_seconds: float = 0.0
-    final_output: Optional[str] = None
-    error: Optional[str] = None
+    final_output: str | None = None
+    error: str | None = None
 
     def summary(self) -> str:
         """Generate a human-readable summary."""

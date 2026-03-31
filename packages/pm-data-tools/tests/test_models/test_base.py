@@ -1,10 +1,11 @@
 """Tests for base types and classes."""
 
-import pytest
 from datetime import datetime
 from decimal import Decimal
 
-from pm_data_tools.models.base import Duration, Money, SourceInfo, CustomField
+import pytest
+
+from pm_data_tools.models.base import CustomField, Duration, Money, SourceInfo
 
 
 class TestDuration:

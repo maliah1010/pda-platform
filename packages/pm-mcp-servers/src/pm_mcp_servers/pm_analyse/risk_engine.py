@@ -6,8 +6,8 @@ confidence scoring and generate evidence-based mitigation strategies.
 """
 
 import uuid
-from datetime import date, datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional
+from datetime import date, datetime, timezone
+from typing import Any
 
 from .models import (
     AnalysisDepth,
@@ -15,7 +15,6 @@ from .models import (
     Mitigation,
     Risk,
     RiskCategory,
-    Severity,
 )
 
 
@@ -43,14 +42,14 @@ class RiskEngine:
 
     def __init__(self):
         """Initialize the risk engine."""
-        self.risks: List[Risk] = []
+        self.risks: list[Risk] = []
 
     def analyze(
         self,
         project: Any,
-        focus_areas: Optional[List[str]] = None,
+        focus_areas: list[str] | None = None,
         depth: AnalysisDepth = AnalysisDepth.STANDARD
-    ) -> List[Risk]:
+    ) -> list[Risk]:
         """
         Main analysis entry point.
 
@@ -96,7 +95,7 @@ class RiskEngine:
 
         return self.risks
 
-    def _analyze_schedule_risks(self, project: Any, tasks: List[Any]) -> None:
+    def _analyze_schedule_risks(self, project: Any, tasks: list[Any]) -> None:
         """Detect: slippage, overdue, low float."""
         today = date.today()
 
@@ -247,7 +246,7 @@ class RiskEngine:
                         suggested_mitigation="Monitor closely and prepare contingency plans"
                     )
 
-    def _analyze_cost_risks(self, project: Any, tasks: List[Any]) -> None:
+    def _analyze_cost_risks(self, project: Any, tasks: list[Any]) -> None:
         """Detect: overruns, forecast variance."""
         budget = getattr(project, 'budget', None)
         actual_cost = getattr(project, 'actual_cost', None)
@@ -322,13 +321,13 @@ class RiskEngine:
     def _analyze_resource_risks(
         self,
         project: Any,
-        tasks: List[Any],
-        resources: List[Any]
+        tasks: list[Any],
+        resources: list[Any]
     ) -> None:
         """Detect: overallocation, SPOFs."""
         # Check for resource overallocation
         for resource in resources:
-            resource_id = str(getattr(resource, 'id', ''))
+            str(getattr(resource, 'id', ''))
             resource_name = getattr(resource, 'name', 'Unnamed Resource')
             max_units = getattr(resource, 'max_units', 1.0)
 
@@ -355,12 +354,11 @@ class RiskEngine:
         critical_tasks = [t for t in tasks if getattr(t, 'is_critical', False)]
         if len(critical_tasks) >= self.CRITICAL_TASK_CONCENTRATION:
             # Group by resource
-            resource_task_count: Dict[str, int] = {}
             for task in critical_tasks:
                 # Simplified - in real implementation, iterate assignments
                 pass  # Implementation would check assignments
 
-    def _analyze_scope_risks(self, project: Any, tasks: List[Any]) -> None:
+    def _analyze_scope_risks(self, project: Any, tasks: list[Any]) -> None:
         """Detect: missing milestones, incomplete definitions."""
         # Check for milestone presence
         milestones = [t for t in tasks if getattr(t, 'is_milestone', False)]
@@ -377,7 +375,7 @@ class RiskEngine:
                 evidence=[Evidence(
                     source="scope_analysis",
                     description=f"Tasks: {total_tasks}, Milestones: {len(milestones)}",
-                    data_point=f"milestones=0",
+                    data_point="milestones=0",
                     confidence=1.0
                 )],
                 related_tasks=[],
@@ -412,12 +410,12 @@ class RiskEngine:
     def _analyze_technical_risks(
         self,
         project: Any,
-        tasks: List[Any],
-        dependencies: List[Any]
+        tasks: list[Any],
+        dependencies: list[Any]
     ) -> None:
         """Detect: bottlenecks, integration points."""
         # Count dependencies per task (successors)
-        dependency_count: Dict[str, int] = {}
+        dependency_count: dict[str, int] = {}
         for dep in dependencies:
             predecessor_id = str(getattr(dep, 'predecessor_id', ''))
             if predecessor_id:
@@ -476,12 +474,12 @@ class RiskEngine:
     def _analyze_dependency_chains(
         self,
         project: Any,
-        tasks: List[Any],
-        dependencies: List[Any]
+        tasks: list[Any],
+        dependencies: list[Any]
     ) -> None:
         """DEEP: Long chain analysis."""
         # Build dependency graph
-        graph: Dict[str, List[str]] = {}
+        graph: dict[str, list[str]] = {}
         for dep in dependencies:
             pred = str(getattr(dep, 'predecessor_id', ''))
             succ = str(getattr(dep, 'successor_id', ''))
@@ -524,7 +522,7 @@ class RiskEngine:
                     suggested_mitigation="Review if dependencies can be parallelized"
                 )
 
-    def _analyze_duration_patterns(self, tasks: List[Any]) -> None:
+    def _analyze_duration_patterns(self, tasks: list[Any]) -> None:
         """DEEP: Pattern matching."""
         for task in tasks:
             task_id = str(getattr(task, 'id', ''))
@@ -571,9 +569,9 @@ class RiskEngine:
         probability: int,
         impact: int,
         confidence: float,
-        evidence: List[Evidence],
-        related_tasks: List[str],
-        suggested_mitigation: Optional[str] = None
+        evidence: list[Evidence],
+        related_tasks: list[str],
+        suggested_mitigation: str | None = None
     ) -> None:
         """Helper to add a risk to the list."""
         risk = Risk(
@@ -592,19 +590,19 @@ class RiskEngine:
         )
         self.risks.append(risk)
 
-    def _get_cost_value(self, cost: Any) -> Optional[float]:
+    def _get_cost_value(self, cost: Any) -> float | None:
         """Extract numeric value from cost object or number."""
         if cost is None:
             return None
-        if isinstance(cost, (int, float)):
+        if isinstance(cost, int | float):
             return float(cost)
         if hasattr(cost, 'amount'):
             amount = getattr(cost, 'amount')
-            if isinstance(amount, (int, float)):
+            if isinstance(amount, int | float):
                 return float(amount)
         return None
 
-    def generate_mitigations(self, risks: List[Risk]) -> List[Mitigation]:
+    def generate_mitigations(self, risks: list[Risk]) -> list[Mitigation]:
         """Create mitigation strategies."""
         mitigations = []
 

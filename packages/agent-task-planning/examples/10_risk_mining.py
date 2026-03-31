@@ -2,10 +2,10 @@
 
 import asyncio
 import os
-from agent_planning.mining import OutlierMiner, MiningConfig
-from agent_planning.confidence import SchemaType
-from agent_planning.providers import AnthropicProvider
 
+from agent_planning.confidence import SchemaType
+from agent_planning.mining import MiningConfig, OutlierMiner
+from agent_planning.providers import AnthropicProvider
 
 PROJECT_CONTEXT = """
 Project: Cloud Migration Programme

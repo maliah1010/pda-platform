@@ -44,7 +44,6 @@ import json
 import uuid
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any
 
 import structlog
 from pydantic import BaseModel, Field, field_validator

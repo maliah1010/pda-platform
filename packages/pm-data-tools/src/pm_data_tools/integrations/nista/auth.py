@@ -7,11 +7,11 @@ This module provides secure authentication for NISTA API access using:
 - Support for sandbox and production environments
 """
 
-from typing import Optional
-from datetime import datetime, timedelta
-from pydantic import BaseModel, Field
-import httpx
 import os
+from datetime import datetime, timedelta
+
+import httpx
+from pydantic import BaseModel, Field
 
 
 class NISTAAuthConfig(BaseModel):
@@ -30,11 +30,11 @@ class NISTAAuthConfig(BaseModel):
 
     client_id: str = Field(..., min_length=1, description="OAuth 2.0 client ID")
     client_secret: str = Field(..., min_length=1, description="OAuth 2.0 client secret")
-    certificate_path: Optional[str] = Field(
+    certificate_path: str | None = Field(
         None,
         description="Path to client certificate for mTLS (.pem format)"
     )
-    private_key_path: Optional[str] = Field(
+    private_key_path: str | None = Field(
         None,
         description="Path to private key for mTLS (.pem format)"
     )
@@ -43,11 +43,11 @@ class NISTAAuthConfig(BaseModel):
         pattern=r"^(sandbox|production)$",
         description="NISTA environment"
     )
-    base_url: Optional[str] = Field(
+    base_url: str | None = Field(
         None,
         description="Override base URL (auto-configured if not provided)"
     )
-    token_url: Optional[str] = Field(
+    token_url: str | None = Field(
         None,
         description="Override token URL (auto-configured if not provided)"
     )
@@ -134,9 +134,9 @@ class NISTAAuthClient:
             config: NISTA authentication configuration
         """
         self.config = config
-        self._access_token: Optional[str] = None
-        self._token_expires: Optional[datetime] = None
-        self._http_client: Optional[httpx.AsyncClient] = None
+        self._access_token: str | None = None
+        self._token_expires: datetime | None = None
+        self._http_client: httpx.AsyncClient | None = None
 
     async def get_access_token(self) -> str:
         """Get valid access token (cached or freshly fetched).

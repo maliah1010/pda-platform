@@ -18,7 +18,6 @@ from pm_data_tools.assurance.divergence import (
 )
 from pm_data_tools.db.store import AssuranceStore
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -178,7 +177,7 @@ def test_get_history_empty(tmp_path: Path) -> None:
 def test_get_history_multiple_ordered(tmp_path: Path) -> None:
     """get_divergence_history returns snapshots ordered by timestamp ASC."""
     store = AssuranceStore(db_path=tmp_path / "store.db")
-    mon = _monitor(store=store)
+    _monitor(store=store)
 
     for i, ts in enumerate(["2026-01-01T00:00:00", "2026-02-01T00:00:00"]):
         store.insert_divergence_snapshot(

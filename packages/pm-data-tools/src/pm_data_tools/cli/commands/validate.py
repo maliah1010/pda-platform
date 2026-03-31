@@ -1,8 +1,8 @@
 """Validate command for project data validation."""
 
-import click
 from pathlib import Path
-from typing import Optional
+
+import click
 
 
 @click.command()
@@ -29,9 +29,9 @@ from typing import Optional
 )
 def validate(
     input_file: Path,
-    file_format: Optional[str],
+    file_format: str | None,
     strict: bool,
-    output: Optional[Path],
+    output: Path | None,
 ) -> None:
     """Validate project data file.
 

@@ -1,30 +1,35 @@
 """Tests for MSPDI writer."""
 
-import pytest
-from pathlib import Path
-from decimal import Decimal
 from datetime import datetime
+from decimal import Decimal
+from pathlib import Path
 from uuid import uuid4
-from lxml import etree
 
-from pm_data_tools.schemas.mspdi.writer import MspdiWriter
+import pytest
+
 from pm_data_tools.models import (
-    Project,
-    Task,
-    Resource,
     Assignment,
-    Dependency,
     Calendar,
-    SourceInfo,
-    Duration,
-    Money,
     CustomField,
     DeliveryConfidence,
+    Dependency,
+    Duration,
+    Money,
+    Project,
+    Resource,
+    SourceInfo,
+    Task,
 )
-from pm_data_tools.models.task import TaskStatus, ConstraintType
 from pm_data_tools.models.dependency import DependencyType
 from pm_data_tools.models.resource import ResourceType
-from pm_data_tools.utils.xml_helpers import parse_xml_string, get_text, get_int, strip_namespaces
+from pm_data_tools.models.task import TaskStatus
+from pm_data_tools.schemas.mspdi.writer import MspdiWriter
+from pm_data_tools.utils.xml_helpers import (
+    get_int,
+    get_text,
+    parse_xml_string,
+    strip_namespaces,
+)
 
 
 @pytest.fixture

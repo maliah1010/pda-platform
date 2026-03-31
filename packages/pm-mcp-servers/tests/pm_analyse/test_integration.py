@@ -5,9 +5,7 @@ Tests end-to-end workflows combining multiple analyzers and tools,
 verifying component interactions and data flow with 10+ test cases.
 """
 
-from datetime import date, timedelta
 
-import pytest
 
 from pm_mcp_servers.pm_analyse.models import (
     HealthStatus,
@@ -21,8 +19,8 @@ class TestAnalysisWorkflows:
     def test_outlier_detection_feeds_health_assessment(self, complex_project):
         """Test that outlier detection and health assessment work together."""
         from pm_mcp_servers.pm_analyse.analyzers import (
-            OutlierDetector,
             HealthAnalyzer,
+            OutlierDetector,
         )
 
         detector = OutlierDetector()
@@ -49,11 +47,12 @@ class TestAnalysisWorkflows:
 
     def test_baseline_comparison_with_health_assessment(self, task_with_baseline):
         """Test baseline comparison integrated with health assessment."""
-        from .conftest import MockProject
         from pm_mcp_servers.pm_analyse.analyzers import (
             BaselineComparator,
             HealthAnalyzer,
         )
+
+        from .conftest import MockProject
 
         project = MockProject(tasks=[task_with_baseline])
         comparator = BaselineComparator()
@@ -75,12 +74,12 @@ class TestAnalysisWorkflows:
     def test_complete_project_analysis_workflow(self, complex_project):
         """Test complete analysis workflow on complex project."""
         from pm_mcp_servers.pm_analyse.analyzers import (
-            OutlierDetector,
-            HealthAnalyzer,
             BaselineComparator,
+            HealthAnalyzer,
+            OutlierDetector,
         )
-        from pm_mcp_servers.pm_analyse.risk_engine import RiskEngine
         from pm_mcp_servers.pm_analyse.forecasters import ForecastEngine
+        from pm_mcp_servers.pm_analyse.risk_engine import RiskEngine
 
         # Run all analyses
         detector = OutlierDetector()
@@ -129,8 +128,8 @@ class TestAnalysisWorkflows:
 
     def test_multiple_analysis_depths(self, complex_project):
         """Test analysis with different depth levels."""
-        from pm_mcp_servers.pm_analyse.risk_engine import RiskEngine
         from pm_mcp_servers.pm_analyse.models import AnalysisDepth
+        from pm_mcp_servers.pm_analyse.risk_engine import RiskEngine
 
         engine = RiskEngine()
 
@@ -156,8 +155,9 @@ class TestAnalysisWorkflows:
 
     def test_analysis_on_empty_vs_populated_project(self):
         """Test analysis behavior on empty vs populated projects."""
-        from .conftest import MockProject, MockTask
         from pm_mcp_servers.pm_analyse.analyzers import HealthAnalyzer
+
+        from .conftest import MockProject, MockTask
 
         empty_project = MockProject()
         task = MockTask(id='t1', name='Task 1', percent_complete=50)
@@ -200,9 +200,10 @@ class TestAnalysisWorkflows:
 
     def test_tool_integration_with_project_store(self, basic_project):
         """Test tool execution with project store integration."""
+        import asyncio
+
         from pm_mcp_servers.pm_analyse.tools import identify_risks
         from pm_mcp_servers.shared import project_store
-        import asyncio
 
         project_store.add("integration-test", basic_project)
 

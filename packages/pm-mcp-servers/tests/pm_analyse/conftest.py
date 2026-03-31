@@ -5,8 +5,7 @@ Provides mock project data, tasks, resources, and dependencies for testing
 all analysis modules.
 """
 
-from datetime import date, datetime, timedelta
-from typing import Any, Dict, List
+from datetime import date, timedelta
 
 import pytest
 

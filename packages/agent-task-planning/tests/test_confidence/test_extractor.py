@@ -1,10 +1,11 @@
 """Tests for confidence extractor."""
 
 import pytest
+
 from agent_planning.confidence import (
     ConfidenceExtractor,
-    SchemaType,
     ReviewLevel,
+    SchemaType,
 )
 from agent_planning.guardrails import GuardrailConfig
 

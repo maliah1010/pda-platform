@@ -15,7 +15,6 @@ Endpoints:
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import os
 
@@ -23,7 +22,7 @@ from mcp.server.sse import SseServerTransport
 from starlette.applications import Starlette
 from starlette.requests import Request
 from starlette.responses import JSONResponse
-from starlette.routing import Mount, Route
+from starlette.routing import Route
 
 from .server import ALL_TOOLS, server
 

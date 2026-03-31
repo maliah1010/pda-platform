@@ -4,8 +4,9 @@ These tests ensure that parse → write → parse preserves data integrity,
 which is essential for lossless conversion workflows.
 """
 
-import pytest
 from pathlib import Path
+
+import pytest
 
 from pm_data_tools.schemas.mspdi.parser import MspdiParser
 from pm_data_tools.schemas.mspdi.writer import MspdiWriter

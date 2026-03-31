@@ -51,7 +51,17 @@
       "Bash(node create_plan.cjs)",
       "Bash(git pull:*)",
       "Bash(PYTHONIOENCODING=utf-8 python packages/pm-data-tools/scripts/generate_synthetic_data.py --verify)",
-      "Bash(git worktree:*)"
+      "Bash(git worktree:*)",
+      "mcp__c1fc4002-5f49-5f9d-a4e5-93c4ef5d6a75__google_drive_search",
+      "WebSearch",
+      "WebFetch(domain:www.gov.uk)",
+      "WebFetch(domain:www.instituteforgovernment.org.uk)",
+      "WebFetch(domain:www.newcivilengineer.com)",
+      "WebFetch(domain:publications.parliament.uk)",
+      "WebFetch(domain:www.constructionnews.co.uk)",
+      "WebFetch(domain:www.productivity.ac.uk)",
+      "WebFetch(domain:www.reinforcementproductsonline.co.uk)",
+      "Bash(2)"
     ]
   }
 }

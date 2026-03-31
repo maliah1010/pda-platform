@@ -1,7 +1,6 @@
 """Base planner interface."""
 
 from abc import ABC, abstractmethod
-from typing import Optional
 
 from agent_planning.core.state import ExecutionResult, TaskState
 from agent_planning.guardrails.limits import GuardrailConfig
@@ -17,7 +16,7 @@ class BasePlanner(ABC):
     def __init__(
         self,
         provider: "BaseProvider",  # type: ignore  # Forward reference
-        guardrails: Optional[GuardrailConfig] = None,
+        guardrails: GuardrailConfig | None = None,
     ):
         """
         Initialise the planner.

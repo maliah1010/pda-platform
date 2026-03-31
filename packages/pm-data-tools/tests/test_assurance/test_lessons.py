@@ -6,7 +6,6 @@ contextual retrieval, and the semantic-search fallback path.
 
 from __future__ import annotations
 
-from datetime import date
 from pathlib import Path
 
 import pytest
@@ -19,7 +18,6 @@ from pm_data_tools.assurance.lessons import (
     LessonsKnowledgeEngine,
 )
 from pm_data_tools.db.store import AssuranceStore
-
 
 # ---------------------------------------------------------------------------
 # Helpers

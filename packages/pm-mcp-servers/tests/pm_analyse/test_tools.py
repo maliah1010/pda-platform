@@ -5,15 +5,8 @@ Tests all 6 analysis tools (identify_risks, forecast_completion, detect_outliers
 assess_health, suggest_mitigations, compare_baseline) with 30+ test cases.
 """
 
-from datetime import datetime
 
 import pytest
-
-from pm_mcp_servers.pm_analyse.models import (
-    AnalysisDepth,
-    HealthStatus,
-    Severity,
-)
 
 
 class TestIdentifyRisks:
@@ -530,9 +523,10 @@ class TestCompareBaseline:
     @pytest.mark.asyncio
     async def test_compare_baseline_all_types(self, task_with_baseline):
         """Test comparison with all baseline types."""
-        from .conftest import MockProject
         from pm_mcp_servers.pm_analyse.tools import compare_baseline
         from pm_mcp_servers.shared import project_store
+
+        from .conftest import MockProject
 
         project = MockProject(tasks=[task_with_baseline])
         project_store.add("test-project", project)
@@ -547,9 +541,10 @@ class TestCompareBaseline:
     @pytest.mark.asyncio
     async def test_compare_baseline_with_threshold(self, task_with_baseline):
         """Test baseline comparison with threshold."""
-        from .conftest import MockProject
         from pm_mcp_servers.pm_analyse.tools import compare_baseline
         from pm_mcp_servers.shared import project_store
+
+        from .conftest import MockProject
 
         project = MockProject(tasks=[task_with_baseline])
         project_store.add("test-project", project)
@@ -564,9 +559,10 @@ class TestCompareBaseline:
     @pytest.mark.asyncio
     async def test_compare_baseline_result_structure(self, task_with_baseline):
         """Test baseline comparison result structure."""
-        from .conftest import MockProject
         from pm_mcp_servers.pm_analyse.tools import compare_baseline
         from pm_mcp_servers.shared import project_store
+
+        from .conftest import MockProject
 
         project = MockProject(tasks=[task_with_baseline])
         project_store.add("test-project", project)
@@ -585,12 +581,12 @@ class TestToolMetadata:
     async def test_all_tools_return_metadata(self, basic_project):
         """Test that all tools return metadata in response."""
         from pm_mcp_servers.pm_analyse.tools import (
-            identify_risks,
-            forecast_completion,
-            detect_outliers,
             assess_health,
+            compare_baseline,
+            detect_outliers,
+            forecast_completion,
+            identify_risks,
             suggest_mitigations,
-            compare_baseline
         )
         from pm_mcp_servers.shared import project_store
 

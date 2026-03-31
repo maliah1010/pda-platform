@@ -35,7 +35,6 @@ from __future__ import annotations
 import json
 from datetime import date, datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Optional
 
 import structlog
 from pydantic import BaseModel, Field, field_validator
@@ -219,7 +218,7 @@ class AdaptiveReviewScheduler:
     def __init__(
         self,
         config: SchedulerConfig | None = None,
-        store: Optional[object] = None,
+        store: object | None = None,
     ) -> None:
         """Initialise the scheduler.
 

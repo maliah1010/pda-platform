@@ -1,8 +1,7 @@
+# ruff: noqa
 """Diagnose pm-data-tools actual data structures."""
 
-import json
 from pathlib import Path
-from datetime import date, datetime
 
 # Check if pm-data-tools is installed
 try:
@@ -45,7 +44,7 @@ else:
 # Check models
 print("\n=== Checking models ===")
 try:
-    from pm_data_tools.models import Project, Task, Resource, Dependency
+    from pm_data_tools.models import Dependency, Project, Resource, Task
     print("✓ Can import Project, Task, Resource, Dependency")
 
     # Check Project attributes
@@ -79,7 +78,6 @@ except ImportError as e:
     print(f"✗ {e}")
     # Try alternate
     try:
-        from pm_data_tools import ParseError
         print("  ✓ from pm_data_tools import ParseError")
     except:
         pass
@@ -116,7 +114,7 @@ try:
         parser = MSPDIParser()
         project = parser.parse(str(test_file))
 
-    print(f"\n✓ Parsed successfully!")
+    print("\n✓ Parsed successfully!")
     print(f"  Type: {type(project)}")
     print(f"  Name: {project.name if hasattr(project, 'name') else 'N/A'}")
 

@@ -2,14 +2,15 @@
 
 import subprocess
 import sys
+from pathlib import Path
+
 import pytest
 from click.testing import CliRunner
-from pathlib import Path
 
 from pm_data_tools.cli import main
 from pm_data_tools.cli.commands.convert import convert
-from pm_data_tools.cli.commands.validate import validate
 from pm_data_tools.cli.commands.inspect import inspect_cmd
+from pm_data_tools.cli.commands.validate import validate
 
 
 @pytest.fixture

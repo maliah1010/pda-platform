@@ -22,7 +22,6 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from pm_data_tools.db.store import AssuranceStore
-    from pm_data_tools.assurance.classifier import ClassificationInput
 
 # ---------------------------------------------------------------------------
 # Date helpers (mirrors generate_synthetic_data.py)
@@ -84,7 +83,7 @@ def _dimension_scores(overall: float) -> dict[str, float]:
 # P2 — Confidence scores
 # ---------------------------------------------------------------------------
 
-def _generate_confidence_scores(store: "AssuranceStore", project_id: str, domain: str) -> list[float]:
+def _generate_confidence_scores(store: AssuranceStore, project_id: str, domain: str) -> list[float]:
     scores = _score_trajectory(domain)
     for i, score in enumerate(scores):
         d = _month_date(i)
@@ -144,7 +143,7 @@ _STATUS_BY_DOMAIN = {
 }
 
 
-def _generate_recommendations(store: "AssuranceStore", project_id: str, domain: str) -> None:
+def _generate_recommendations(store: AssuranceStore, project_id: str, domain: str) -> None:
     texts = _ACTION_TEXTS[domain]
     statuses = _STATUS_BY_DOMAIN[domain]
     prev_ids: list[str] = []
@@ -203,7 +202,7 @@ def _sample_scores_for_signal(signal: str) -> tuple[float, list[float]]:
     return c, s
 
 
-def _generate_divergence_snapshots(store: "AssuranceStore", project_id: str, domain: str) -> None:
+def _generate_divergence_snapshots(store: AssuranceStore, project_id: str, domain: str) -> None:
     signals = _SIGNAL_BY_DOMAIN[domain]
     for quarter in range(1, 5):
         year_suffix = "2025" if quarter <= 2 else "2026"
@@ -235,7 +234,7 @@ _URGENCY_BY_DOMAIN = {
 _URGENCY_DAYS = {"IMMEDIATE": 7, "EXPEDITED": 14, "STANDARD": 42, "DEFERRED": 90}
 
 
-def _generate_schedule_recommendations(store: "AssuranceStore", project_id: str, domain: str) -> None:
+def _generate_schedule_recommendations(store: AssuranceStore, project_id: str, domain: str) -> None:
     urgency = _URGENCY_BY_DOMAIN[domain]
     days_ahead = _URGENCY_DAYS[urgency]
     for quarter in range(1, 5):
@@ -292,7 +291,7 @@ _CHAOTIC_OVERRIDE_TEMPLATES = [
 ]
 
 
-def _generate_overrides(store: "AssuranceStore", project_id: str, domain: str, sro: str) -> None:
+def _generate_overrides(store: AssuranceStore, project_id: str, domain: str, sro: str) -> None:
     if domain == "CLEAR":
         return
     logger_obj = OverrideDecisionLogger(store=store)
@@ -360,7 +359,7 @@ _ACTIVITY_TYPES_BY_DOMAIN = {
 
 
 def _generate_activities(
-    store: "AssuranceStore", project_id: str, domain: str, scores: list[float], project_name: str
+    store: AssuranceStore, project_id: str, domain: str, scores: list[float], project_name: str
 ) -> None:
     lo, hi = _ACTIVITY_COUNTS[domain]
     count = random.randint(lo, hi)
@@ -401,7 +400,10 @@ def _generate_activities(
 # P9 — Workflow executions
 # ---------------------------------------------------------------------------
 
-from pm_data_tools.assurance.workflows import AssuranceWorkflowEngine, WorkflowType  # noqa: E402
+from pm_data_tools.assurance.workflows import (  # noqa: E402
+    AssuranceWorkflowEngine,
+    WorkflowType,
+)
 
 _WORKFLOW_TYPES = [
     WorkflowType.FULL_ASSURANCE,
@@ -418,7 +420,7 @@ _HEALTH_BY_DOMAIN = {
 }
 
 
-def _generate_workflow_executions(store: "AssuranceStore", project_id: str, domain: str) -> None:
+def _generate_workflow_executions(store: AssuranceStore, project_id: str, domain: str) -> None:
     engine = AssuranceWorkflowEngine(store=store)
     health_pool = _HEALTH_BY_DOMAIN[domain]
     n_workflows = random.randint(2, 4)
@@ -452,7 +454,7 @@ def _generate_workflow_executions(store: "AssuranceStore", project_id: str, doma
 from pm_data_tools.assurance.classifier import ProjectDomainClassifier  # noqa: E402
 
 
-def _generate_domain_classification(store: "AssuranceStore", classifier_input: Any) -> None:
+def _generate_domain_classification(store: AssuranceStore, classifier_input: Any) -> None:
     clf = ProjectDomainClassifier(store=store)
     clf.classify(classifier_input)
     clf.reclassify_from_store(classifier_input.project_id)
@@ -479,9 +481,12 @@ _DOMAIN_ASSUMPTION_COUNTS = {"CLEAR": 4, "COMPLICATED": 6, "COMPLEX": 8, "CHAOTI
 _DOMAIN_DRIFT_SCALE = {"CLEAR": 0.02, "COMPLICATED": 0.08, "COMPLEX": 0.25, "CHAOTIC": 0.50}
 
 
-def _generate_assumptions(store: "AssuranceStore", project_id: str, domain: str) -> None:
+def _generate_assumptions(store: AssuranceStore, project_id: str, domain: str) -> None:
     from pm_data_tools.assurance.assumptions import (
-        Assumption, AssumptionCategory, AssumptionSource, AssumptionTracker,
+        Assumption,
+        AssumptionCategory,
+        AssumptionSource,
+        AssumptionTracker,
     )
     n = _DOMAIN_ASSUMPTION_COUNTS.get(domain, 5)
     drift_scale = _DOMAIN_DRIFT_SCALE.get(domain, 0.05)
@@ -515,7 +520,7 @@ def _generate_assumptions(store: "AssuranceStore", project_id: str, domain: str)
         baseline = float(row["baseline_value"])
         for v in range(n_validations):
             months_elapsed = int((v + 1) * (12 / n_validations))
-            val_date = base_date + timedelta(days=months_elapsed * 30)
+            base_date + timedelta(days=months_elapsed * 30)
             drift_factor = 1.0 + drift_scale * (v + 1) * random.uniform(0.5, 1.5)
             new_val = round(baseline * drift_factor if idx % 3 == 0 else baseline / drift_factor, 3)
             tracker.update_value(
@@ -544,9 +549,13 @@ _ARMM_WEAKEST_TOPIC: dict[str, dict[str, str]] = {
 }
 
 
-def _generate_armm_assessments(store: "AssuranceStore", project_id: str, domain: str) -> None:
+def _generate_armm_assessments(store: AssuranceStore, project_id: str, domain: str) -> None:
     from pm_data_tools.assurance.armm import (
-        ARMMScorer, ARMMTopic, CriterionResult, TOPIC_CRITERIA_COUNT, TOPIC_DIMENSION,
+        TOPIC_CRITERIA_COUNT,
+        TOPIC_DIMENSION,
+        ARMMScorer,
+        ARMMTopic,
+        CriterionResult,
     )
     scorer = ARMMScorer(store=store)
     pct_profile = _ARMM_DOMAIN_PCT.get(domain, _ARMM_DOMAIN_PCT["COMPLICATED"])
@@ -607,7 +616,7 @@ def _generate_armm_assessments(store: "AssuranceStore", project_id: str, domain:
 
 
 def generate_single_project(
-    store: "AssuranceStore",
+    store: AssuranceStore,
     project_id: str,
     domain: str,
     meta: dict[str, Any],

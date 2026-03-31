@@ -39,7 +39,7 @@ import uuid
 from collections import Counter
 from datetime import date, datetime, timezone
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 import structlog
 from pydantic import BaseModel, Field
@@ -248,13 +248,13 @@ class LessonsKnowledgeEngine:
         self._store = store or AssuranceStore()
         self._model_name = model_name
         self._similarity_threshold = similarity_threshold
-        self._model: Optional[object] = None  # lazy-loaded
+        self._model: object | None = None  # lazy-loaded
 
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
 
-    def _get_model(self) -> "SentenceTransformer":
+    def _get_model(self) -> SentenceTransformer:
         """Lazily load the sentence-transformer model.
 
         Returns:

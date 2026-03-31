@@ -4,9 +4,7 @@ This module provides utilities for generating and managing UUIDs from
 source system identifiers, ensuring consistent ID mapping across conversions.
 """
 
-from uuid import UUID, uuid4, uuid5, NAMESPACE_URL
-from typing import Optional
-
+from uuid import NAMESPACE_URL, UUID, uuid4, uuid5
 
 # Namespaces for different source tools
 MSPDI_NAMESPACE = uuid5(NAMESPACE_URL, "https://schemas.microsoft.com/project/mspdi")
@@ -18,7 +16,7 @@ MONDAY_NAMESPACE = uuid5(NAMESPACE_URL, "https://monday.com")
 
 
 def generate_uuid_from_source(
-    source_tool: str, source_id: str, namespace: Optional[UUID] = None
+    source_tool: str, source_id: str, namespace: UUID | None = None
 ) -> UUID:
     """Generate deterministic UUID from source tool and ID.
 
@@ -71,7 +69,7 @@ def generate_random_uuid() -> UUID:
     return uuid4()
 
 
-def parse_uuid(uuid_str: str) -> Optional[UUID]:
+def parse_uuid(uuid_str: str) -> UUID | None:
     """Parse UUID string.
 
     Args:

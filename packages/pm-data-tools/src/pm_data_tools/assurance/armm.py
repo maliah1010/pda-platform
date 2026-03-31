@@ -61,7 +61,6 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Optional
 
 import structlog
 from pydantic import BaseModel, Field
@@ -291,7 +290,7 @@ class CriterionResult(BaseModel):
 
     criterion_id: str  # e.g. "TC-IV-1", "OR-BC-3"
     met: bool
-    evidence_ref: Optional[str] = None  # document ID, URL, or artefact ref
+    evidence_ref: str | None = None  # document ID, URL, or artefact ref
     notes: str = ""
 
 
@@ -314,7 +313,7 @@ class ARMMDimensionResult(BaseModel):
     topic_results: dict[str, ARMMTopicResult] = Field(default_factory=dict)
     level: MaturityLevel  # min of constituent topic levels
     score_pct: float  # average topic score within dimension
-    blocking_topic: Optional[str] = None  # topic code that is weakest
+    blocking_topic: str | None = None  # topic code that is weakest
 
 
 class ARMMAssessment(BaseModel):
@@ -340,18 +339,18 @@ class ARMMReport(BaseModel):
     """Summary ARMM report for a project, derived from the latest assessment."""
 
     project_id: str
-    latest_assessment_id: Optional[str] = None
-    assessed_at: Optional[str] = None
+    latest_assessment_id: str | None = None
+    assessed_at: str | None = None
     overall_level: MaturityLevel = MaturityLevel.EXPERIMENTING
     overall_score_pct: float = 0.0
     criteria_total: int = 0
     criteria_met: int = 0
     dimension_levels: dict[str, int] = Field(default_factory=dict)
     dimension_scores: dict[str, float] = Field(default_factory=dict)
-    dimension_blocking_topics: dict[str, Optional[str]] = Field(default_factory=dict)
+    dimension_blocking_topics: dict[str, str | None] = Field(default_factory=dict)
     topic_levels: dict[str, int] = Field(default_factory=dict)
     topic_scores: dict[str, float] = Field(default_factory=dict)
-    blocking_dimension: Optional[str] = None
+    blocking_dimension: str | None = None
     history_count: int = 0
     maturity_trend: str = "stable"  # "improving" | "stable" | "declining"
 
@@ -381,7 +380,7 @@ class ARMMScorer:
     def __init__(
         self,
         store: AssuranceStore,
-        config: Optional[ARMMConfig] = None,
+        config: ARMMConfig | None = None,
     ) -> None:
         self.store = store
         self.config = config or ARMMConfig()
@@ -457,12 +456,12 @@ class ARMMScorer:
         topic_levels_raw: dict[str, int] = json.loads(latest["topic_levels_json"])
         dim_scores_raw: dict[str, float] = json.loads(latest["dimension_scores_json"])
         dim_levels_raw: dict[str, int] = json.loads(latest["dimension_levels_json"])
-        dim_blocking_raw: dict[str, Optional[str]] = json.loads(
+        dim_blocking_raw: dict[str, str | None] = json.loads(
             latest["dimension_blocking_json"]
         )
 
         # Identify weakest dimension
-        blocking_dim: Optional[str] = None
+        blocking_dim: str | None = None
         if dim_levels_raw:
             blocking_dim = min(dim_levels_raw, key=lambda k: dim_levels_raw[k])
 
@@ -492,7 +491,7 @@ class ARMMScorer:
         return report
 
     def get_portfolio_overview(
-        self, project_ids: Optional[list[str]] = None
+        self, project_ids: list[str] | None = None
     ) -> list[ARMMReport]:
         """Return :class:`ARMMReport` for multiple projects.
 
@@ -575,7 +574,7 @@ class ARMMScorer:
 
             # Mark blocking topic
             min_level = int(dim_level)
-            blocking_topic: Optional[str] = None
+            blocking_topic: str | None = None
             for t in dim_topics:
                 tr = d_topic_results[t.value]
                 if int(tr.level) == min_level:
@@ -611,7 +610,7 @@ class ARMMScorer:
 # ---------------------------------------------------------------------------
 
 
-def _criterion_to_topic(criterion_id: str) -> Optional[ARMMTopic]:
+def _criterion_to_topic(criterion_id: str) -> ARMMTopic | None:
     """Extract the ARMMTopic from a criterion ID (e.g. 'TC-IV-1' → TC_IV).
 
     Args:

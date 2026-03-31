@@ -6,7 +6,6 @@ Jira issues to the canonical project data model.
 
 from pm_data_tools.models import TaskStatus
 
-
 # Jira status categories to canonical task status
 STATUS_CATEGORY_TO_TASK_STATUS = {
     "new": TaskStatus.NOT_STARTED,

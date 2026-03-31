@@ -7,7 +7,7 @@ reference class forecasting, and ensemble methods with confidence intervals.
 
 import random
 from datetime import date, datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from .models import (
     AnalysisDepth,
@@ -99,7 +99,7 @@ class ForecastEngine:
 
         return forecast
 
-    def _calculate_status(self, project: Any, tasks: List[Any]) -> Dict:
+    def _calculate_status(self, project: Any, tasks: list[Any]) -> dict:
         """Calculate SPI, percent complete, etc."""
         today = date.today()
 
@@ -185,9 +185,9 @@ class ForecastEngine:
     def _earned_value_forecast(
         self,
         project: Any,
-        tasks: List[Any],
-        status: Dict,
-        baseline_finish: Optional[date]
+        tasks: list[Any],
+        status: dict,
+        baseline_finish: date | None
     ) -> Forecast:
         """EVM: Completion = Today + (Remaining / SPI)."""
         today = date.today()
@@ -266,9 +266,9 @@ class ForecastEngine:
     def _monte_carlo_forecast(
         self,
         project: Any,
-        tasks: List[Any],
-        status: Dict,
-        baseline_finish: Optional[date],
+        tasks: list[Any],
+        status: dict,
+        baseline_finish: date | None,
         depth: AnalysisDepth
     ) -> Forecast:
         """Simulation with triangular distribution variability."""
@@ -313,7 +313,7 @@ class ForecastEngine:
             confidence=0.75,
             factors=[
                 f"{iterations} simulations run",
-                f"P50 forecast",
+                "P50 forecast",
                 f"{status['percent_complete']:.1f}% complete"
             ],
             evidence=[
@@ -334,8 +334,8 @@ class ForecastEngine:
     def _simulate_completion(
         self,
         project: Any,
-        tasks: List[Any],
-        status: Dict,
+        tasks: list[Any],
+        status: dict,
         today: date
     ) -> date:
         """Run single Monte Carlo simulation."""
@@ -373,9 +373,9 @@ class ForecastEngine:
     def _reference_class_forecast(
         self,
         project: Any,
-        tasks: List[Any],
-        status: Dict,
-        baseline_finish: Optional[date]
+        tasks: list[Any],
+        status: dict,
+        baseline_finish: date | None
     ) -> Forecast:
         """Historical overrun factors (Flyvbjerg research)."""
         if not baseline_finish:
@@ -442,9 +442,9 @@ class ForecastEngine:
     def _simple_extrapolation_forecast(
         self,
         project: Any,
-        tasks: List[Any],
-        status: Dict,
-        baseline_finish: Optional[date]
+        tasks: list[Any],
+        status: dict,
+        baseline_finish: date | None
     ) -> Forecast:
         """Linear projection based on current progress rate."""
         today = date.today()
@@ -498,9 +498,9 @@ class ForecastEngine:
     def _ensemble_forecast(
         self,
         project: Any,
-        tasks: List[Any],
-        status: Dict,
-        baseline_finish: Optional[date],
+        tasks: list[Any],
+        status: dict,
+        baseline_finish: date | None,
         depth: AnalysisDepth
     ) -> Forecast:
         """Weighted ensemble of all methods."""
@@ -572,9 +572,9 @@ class ForecastEngine:
             }
         )
 
-    def _generate_scenarios(self, base_date: date, status: Dict) -> Dict[str, date]:
+    def _generate_scenarios(self, base_date: date, status: dict) -> dict[str, date]:
         """Generate optimistic/likely/pessimistic scenarios."""
-        spi = status.get("spi", 1.0)
+        status.get("spi", 1.0)
 
         # Optimistic: +10% performance
         optimistic_days = int((base_date - date.today()).days * 0.90)

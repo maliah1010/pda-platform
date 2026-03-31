@@ -10,8 +10,7 @@ All models include JSON serialization support via to_dict() methods.
 from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional
-
+from typing import Any
 
 # ============================================================================
 # Enumerations
@@ -89,10 +88,10 @@ class Evidence:
 
     source: str
     description: str
-    data_point: Optional[str] = None
+    data_point: str | None = None
     confidence: float = 1.0
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to JSON-serializable dictionary."""
         return {
             "source": self.source,
@@ -114,9 +113,9 @@ class Risk:
     impact: int       # 1-5
     score: int        # probability * impact
     confidence: float  # 0.0-1.0
-    evidence: List[Evidence] = field(default_factory=list)
-    related_tasks: List[str] = field(default_factory=list)
-    suggested_mitigation: Optional[str] = None
+    evidence: list[Evidence] = field(default_factory=list)
+    related_tasks: list[str] = field(default_factory=list)
+    suggested_mitigation: str | None = None
     detected_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     def __post_init__(self):
@@ -141,7 +140,7 @@ class Risk:
             return Severity.LOW
         return Severity.INFO
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to JSON-serializable dictionary."""
         return {
             "id": self.id,
@@ -171,9 +170,9 @@ class Mitigation:
     effort: str  # low/medium/high
     effectiveness: float  # 0.0-1.0
     confidence: float
-    implementation_steps: List[str] = field(default_factory=list)
-    resource_requirements: List[str] = field(default_factory=list)
-    timeline_days: Optional[int] = None
+    implementation_steps: list[str] = field(default_factory=list)
+    resource_requirements: list[str] = field(default_factory=list)
+    timeline_days: int | None = None
 
     def __post_init__(self):
         """Validate effectiveness and confidence ranges."""
@@ -184,7 +183,7 @@ class Mitigation:
         if self.effort not in ("low", "medium", "high"):
             raise ValueError(f"Effort must be low/medium/high, got {self.effort}")
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to JSON-serializable dictionary."""
         return {
             "id": self.id,
@@ -214,14 +213,14 @@ class Outlier:
     severity: Severity
     confidence: float
     explanation: str
-    evidence: List[Evidence] = field(default_factory=list)
+    evidence: list[Evidence] = field(default_factory=list)
 
     def __post_init__(self):
         """Validate confidence range."""
         if not 0.0 <= self.confidence <= 1.0:
             raise ValueError(f"Confidence must be between 0.0 and 1.0, got {self.confidence}")
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to JSON-serializable dictionary."""
         return {
             "id": self.id,
@@ -249,9 +248,9 @@ class Forecast:
     variance_days: int
     on_track: bool
     confidence: float
-    factors: List[str] = field(default_factory=list)
-    evidence: List[Evidence] = field(default_factory=list)
-    scenarios: Dict[str, date] = field(default_factory=dict)
+    factors: list[str] = field(default_factory=list)
+    evidence: list[Evidence] = field(default_factory=list)
+    scenarios: dict[str, date] = field(default_factory=dict)
 
     def __post_init__(self):
         """Validate confidence values."""
@@ -260,7 +259,7 @@ class Forecast:
         if not 0.0 <= self.confidence <= 1.0:
             raise ValueError(f"Confidence must be between 0.0 and 1.0, got {self.confidence}")
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to JSON-serializable dictionary."""
         return {
             "forecast_date": self.forecast_date.isoformat() if isinstance(self.forecast_date, date) else str(self.forecast_date),
@@ -290,7 +289,7 @@ class HealthDimension:
     score: float  # 0-100
     status: HealthStatus
     trend: TrendDirection
-    issues: List[str] = field(default_factory=list)
+    issues: list[str] = field(default_factory=list)
     weight: float = 0.2
 
     def __post_init__(self):
@@ -300,7 +299,7 @@ class HealthDimension:
         if not 0.0 <= self.weight <= 1.0:
             raise ValueError(f"Weight must be between 0.0 and 1.0, got {self.weight}")
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to JSON-serializable dictionary."""
         return {
             "name": self.name,
@@ -318,9 +317,9 @@ class HealthAssessment:
 
     overall_score: float
     overall_status: HealthStatus
-    dimensions: List[HealthDimension]
-    top_concerns: List[str]
-    recommendations: List[str]
+    dimensions: list[HealthDimension]
+    top_concerns: list[str]
+    recommendations: list[str]
     confidence: float
     assessed_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -331,7 +330,7 @@ class HealthAssessment:
         if not 0.0 <= self.confidence <= 1.0:
             raise ValueError(f"Confidence must be between 0.0 and 1.0, got {self.confidence}")
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to JSON-serializable dictionary."""
         return {
             "overall_score": self.overall_score,
@@ -358,7 +357,7 @@ class BaselineVariance:
     severity: Severity
     explanation: str
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to JSON-serializable dictionary."""
         return {
             "task_id": self.task_id,
@@ -380,12 +379,12 @@ class AnalysisMetadata:
     analysis_id: str
     analysis_type: str
     started_at: datetime
-    completed_at: Optional[datetime] = None
-    duration_ms: Optional[int] = None
+    completed_at: datetime | None = None
+    duration_ms: int | None = None
     depth: AnalysisDepth = AnalysisDepth.STANDARD
     tasks_analyzed: int = 0
     overall_confidence: float = 0.0
-    warnings: List[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
 
     def __post_init__(self):
         """Validate confidence range."""
@@ -398,7 +397,7 @@ class AnalysisMetadata:
         delta = self.completed_at - self.started_at
         self.duration_ms = int(delta.total_seconds() * 1000)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to JSON-serializable dictionary."""
         return {
             "analysis_id": self.analysis_id,

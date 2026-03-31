@@ -1,6 +1,5 @@
 """Ollama (local models) provider implementation."""
 
-from typing import Optional
 
 try:
     import ollama
@@ -46,7 +45,7 @@ class OllamaProvider(BaseProvider):
     async def complete(
         self,
         messages: list[dict],
-        system: Optional[str] = None,
+        system: str | None = None,
         **kwargs,
     ) -> ProviderResponse:
         """Generate a completion using Ollama."""

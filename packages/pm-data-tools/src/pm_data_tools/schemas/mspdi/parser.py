@@ -4,45 +4,43 @@ This module provides parsing functionality to convert MSPDI (Microsoft Project
 Data Interchange) XML files into the canonical project management data model.
 """
 
-from pathlib import Path
-from typing import Optional
 from decimal import Decimal
+from pathlib import Path
 from uuid import UUID
-from datetime import datetime
 
 from lxml import etree
 
 from pm_data_tools.models import (
-    Project,
-    Task,
-    Resource,
     Assignment,
-    Dependency,
     Calendar,
-    SourceInfo,
-    Duration,
-    Money,
     CustomField,
     DeliveryConfidence,
-)
-from pm_data_tools.utils.xml_helpers import (
-    parse_xml_file,
-    parse_xml_string,
-    get_text,
-    get_int,
-    get_float,
-    get_bool,
-    strip_namespaces,
+    Dependency,
+    Duration,
+    Money,
+    Project,
+    Resource,
+    SourceInfo,
+    Task,
 )
 from pm_data_tools.utils.dates import parse_iso_datetime, parse_mspdi_duration
 from pm_data_tools.utils.identifiers import generate_uuid_from_source
+from pm_data_tools.utils.xml_helpers import (
+    get_bool,
+    get_float,
+    get_int,
+    get_text,
+    parse_xml_file,
+    parse_xml_string,
+    strip_namespaces,
+)
 
 from .constants import (
+    DEFAULT_CURRENCY,
     MSPDI_CONSTRAINT_TYPE_MAP,
     MSPDI_DEPENDENCY_TYPE_MAP,
     MSPDI_RESOURCE_TYPE_MAP,
     get_task_status_from_percent,
-    DEFAULT_CURRENCY,
 )
 
 
@@ -58,7 +56,7 @@ class MspdiParser:
         """Initialise MSPDI parser."""
         self.source_tool = "mspdi"
 
-    def parse_file(self, file_path: str | Path) -> Optional[Project]:
+    def parse_file(self, file_path: str | Path) -> Project | None:
         """Parse MSPDI XML file into Project model.
 
         Args:
@@ -76,7 +74,7 @@ class MspdiParser:
 
         return self._parse_project(root)
 
-    def parse_string(self, xml_content: str | bytes) -> Optional[Project]:
+    def parse_string(self, xml_content: str | bytes) -> Project | None:
         """Parse MSPDI XML string into Project model.
 
         Args:
@@ -113,10 +111,10 @@ class MspdiParser:
         start_date = parse_iso_datetime(get_text(root, "StartDate"))
         finish_date = parse_iso_datetime(get_text(root, "FinishDate"))
         status_date = parse_iso_datetime(get_text(root, "StatusDate"))
-        baseline_date = parse_iso_datetime(get_text(root, "CurrentDate"))
+        parse_iso_datetime(get_text(root, "CurrentDate"))
 
         # Parse currency
-        currency_code = get_text(root, "CurrencyCode", default=DEFAULT_CURRENCY)
+        get_text(root, "CurrencyCode", default=DEFAULT_CURRENCY)
 
         # Parse custom fields
         custom_fields_dict: dict[str, str] = {}
@@ -205,7 +203,7 @@ class MspdiParser:
 
         return tasks
 
-    def _parse_task(self, elem: etree._Element) -> Optional[Task]:
+    def _parse_task(self, elem: etree._Element) -> Task | None:
         """Parse single Task element.
 
         Args:
@@ -230,7 +228,7 @@ class MspdiParser:
 
         # Parent task
         # Parent task
-        parent_id: Optional[UUID] = None
+        parent_id: UUID | None = None
         parent_uid = get_text(elem, "OutlineParent")
         if parent_uid:
             parent_id = generate_uuid_from_source(self.source_tool, parent_uid)
@@ -240,8 +238,8 @@ class MspdiParser:
         finish_date = parse_iso_datetime(get_text(elem, "Finish"))
         actual_start = parse_iso_datetime(get_text(elem, "ActualStart"))
         actual_finish = parse_iso_datetime(get_text(elem, "ActualFinish"))
-        baseline_start = parse_iso_datetime(get_text(elem, "BaselineStart"))
-        baseline_finish = parse_iso_datetime(get_text(elem, "BaselineFinish"))
+        parse_iso_datetime(get_text(elem, "BaselineStart"))
+        parse_iso_datetime(get_text(elem, "BaselineFinish"))
 
         # Duration
         duration_str = get_text(elem, "Duration", default="PT0H0M0S")
@@ -252,7 +250,7 @@ class MspdiParser:
 
         # Progress
         percent_complete = get_float(elem, "PercentComplete", default=0.0)
-        percent_work_complete = get_float(elem, "PercentWorkComplete", default=0.0)
+        get_float(elem, "PercentWorkComplete", default=0.0)
 
         # Status from percent complete
         status = get_task_status_from_percent(percent_complete)
@@ -290,7 +288,7 @@ class MspdiParser:
         )
 
         # Priority
-        priority = get_int(elem, "Priority", default=500)
+        get_int(elem, "Priority", default=500)
 
         # Source info
         source = SourceInfo(
@@ -347,7 +345,7 @@ class MspdiParser:
 
         return resources
 
-    def _parse_resource(self, elem: etree._Element) -> Optional[Resource]:
+    def _parse_resource(self, elem: etree._Element) -> Resource | None:
         """Parse single Resource element.
 
         Args:
@@ -429,7 +427,7 @@ class MspdiParser:
 
         return assignments
 
-    def _parse_assignment(self, elem: etree._Element) -> Optional[Assignment]:
+    def _parse_assignment(self, elem: etree._Element) -> Assignment | None:
         """Parse single Assignment element.
 
         Args:
@@ -587,7 +585,7 @@ class MspdiParser:
 
         return calendars
 
-    def _parse_calendar(self, elem: etree._Element) -> Optional[Calendar]:
+    def _parse_calendar(self, elem: etree._Element) -> Calendar | None:
         """Parse single Calendar element.
 
         Args:

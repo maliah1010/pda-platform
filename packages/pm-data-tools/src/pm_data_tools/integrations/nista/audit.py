@@ -8,13 +8,13 @@ meeting UK Government requirements for:
 - Full traceability from source to NISTA
 """
 
-from dataclasses import dataclass, asdict
-from datetime import datetime
-from typing import Optional, List, Dict, Any
 import hashlib
 import json
 import os
+from dataclasses import asdict, dataclass
+from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 
 @dataclass
@@ -40,12 +40,12 @@ class AuditEntry:
     user: str
     project_id: str
     data_hash: str
-    source_systems: List[str]
-    nista_submission_id: Optional[str]
+    source_systems: list[str]
+    nista_submission_id: str | None
     response_status: int
-    response_body: Optional[Dict[str, Any]]
-    entry_hash: Optional[str] = None
-    previous_entry_hash: Optional[str] = None
+    response_body: dict[str, Any] | None
+    entry_hash: str | None = None
+    previous_entry_hash: str | None = None
 
 
 class AuditLogger:
@@ -70,7 +70,7 @@ class AuditLogger:
 
     def __init__(
         self,
-        log_dir: Optional[Path] = None,
+        log_dir: Path | None = None,
         retention_years: int = 7
     ):
         """Initialize audit logger.
@@ -84,14 +84,14 @@ class AuditLogger:
         self.retention_years = retention_years
 
         # Initialize or load chain
-        self._last_entry_hash: Optional[str] = self._load_last_entry_hash()
+        self._last_entry_hash: str | None = self._load_last_entry_hash()
 
     def log_submission(
         self,
         project_id: str,
         report: Any,
         response_status: int,
-        response_body: Optional[Dict[str, Any]] = None,
+        response_body: dict[str, Any] | None = None,
     ) -> AuditEntry:
         """Log GMPP quarterly return submission.
 
@@ -139,7 +139,7 @@ class AuditLogger:
         project_id: str,
         action: str,
         response_status: int,
-        response_body: Optional[Dict[str, Any]] = None,
+        response_body: dict[str, Any] | None = None,
     ) -> AuditEntry:
         """Log data fetch operation.
 
@@ -173,12 +173,12 @@ class AuditLogger:
 
     def get_entries(
         self,
-        project_id: Optional[str] = None,
-        action: Optional[str] = None,
-        start_date: Optional[datetime] = None,
-        end_date: Optional[datetime] = None,
+        project_id: str | None = None,
+        action: str | None = None,
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
         limit: int = 100,
-    ) -> List[AuditEntry]:
+    ) -> list[AuditEntry]:
         """Retrieve audit entries matching criteria.
 
         Args:
@@ -197,7 +197,7 @@ class AuditLogger:
         log_files = sorted(self.log_dir.glob("audit_*.jsonl"), reverse=True)
 
         for log_file in log_files:
-            with open(log_file, "r") as f:
+            with open(log_file) as f:
                 for line in reversed(f.readlines()):
                     try:
                         entry_dict = json.loads(line)
@@ -237,7 +237,7 @@ class AuditLogger:
         previous_hash = None
 
         for log_file in log_files:
-            with open(log_file, "r") as f:
+            with open(log_file) as f:
                 for line in f:
                     try:
                         entry_dict = json.loads(line)
@@ -273,7 +273,7 @@ class AuditLogger:
         with open(log_file, "a") as f:
             f.write(json.dumps(asdict(entry), default=str) + "\n")
 
-    def _hash_data(self, data: Dict[str, Any]) -> str:
+    def _hash_data(self, data: dict[str, Any]) -> str:
         """Calculate SHA-256 hash of data for tamper detection.
 
         Args:
@@ -308,7 +308,7 @@ class AuditLogger:
         """
         return os.getenv("USER") or os.getenv("USERNAME") or "system"
 
-    def _load_last_entry_hash(self) -> Optional[str]:
+    def _load_last_entry_hash(self) -> str | None:
         """Load hash of last entry for chain continuation.
 
         Returns:
@@ -318,7 +318,7 @@ class AuditLogger:
 
         for log_file in log_files:
             try:
-                with open(log_file, "r") as f:
+                with open(log_file) as f:
                     lines = f.readlines()
                     if lines:
                         last_line = lines[-1]
@@ -329,7 +329,7 @@ class AuditLogger:
 
         return None
 
-    def _dict_to_entry(self, entry_dict: Dict[str, Any]) -> AuditEntry:
+    def _dict_to_entry(self, entry_dict: dict[str, Any]) -> AuditEntry:
         """Convert dictionary to AuditEntry.
 
         Args:

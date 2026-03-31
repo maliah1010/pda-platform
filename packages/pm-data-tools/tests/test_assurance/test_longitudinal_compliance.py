@@ -5,15 +5,13 @@ P2: LongitudinalComplianceTracker
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-
 import pytest
 
 from pm_data_tools.db.store import AssuranceStore
 from pm_data_tools.schemas.nista.longitudinal import (
+    ComplianceThresholdConfig,
     ConfidenceScoreRecord,
     LongitudinalComplianceTracker,
-    ComplianceThresholdConfig,
     TrendDirection,
 )
 from pm_data_tools.schemas.nista.validator import NISTAValidator, StrictnessLevel

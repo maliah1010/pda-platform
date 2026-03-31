@@ -1,8 +1,8 @@
 """Data models for confidence extraction."""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 
 class ReviewLevel(Enum):
@@ -48,7 +48,7 @@ class ConfidenceResult:
     tokens_used: int                                # Total tokens
     latency_ms: int                                 # Total time
     review_level: ReviewLevel                       # Recommended review level
-    review_reason: Optional[str] = None             # Why review recommended
+    review_reason: str | None = None             # Why review recommended
 
     @property
     def review_recommended(self) -> bool:

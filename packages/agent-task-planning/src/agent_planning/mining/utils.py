@@ -2,12 +2,12 @@
 
 import json
 import re
+from typing import Any
+
 import numpy as np
-from typing import Any, Optional
 
-from .models import QualityScore
 from .config import PromptDiversification
-
+from .models import QualityScore
 
 # Role injection templates for prompt diversification
 ROLE_TEMPLATES = [
@@ -73,7 +73,7 @@ def diversify_prompt(
     return base_prompt
 
 
-def parse_json_response(content: str) -> Optional[dict[str, Any]]:
+def parse_json_response(content: str) -> dict[str, Any] | None:
     """Parse JSON from LLM response."""
     content = content.strip()
 
@@ -104,7 +104,7 @@ def parse_json_response(content: str) -> Optional[dict[str, Any]]:
 def assess_quality(
     response: str,
     query: str,
-    extracted: Optional[dict],
+    extracted: dict | None,
     threshold: float = 0.6
 ) -> QualityScore:
     """Assess quality of a response.

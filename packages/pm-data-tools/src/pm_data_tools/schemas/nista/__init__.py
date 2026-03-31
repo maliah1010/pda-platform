@@ -19,7 +19,12 @@ from .longitudinal import (
     TrendDirection,
 )
 from .parser import NISTAParser
-from .validator import NISTAValidator, StrictnessLevel, ValidationResult, ValidationIssue
+from .validator import (
+    NISTAValidator,
+    StrictnessLevel,
+    ValidationIssue,
+    ValidationResult,
+)
 
 __all__ = [
     "NISTAParser",

@@ -1194,7 +1194,7 @@ class AssuranceWorkflowEngine:
                 output={"reason": "No store configured."},
             )
 
-        from .armm import ARMMScorer, MATURITY_LABELS
+        from .armm import MATURITY_LABELS, ARMMScorer
 
         scorer = ARMMScorer(store=self._store)
         report = scorer.get_report(project_id)

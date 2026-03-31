@@ -26,7 +26,6 @@ from __future__ import annotations
 import json
 import sqlite3
 from pathlib import Path
-from typing import Optional
 
 import structlog
 
@@ -58,7 +57,7 @@ class AssuranceStore:
         )
     """
 
-    def __init__(self, db_path: Optional[Path] = None) -> None:
+    def __init__(self, db_path: Path | None = None) -> None:
         """Initialise the store and create tables if absent.
 
         Args:
@@ -396,7 +395,7 @@ class AssuranceStore:
     def get_recommendations(
         self,
         project_id: str,
-        status_filter: Optional[str] = None,
+        status_filter: str | None = None,
     ) -> list[dict[str, object]]:
         """Retrieve recommendations for a project, optionally filtered by status.
 
@@ -655,8 +654,8 @@ class AssuranceStore:
     def get_override_decisions(
         self,
         project_id: str,
-        override_type: Optional[str] = None,
-        outcome: Optional[str] = None,
+        override_type: str | None = None,
+        outcome: str | None = None,
     ) -> list[dict[str, object]]:
         """Retrieve override decisions, optionally filtered by type and/or outcome.
 
@@ -708,8 +707,8 @@ class AssuranceStore:
         self,
         override_id: str,
         outcome: str,
-        outcome_date: Optional[str] = None,
-        outcome_notes: Optional[str] = None,
+        outcome_date: str | None = None,
+        outcome_notes: str | None = None,
     ) -> None:
         """Update the outcome of a previously logged override decision.
 
@@ -783,9 +782,9 @@ class AssuranceStore:
 
     def get_lessons(
         self,
-        project_id: Optional[str] = None,
-        category: Optional[str] = None,
-        sentiment: Optional[str] = None,
+        project_id: str | None = None,
+        category: str | None = None,
+        sentiment: str | None = None,
     ) -> list[dict[str, object]]:
         """Retrieve lessons, optionally filtered by project, category, and sentiment.
 
@@ -903,7 +902,7 @@ class AssuranceStore:
     def get_assurance_activities(
         self,
         project_id: str,
-        activity_type: Optional[str] = None,
+        activity_type: str | None = None,
     ) -> list[dict[str, object]]:
         """Retrieve assurance activities for a project.
 
@@ -1198,7 +1197,7 @@ class AssuranceStore:
     def get_assumptions(
         self,
         project_id: str,
-        category: Optional[str] = None,
+        category: str | None = None,
     ) -> list[dict[str, object]]:
         """Retrieve assumptions for a project, optionally filtered by category.
 
@@ -1459,10 +1458,10 @@ class AssuranceStore:
 
     def get_armm_criterion_results(
         self,
-        assessment_id: Optional[str] = None,
-        project_id: Optional[str] = None,
-        dimension_code: Optional[str] = None,
-        topic_code: Optional[str] = None,
+        assessment_id: str | None = None,
+        project_id: str | None = None,
+        dimension_code: str | None = None,
+        topic_code: str | None = None,
     ) -> list[dict[str, object]]:
         """Retrieve criterion-level results with optional filters.
 

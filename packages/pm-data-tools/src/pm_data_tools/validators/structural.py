@@ -7,10 +7,10 @@ This module validates the structural integrity of project data including:
 - Date consistency
 """
 
-from typing import Optional
 
 from pm_data_tools.models import Project
-from .base import ValidationIssue, ValidationResult, Severity
+
+from .base import Severity, ValidationIssue, ValidationResult
 
 
 class StructuralValidator:
@@ -109,7 +109,7 @@ class StructuralValidator:
                 issues.append(
                     ValidationIssue(
                         code="INVALID_PARENT_TASK_REF",
-                        message=f"Task references non-existent parent task",
+                        message="Task references non-existent parent task",
                         severity=Severity.ERROR,
                         context=f"Task: {task.name} (ID: {task.id}), Parent ID: {task.parent_id}",
                         suggestion="Ensure the parent task exists in the project",
@@ -262,17 +262,16 @@ class StructuralValidator:
         issues: list[ValidationIssue] = []
 
         # Validate project dates
-        if project.start_date and project.finish_date:
-            if project.finish_date < project.start_date:
-                issues.append(
-                    ValidationIssue(
-                        code="INVALID_PROJECT_DATES",
-                        message="Project finish date is before start date",
-                        severity=Severity.ERROR,
-                        context=f"Start: {project.start_date}, Finish: {project.finish_date}",
-                        suggestion="Ensure finish date is on or after start date",
-                    )
+        if project.start_date and project.finish_date and project.finish_date < project.start_date:
+            issues.append(
+                ValidationIssue(
+                    code="INVALID_PROJECT_DATES",
+                    message="Project finish date is before start date",
+                    severity=Severity.ERROR,
+                    context=f"Start: {project.start_date}, Finish: {project.finish_date}",
+                    suggestion="Ensure finish date is on or after start date",
                 )
+            )
 
         # Validate task dates
         for task in project.tasks:

@@ -1,15 +1,14 @@
 """Tests for aggregation functions."""
 
-import pytest
 from agent_planning.confidence.aggregation import (
-    compute_iqr,
-    detect_numeric_outliers,
-    aggregate_numeric,
     aggregate_categorical,
     aggregate_list_fields,
-    compute_field_confidence,
-    compute_overall_confidence,
+    aggregate_numeric,
     check_early_stop,
+    compute_field_confidence,
+    compute_iqr,
+    compute_overall_confidence,
+    detect_numeric_outliers,
 )
 
 

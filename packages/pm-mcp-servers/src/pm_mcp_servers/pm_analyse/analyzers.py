@@ -10,7 +10,7 @@ This module provides three analyzer classes:
 import uuid
 from datetime import date, datetime
 from statistics import mean, stdev
-from typing import Any, List, Optional
+from typing import Any
 
 from .models import (
     BaselineVariance,
@@ -52,8 +52,8 @@ class OutlierDetector:
         self,
         project: Any,
         sensitivity: float = 1.0,
-        focus_areas: Optional[List[str]] = None
-    ) -> List[Outlier]:
+        focus_areas: list[str] | None = None
+    ) -> list[Outlier]:
         """
         Detect outliers in project data.
 
@@ -66,7 +66,7 @@ class OutlierDetector:
         Returns:
             List of detected outliers with confidence scores
         """
-        outliers: List[Outlier] = []
+        outliers: list[Outlier] = []
         tasks = getattr(project, 'tasks', [])
 
         # Filter to work tasks only
@@ -103,11 +103,11 @@ class OutlierDetector:
 
     def _detect_duration_outliers(
         self,
-        tasks: List[Any],
+        tasks: list[Any],
         stdev_multiplier: float
-    ) -> List[Outlier]:
+    ) -> list[Outlier]:
         """Detect tasks with unusual durations."""
-        outliers: List[Outlier] = []
+        outliers: list[Outlier] = []
 
         # Calculate duration statistics
         durations = []
@@ -209,7 +209,7 @@ class OutlierDetector:
 
         return outliers
 
-    def _detect_progress_outliers(self, tasks: List[Any]) -> List[Outlier]:
+    def _detect_progress_outliers(self, tasks: list[Any]) -> list[Outlier]:
         """Detect tasks with suspicious progress patterns."""
         outliers = []
         today = date.today()
@@ -282,9 +282,9 @@ class OutlierDetector:
 
     def _detect_float_outliers(
         self,
-        tasks: List[Any],
+        tasks: list[Any],
         excessive_threshold: float
-    ) -> List[Outlier]:
+    ) -> list[Outlier]:
         """Detect tasks with abnormal float values."""
         outliers = []
 
@@ -341,7 +341,7 @@ class OutlierDetector:
 
         return outliers
 
-    def _detect_date_outliers(self, tasks: List[Any]) -> List[Outlier]:
+    def _detect_date_outliers(self, tasks: list[Any]) -> list[Outlier]:
         """Detect impossible or suspicious date values."""
         outliers = []
         today = date.today()
@@ -433,7 +433,7 @@ class HealthAnalyzer:
         self,
         project: Any,
         include_trends: bool = True,
-        weights: Optional[dict] = None
+        weights: dict | None = None
     ) -> HealthAssessment:
         """
         Assess overall project health across all dimensions.
@@ -689,7 +689,7 @@ class HealthAnalyzer:
 
         # Check completion rate
         completed = sum(1 for t in work_tasks if getattr(t, 'percent_complete', 0) == 100)
-        completion_pct = (completed / len(work_tasks)) * 100
+        (completed / len(work_tasks)) * 100
 
         # Determine status
         if score >= 80:
@@ -765,7 +765,7 @@ class HealthAnalyzer:
             weight=weight
         )
 
-    def _generate_recommendations(self, dimensions: List[HealthDimension]) -> List[str]:
+    def _generate_recommendations(self, dimensions: list[HealthDimension]) -> list[str]:
         """Generate recommendations based on dimension health."""
         recommendations = []
 
@@ -780,7 +780,7 @@ class HealthAnalyzer:
 
         return recommendations[:5]  # Top 5 recommendations
 
-    def _calculate_confidence(self, project: Any, dimensions: List[HealthDimension]) -> float:
+    def _calculate_confidence(self, project: Any, dimensions: list[HealthDimension]) -> float:
         """Calculate confidence in health assessment."""
         # Base confidence
         confidence = 0.70
@@ -795,15 +795,15 @@ class HealthAnalyzer:
 
         return min(confidence, 0.95)
 
-    def _get_cost_value(self, cost: Any) -> Optional[float]:
+    def _get_cost_value(self, cost: Any) -> float | None:
         """Extract numeric value from cost object or number."""
         if cost is None:
             return None
-        if isinstance(cost, (int, float)):
+        if isinstance(cost, int | float):
             return float(cost)
         if hasattr(cost, 'amount'):
             amount = getattr(cost, 'amount')
-            if isinstance(amount, (int, float)):
+            if isinstance(amount, int | float):
                 return float(amount)
         return None
 
@@ -836,7 +836,7 @@ class BaselineComparator:
         project: Any,
         baseline_type: str = "current",
         threshold: float = 0.0
-    ) -> List[BaselineVariance]:
+    ) -> list[BaselineVariance]:
         """
         Compare current values against baseline.
 

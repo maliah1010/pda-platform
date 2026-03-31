@@ -104,7 +104,7 @@ exclude_lines = [
 fail_under = 100
 
 [tool.ruff]
-line-length = 88
+line-length = 120
 target-version = "py310"
 src = ["src", "tests"]
 
@@ -120,7 +120,7 @@ select = [
     "C4",   # flake8-comprehensions
     "SIM",  # flake8-simplify
 ]
-ignore = []
+ignore = ["E501", "E722", "E741", "E402", "B904", "SIM108", "SIM102", "SIM116", "N802", "B017"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

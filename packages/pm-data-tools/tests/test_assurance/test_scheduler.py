@@ -8,6 +8,7 @@ edge cases.
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
 
 import pytest
 
@@ -21,14 +22,12 @@ from pm_data_tools.assurance.scheduler import (
     AdaptiveReviewScheduler,
     ReviewUrgency,
     SchedulerConfig,
-    SchedulerRecommendation,
 )
 from pm_data_tools.db.store import AssuranceStore
 from pm_data_tools.schemas.nista.longitudinal import (
     ThresholdBreach,
     TrendDirection,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -344,7 +343,7 @@ def test_custom_source_weights() -> None:
         recurring_actions=0,
     )
 
-    p3_signal = next(s for s in rec.signals if s.source == "P3")
+    next(s for s in rec.signals if s.source == "P3")
     # composite = P3.severity * 1.0 / (0.0 + 1.0) = 0.6
     assert rec.composite_score == pytest.approx(0.60)
 
@@ -431,9 +430,8 @@ def test_rationale_no_signals() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_persistence(tmp_path: "Path") -> None:
+def test_persistence(tmp_path: Path) -> None:
     """Recommendation is persisted and retrievable from the store."""
-    from pathlib import Path
 
     store = AssuranceStore(db_path=tmp_path / "store.db")
     scheduler = AdaptiveReviewScheduler(store=store)

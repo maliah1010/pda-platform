@@ -7,7 +7,7 @@ different MCP server modules (pm-data, pm-analyse, pm-validate).
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any
 
 
 @dataclass
@@ -19,7 +19,7 @@ class ProjectStore:
         """Store a project."""
         self._projects[project_id] = project
 
-    def get(self, project_id: str) -> Optional[Any]:
+    def get(self, project_id: str) -> Any | None:
         """Retrieve a project by ID."""
         return self._projects.get(project_id)
 

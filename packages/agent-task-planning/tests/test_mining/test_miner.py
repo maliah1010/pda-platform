@@ -1,8 +1,9 @@
 """Tests for OutlierMiner."""
 
 import pytest
-from agent_planning.mining import OutlierMiner, MiningConfig
+
 from agent_planning.confidence import SchemaType
+from agent_planning.mining import MiningConfig, OutlierMiner
 
 
 @pytest.mark.asyncio

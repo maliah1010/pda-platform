@@ -4,13 +4,14 @@ This module provides a high-level client for interacting with NISTA systems,
 including quarterly return submission, project metadata fetching, and error handling.
 """
 
-from typing import Optional, Dict, Any, List
 from datetime import datetime
-from pydantic import BaseModel, Field
-import httpx
+from typing import Any
 
-from pm_data_tools.integrations.nista.auth import NISTAAuthClient
+import httpx
+from pydantic import BaseModel, Field
+
 from pm_data_tools.gmpp.models import QuarterlyReport
+from pm_data_tools.integrations.nista.auth import NISTAAuthClient
 
 
 class SubmissionResult(BaseModel):
@@ -26,20 +27,20 @@ class SubmissionResult(BaseModel):
     """
 
     success: bool = Field(..., description="Submission success status")
-    submission_id: Optional[str] = Field(
+    submission_id: str | None = Field(
         None,
         description="NISTA submission ID (assigned on success)"
     )
     timestamp: datetime = Field(..., description="Submission timestamp")
-    validation_warnings: List[str] = Field(
+    validation_warnings: list[str] = Field(
         default_factory=list,
         description="Non-critical validation warnings"
     )
-    error: Optional[str] = Field(
+    error: str | None = Field(
         None,
         description="Error message if submission failed"
     )
-    details: Optional[Dict[str, Any]] = Field(
+    details: dict[str, Any] | None = Field(
         None,
         description="Additional error details"
     )
@@ -101,7 +102,7 @@ class NISTAAPIClient:
         """
         self.auth = auth_client
         self.base_url = auth_client.config.base_url
-        self._http_client: Optional[httpx.AsyncClient] = None
+        self._http_client: httpx.AsyncClient | None = None
 
     async def submit_quarterly_return(
         self,
@@ -244,7 +245,7 @@ class NISTAAPIClient:
                 raise ValueError(f"Project not found in NISTA registry: {project_id}") from e
             raise
 
-    async def fetch_guidance(self, topic: str) -> Dict[str, Any]:
+    async def fetch_guidance(self, topic: str) -> dict[str, Any]:
         """Fetch latest NISTA guidance documents.
 
         Args:
@@ -282,7 +283,7 @@ class NISTAAPIClient:
         self,
         project_id: str,
         limit: int = 10
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Get submission history for a project.
 
         Args:

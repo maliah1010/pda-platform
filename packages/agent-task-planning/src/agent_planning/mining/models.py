@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from .config import MiningConfig
 
@@ -127,12 +127,12 @@ class MiningCandidate:
 class MiningResult:
     """Result of an outlier mining operation."""
     query: str                                   # Original query
-    context: Optional[str]                       # Context document (if provided)
+    context: str | None                       # Context document (if provided)
     schema_used: str                             # Schema name used
 
     # Candidates
     candidates: list[MiningCandidate]            # Top candidates (sorted by score)
-    consensus_baseline: Optional[dict[str, Any]] # What consensus mode would return
+    consensus_baseline: dict[str, Any] | None # What consensus mode would return
 
     # Clustering
     num_clusters: int                            # Number of distinct approaches found
@@ -144,7 +144,7 @@ class MiningResult:
     effective_diversity: float                   # Diversity × quality_pass_rate
 
     # Generation metadata
-    convergence_point: Optional[int]             # Sample where saturation detected
+    convergence_point: int | None             # Sample where saturation detected
     samples_generated: int                       # Total samples generated
     samples_passed_quality: int                  # Samples passing quality filter
     quality_pass_rate: float                     # Pass rate (0-1)

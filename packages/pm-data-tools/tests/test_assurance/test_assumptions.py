@@ -4,19 +4,15 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 
-import pytest
-
 from conftest import make_assumption
 from pm_data_tools.assurance.assumptions import (
     Assumption,
     AssumptionCategory,
     AssumptionConfig,
     AssumptionHealthReport,
-    AssumptionSource,
     AssumptionTracker,
     DriftSeverity,
 )
-
 
 # ---------------------------------------------------------------------------
 # 1. Ingest and retrieve

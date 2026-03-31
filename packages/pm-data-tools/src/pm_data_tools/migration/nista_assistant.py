@@ -2,7 +2,6 @@
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional
 
 from ..models import Project
 from ..schemas.nista import NISTAValidator, StrictnessLevel, ValidationResult
@@ -22,9 +21,9 @@ class MigrationGap:
 
     field_name: str
     description: str
-    current_value: Optional[str]
+    current_value: str | None
     required: bool
-    mapping_suggestion: Optional[str] = None
+    mapping_suggestion: str | None = None
     effort: EffortLevel = EffortLevel.MEDIUM
 
 
@@ -37,7 +36,7 @@ class MigrationReport:
     gaps: list[MigrationGap] = field(default_factory=list)
     mapping_suggestions: dict[str, str] = field(default_factory=dict)
     estimated_effort: EffortLevel = EffortLevel.MEDIUM
-    validation_result: Optional[ValidationResult] = None
+    validation_result: ValidationResult | None = None
 
     @property
     def required_gaps_count(self) -> int:
@@ -246,7 +245,7 @@ class NISTAMigrationAssistant:
 
     def _get_project_field_value(
         self, project: Project, field_name: str
-    ) -> Optional[str]:
+    ) -> str | None:
         """Get current value of a field from Project.
 
         Args:
@@ -284,7 +283,7 @@ class NISTAMigrationAssistant:
 
         return None
 
-    def _suggest_mapping(self, project: Project, field_name: str) -> Optional[str]:
+    def _suggest_mapping(self, project: Project, field_name: str) -> str | None:
         """Suggest field mapping from source data.
 
         Args:
@@ -342,7 +341,7 @@ class NISTAMigrationAssistant:
         return suggestions
 
     def _estimate_field_effort(
-        self, field_name: str, current_value: Optional[str]
+        self, field_name: str, current_value: str | None
     ) -> EffortLevel:
         """Estimate effort to populate a field.
 
