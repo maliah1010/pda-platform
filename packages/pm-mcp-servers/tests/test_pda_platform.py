@@ -68,7 +68,7 @@ class TestRegistryModules:
     def test_assure_registry_loads(self):
         from pm_mcp_servers.pm_assure.registry import TOOLS, dispatch
 
-        assert len(TOOLS) == 20
+        assert len(TOOLS) == 24
         assert callable(dispatch)
 
 
@@ -76,10 +76,10 @@ class TestToolAggregation:
     """Test that tool aggregation in the unified server is correct."""
 
     def test_total_tool_count(self):
-        """Unified server has exactly 41 tools (6+6+4+5+20)."""
+        """Unified server has exactly 45 tools (6+6+4+5+24)."""
         from pm_mcp_servers.pda_platform.server import ALL_TOOLS
 
-        assert len(ALL_TOOLS) == 41
+        assert len(ALL_TOOLS) == 45
 
     def test_no_duplicate_tool_names(self):
         """No two tools share the same name across modules."""
@@ -103,7 +103,7 @@ class TestToolAggregation:
         # First tool should be from pm-data
         assert names[0] == "load_project"
         # Last tool should be from pm-assure
-        assert names[-1] == "get_cascade_impact"
+        assert names[-1] == "get_armm_report"
 
     def test_all_tools_have_valid_schemas(self):
         """Every tool has a name, description, and inputSchema."""
@@ -149,6 +149,8 @@ class TestExpectedTools:
         "classify_project_domain", "reclassify_from_store",
         "ingest_assumption", "validate_assumption",
         "get_assumption_drift", "get_cascade_impact",
+        "create_project_from_profile", "export_dashboard_data",
+        "export_dashboard_html", "get_armm_report",
     }
 
     def test_data_tools_present(self):

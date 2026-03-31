@@ -18,7 +18,7 @@ tooling. Built to support the NISTA Programme and Project Data Standard trial.
 
 ## Unified Server (Recommended)
 
-The **`pda-platform-server`** is a single MCP endpoint that exposes all 41 tools
+The **`pda-platform-server`** is a single MCP endpoint that exposes all 45 tools
 from all 5 modules. This is the recommended way to use PDA.
 
 ```json
@@ -138,7 +138,7 @@ Add to `claude_desktop_config.json`
 }
 ```
 
-This gives Claude access to all 41 tools across data loading, analysis,
+This gives Claude access to all 45 tools across data loading, analysis,
 validation, NISTA reporting, and assurance.
 
 ### Remote Deployment
