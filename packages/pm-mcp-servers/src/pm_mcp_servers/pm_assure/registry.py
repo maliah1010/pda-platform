@@ -6,6 +6,8 @@ from typing import Any
 
 from mcp.types import TextContent
 
+from .server import ASSURE_TOOLS as TOOLS  # noqa: F401 — re-exported for unified server
+
 from .server import (
     _analyse_assurance_overhead,
     _analyse_override_patterns,
