@@ -24,6 +24,9 @@ This module provides eleven capabilities for assurance gate reviews:
   domains using explicit indicators and store-derived signals.
 - **P12** — :class:`ARMMScorer`: Agent Readiness Maturity Model — four-dimension,
   28-topic, 251-criterion weakest-link maturity assessment for AI agent deployment.
+- **P14** — :class:`GateReadinessAssessor`: Synthesises P1-P12 outputs into a
+  composite gate-specific readiness assessment with IPA gate weighting, blocking
+  issue detection, and prioritised recommendations.
 
 Public API::
 
@@ -137,6 +140,18 @@ from .divergence import (
     DivergenceSignal,
     DivergenceSnapshot,
     SignalType,
+)
+from .gate_readiness import (
+    AssessmentDimension,
+    DimensionScore,
+    DimensionStatus,
+    GateComparisonResult,
+    GateReadinessAssessment,
+    GateReadinessAssessor,
+    GateReadinessConfig,
+    GateRiskSignal,
+    GateType,
+    ReadinessLevel,
 )
 from .lessons import (
     LessonCategory,
@@ -277,6 +292,17 @@ __all__ = [
     "ARMMTopicResult",
     "CriterionResult",
     "MaturityLevel",
+    # P14 — Gate Readiness Assessor
+    "GateReadinessAssessor",
+    "GateReadinessAssessment",
+    "GateReadinessConfig",
+    "GateComparisonResult",
+    "GateRiskSignal",
+    "GateType",
+    "ReadinessLevel",
+    "AssessmentDimension",
+    "DimensionScore",
+    "DimensionStatus",
     # Deprecated aliases — will be removed in v0.5.0
     "Recommendation",
     "RecommendationExtractionResult",
