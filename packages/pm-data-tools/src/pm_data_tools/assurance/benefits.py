@@ -481,6 +481,84 @@ class BenefitsHealthReport(BaseModel):
     message: str
 
 
+class BenefitsMaturityLevel(int, Enum):
+    """P3M3 Benefits Management maturity levels (1-5).
+
+    Attributes:
+        AWARENESS: No formal benefits process.
+        REPEATABLE: Some projects identify benefits inconsistently.
+        DEFINED: Standardised processes, benefits review plans.
+        MANAGED: Double-counting elimination, rigorous reviews.
+        OPTIMISED: Clear linkage to strategy, continuous improvement.
+    """
+
+    AWARENESS = 1
+    REPEATABLE = 2
+    DEFINED = 3
+    MANAGED = 4
+    OPTIMISED = 5
+
+
+MATURITY_THRESHOLDS: dict[BenefitsMaturityLevel, float] = {
+    BenefitsMaturityLevel.AWARENESS: 0.0,
+    BenefitsMaturityLevel.REPEATABLE: 20.0,
+    BenefitsMaturityLevel.DEFINED: 40.0,
+    BenefitsMaturityLevel.MANAGED: 65.0,
+    BenefitsMaturityLevel.OPTIMISED: 85.0,
+}
+
+MATURITY_DESCRIPTIONS: dict[BenefitsMaturityLevel, str] = {
+    BenefitsMaturityLevel.AWARENESS: (
+        "No formal benefits management process. Benefits may be mentioned in "
+        "business cases but are not systematically tracked or measured."
+    ),
+    BenefitsMaturityLevel.REPEATABLE: (
+        "Some projects identify and track benefits, but processes are inconsistent. "
+        "Benefits registers may exist but lack baselines or regular measurement."
+    ),
+    BenefitsMaturityLevel.DEFINED: (
+        "Standardised benefits management processes. Benefits registers are maintained "
+        "with baselines, targets, and regular measurements. Ownership is assigned."
+    ),
+    BenefitsMaturityLevel.MANAGED: (
+        "Benefits management is quantitatively managed. Double-counting is eliminated, "
+        "dependency networks are mapped, and rigorous reviews occur at gate stages."
+    ),
+    BenefitsMaturityLevel.OPTIMISED: (
+        "Clear linkage between strategic decisions and benefits realisation. Continuous "
+        "improvement, knowledge transfer, and proactive forecasting are embedded."
+    ),
+}
+
+
+class BenefitsMaturityAssessment(BaseModel):
+    """Result of a P3M3-aligned benefits management maturity assessment.
+
+    Attributes:
+        project_id: The assessed project.
+        timestamp: UTC timestamp of the assessment.
+        level: P3M3 maturity level (1-5).
+        score_pct: Overall score as percentage.
+        criteria_total: Total criteria assessed.
+        criteria_met: Criteria met.
+        criteria_details: Per-criterion results.
+        evidence_gaps: Specific gaps identified.
+        recommendations: Improvement recommendations.
+        message: Human-readable summary.
+    """
+
+    project_id: str
+    timestamp: datetime
+    level: BenefitsMaturityLevel
+    score_pct: float
+    criteria_total: int
+    criteria_met: int
+    criteria_details: dict[str, bool]
+    evidence_gaps: list[str]
+    recommendations: list[str]
+    message: str
+
+
 class BenefitForecast(BaseModel):
     """Forecast result for a single benefit.
 
@@ -1451,6 +1529,254 @@ class BenefitsTracker:
             forecast_method="linear_extrapolation",
             message=message,
         )
+
+    # ------------------------------------------------------------------
+    # Maturity assessment
+    # ------------------------------------------------------------------
+
+    def assess_maturity(self, project_id: str) -> BenefitsMaturityAssessment:
+        """Assess benefits management maturity against P3M3 criteria.
+
+        Evaluates the project's benefits data completeness and process
+        maturity against 15 criteria derived from P3M3 Level 1-5 indicators.
+        Uses a weakest-link-informed scoring approach consistent with ARMM.
+
+        Args:
+            project_id: The project identifier.
+
+        Returns:
+            A :class:`BenefitsMaturityAssessment` with level, gaps, and
+            recommendations.
+        """
+        now = datetime.now(tz=timezone.utc)
+        benefits = self.get_benefits(project_id)
+
+        criteria: dict[str, bool] = {}
+        gaps: list[str] = []
+        recommendations: list[str] = []
+
+        # --- Level 1 (Awareness): Benefits exist ---
+        has_benefits = len(benefits) > 0
+        criteria["benefits_identified"] = has_benefits
+        if not has_benefits:
+            gaps.append("No benefits registered for this project.")
+            recommendations.append("Register all business case benefits in the benefits register.")
+
+        # --- Level 2 (Repeatable): Basic metadata ---
+        has_descriptions = all(len(b.description) > 20 for b in benefits) if benefits else False
+        criteria["descriptions_adequate"] = has_descriptions
+        if not has_descriptions and benefits:
+            gaps.append("Some benefits lack adequate descriptions (DOAM test).")
+            recommendations.append("Ensure all benefit descriptions pass the DOAM test.")
+
+        has_owners = all(b.owner_sro is not None for b in benefits) if benefits else False
+        criteria["owners_assigned"] = has_owners
+        if not has_owners and benefits:
+            gaps.append("Not all benefits have an assigned SRO.")
+            recommendations.append("Assign a named SRO to every benefit.")
+
+        has_financial_types = all(b.financial_type is not None for b in benefits) if benefits else False
+        criteria["financial_classification"] = has_financial_types
+
+        # --- Level 3 (Defined): Baselines, targets, measurements ---
+        has_baselines = (
+            all(b.baseline_value is not None for b in benefits if b.explicitness != Explicitness.OBSERVABLE)
+            if benefits
+            else False
+        )
+        criteria["baselines_established"] = has_baselines
+        if not has_baselines and benefits:
+            gaps.append("Not all quantifiable benefits have baseline values.")
+            recommendations.append("Establish baseline measurements for all quantifiable benefits.")
+
+        has_targets = (
+            all(b.target_value is not None for b in benefits if b.explicitness != Explicitness.OBSERVABLE)
+            if benefits
+            else False
+        )
+        criteria["targets_set"] = has_targets
+        if not has_targets and benefits:
+            gaps.append("Not all quantifiable benefits have target values.")
+            recommendations.append("Set measurable targets for all quantifiable benefits.")
+
+        has_kpis = (
+            all(b.measurement_kpi is not None for b in benefits if b.explicitness != Explicitness.OBSERVABLE)
+            if benefits
+            else False
+        )
+        criteria["kpis_defined"] = has_kpis
+        if not has_kpis and benefits:
+            gaps.append("Not all benefits have measurement KPIs defined.")
+            recommendations.append("Define specific KPI metrics for all quantifiable benefits.")
+
+        benefits_with_measurements = 0
+        for b in benefits:
+            measurements = self.get_measurements(b.id)
+            if measurements:
+                benefits_with_measurements += 1
+        has_measurements = benefits_with_measurements > 0 if benefits else False
+        criteria["measurements_recorded"] = has_measurements
+        if not has_measurements and benefits:
+            gaps.append("No benefit measurements have been recorded.")
+            recommendations.append("Begin recording regular measurements against baselines.")
+
+        # --- Level 4 (Managed): Dependencies, lifecycle, dis-benefits ---
+        network = self.get_network(project_id)
+        has_dependencies = len(network.get("edges", [])) > 0
+        criteria["dependency_network_mapped"] = has_dependencies
+        if not has_dependencies and benefits:
+            gaps.append("No benefits dependency network has been mapped.")
+            recommendations.append("Map the benefits dependency network from outputs to strategic objectives.")
+
+        has_disbenefits = any(b.is_disbenefit for b in benefits)
+        criteria["disbenefits_tracked"] = has_disbenefits
+        if not has_disbenefits and benefits:
+            gaps.append("No dis-benefits have been identified or tracked.")
+            recommendations.append("Identify and track dis-benefits alongside positive benefits.")
+
+        has_lifecycle_progression = any(
+            b.status not in (BenefitStatus.IDENTIFIED,)
+            for b in benefits
+        ) if benefits else False
+        criteria["lifecycle_active"] = has_lifecycle_progression
+        if not has_lifecycle_progression and benefits:
+            gaps.append("All benefits are still in IDENTIFIED status.")
+            recommendations.append("Progress benefits through the lifecycle as planning matures.")
+
+        has_business_case_refs = any(b.business_case_ref is not None for b in benefits)
+        criteria["business_case_linked"] = has_business_case_refs
+        if not has_business_case_refs and benefits:
+            gaps.append("No benefits are linked to business case references.")
+            recommendations.append("Link benefits to their originating business case documents.")
+
+        # --- Level 5 (Optimised): Forecasting, assumptions, interim targets ---
+        has_interim_targets = any(len(b.interim_targets) > 0 for b in benefits)
+        criteria["interim_targets_defined"] = has_interim_targets
+        if not has_interim_targets and benefits:
+            gaps.append("No benefits have time-phased interim targets.")
+            recommendations.append("Define interim target profiles for ramp-up/tail-off tracking.")
+
+        has_assumption_links = any(len(b.associated_assumptions) > 0 for b in benefits)
+        criteria["assumptions_linked"] = has_assumption_links
+        if not has_assumption_links and benefits:
+            gaps.append("No benefits are linked to tracked assumptions.")
+            recommendations.append("Link benefits to assumption tracker entries for cross-domain drift detection.")
+
+        all_measured = benefits_with_measurements == len(benefits) if benefits else False
+        criteria["comprehensive_measurement"] = all_measured
+        if not all_measured and benefits:
+            gaps.append(
+                f"Only {benefits_with_measurements}/{len(benefits)} benefits have measurements."
+            )
+            recommendations.append("Ensure all benefits have at least one measurement recorded.")
+
+        # Score
+        criteria_met = sum(1 for v in criteria.values() if v)
+        criteria_total = len(criteria)
+        score_pct = (criteria_met / criteria_total * 100) if criteria_total > 0 else 0.0
+
+        # Determine level (weakest-link: highest level where all lower thresholds met)
+        level = BenefitsMaturityLevel.AWARENESS
+        for ml in (
+            BenefitsMaturityLevel.REPEATABLE,
+            BenefitsMaturityLevel.DEFINED,
+            BenefitsMaturityLevel.MANAGED,
+            BenefitsMaturityLevel.OPTIMISED,
+        ):
+            if score_pct >= MATURITY_THRESHOLDS[ml]:
+                level = ml
+
+        message = (
+            f"Benefits management maturity: Level {level.value} ({level.name}). "
+            f"Score: {score_pct:.0f}% ({criteria_met}/{criteria_total} criteria met). "
+            f"{len(gaps)} evidence gap(s) identified."
+        )
+
+        logger.info(
+            "benefits_maturity_assessed",
+            project_id=project_id,
+            level=level.value,
+            score_pct=score_pct,
+            criteria_met=criteria_met,
+        )
+
+        return BenefitsMaturityAssessment(
+            project_id=project_id,
+            timestamp=now,
+            level=level,
+            score_pct=score_pct,
+            criteria_total=criteria_total,
+            criteria_met=criteria_met,
+            criteria_details=criteria,
+            evidence_gaps=gaps,
+            recommendations=recommendations,
+            message=message,
+        )
+
+    # ------------------------------------------------------------------
+    # Narrative context builder
+    # ------------------------------------------------------------------
+
+    def build_narrative_context(self, project_id: str) -> dict[str, Any]:
+        """Build rich context dict for narrative generation from register data.
+
+        This context can be passed to the existing NarrativeGenerator's
+        ``generate_benefits_narrative()`` method, enriching it with data
+        from the benefits register instead of manual inputs.
+
+        Args:
+            project_id: The project identifier.
+
+        Returns:
+            Dict with keys expected by NarrativeGenerator prompts, plus
+            additional BRM-specific fields.
+        """
+        report = self.analyse_health(project_id)
+        benefits = self.get_benefits(project_id)
+
+        # Compute totals for GMPP-compatible fields
+        total_planned = sum(
+            b.target_value or 0.0
+            for b in benefits
+            if not b.is_disbenefit and b.financial_type in (
+                FinancialType.CASH_RELEASING, FinancialType.NON_CASH_RELEASING
+            )
+        )
+        realised = sum(
+            b.current_actual_value or 0.0
+            for b in benefits
+            if not b.is_disbenefit
+            and b.status == BenefitStatus.ACHIEVED
+            and b.financial_type in (
+                FinancialType.CASH_RELEASING, FinancialType.NON_CASH_RELEASING
+            )
+        )
+
+        # Build per-benefit summaries
+        benefit_summaries: list[str] = []
+        for dr in report.drift_results:
+            parts = [f"- {dr.benefit.title}: {dr.severity.value}"]
+            if dr.realisation_pct is not None:
+                parts.append(f"({dr.realisation_pct:.0f}% realised)")
+            parts.append(f"trend={dr.trend.value}")
+            benefit_summaries.append(" ".join(parts))
+
+        return {
+            "project_name": project_id,
+            "total_benefits": total_planned,
+            "realised_benefits": realised,
+            "total_benefit_count": report.total_benefits,
+            "disbenefit_count": report.total_disbenefits,
+            "health_score": report.overall_health_score,
+            "aggregate_realisation_pct": report.aggregate_realisation_pct,
+            "at_risk_count": report.at_risk_count,
+            "stale_count": report.stale_count,
+            "by_status": report.by_status,
+            "by_financial_type": report.by_financial_type,
+            "by_recipient": report.by_recipient,
+            "leading_indicator_warnings": report.leading_indicator_warnings,
+            "benefit_summaries": "\n".join(benefit_summaries) if benefit_summaries else "No benefits tracked.",
+        }
 
     # ------------------------------------------------------------------
     # Internal helpers

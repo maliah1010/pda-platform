@@ -16,6 +16,7 @@ from pm_data_tools.assurance.benefits import (
     BenefitMeasurement,
     BenefitStatus,
     BenefitsHealthReport,
+    BenefitsMaturityLevel,
     BenefitsTracker,
     DependencyEdge,
     DependencyNode,
@@ -845,3 +846,99 @@ class TestDriftDetection:
         results_2 = tracker.detect_drift("PROJ-002")
         assert len(results_2) == 1
         assert results_2[0].benefit.title == "Benefit B"
+
+
+class TestMaturityAssessment:
+    """Tests for BenefitsTracker.assess_maturity()."""
+
+    def test_empty_project(self, store, tracker):
+        """Empty project should be Level 1 AWARENESS."""
+        result = tracker.assess_maturity("EMPTY-PROJECT")
+        assert result.level == BenefitsMaturityLevel.AWARENESS
+        assert result.score_pct == 0.0
+        assert result.criteria_met == 0
+        assert len(result.evidence_gaps) > 0
+
+    def test_basic_benefits_registered(self, store, tracker):
+        """Project with basic benefits should score above 0."""
+        b = _make_benefit(
+            project_id="MAT-001",
+            owner_sro="Jane Smith",
+            baseline_value=100.0,
+            target_value=50.0,
+            measurement_kpi="processing_days",
+        )
+        tracker.ingest(b)
+        result = tracker.assess_maturity("MAT-001")
+        assert result.score_pct > 0.0
+        assert result.criteria_details["benefits_identified"] is True
+
+    def test_well_managed_project(self, store, tracker):
+        """Project with comprehensive data should reach higher maturity."""
+        b = _make_benefit(
+            project_id="MAT-002",
+            owner_sro="Jane Smith",
+            baseline_value=100.0,
+            target_value=50.0,
+            measurement_kpi="processing_days",
+            business_case_ref="BC-001",
+            associated_assumptions=["ASM-001"],
+            interim_targets=[{"date": "2027-01-01", "value": 75.0}],
+            status=BenefitStatus.REALIZING,
+        )
+        tracker.ingest(b)
+        # Add a dis-benefit
+        db = _make_benefit(
+            project_id="MAT-002",
+            title="Increased training costs",
+            description="Staff retraining required for new system adoption",
+            is_disbenefit=True,
+            baseline_value=0.0,
+            target_value=50000.0,
+        )
+        tracker.ingest(db)
+        # Record measurement
+        tracker.record_measurement(b.id, value=80.0)
+        # Add dependency node + edge
+        from pm_data_tools.assurance.benefits import (
+            DependencyEdge,
+            DependencyNode,
+            NodeType,
+        )
+
+        n1 = tracker.add_node(DependencyNode(
+            project_id="MAT-002", node_type=NodeType.PROJECT_OUTPUT, title="System deployed"
+        ))
+        n2 = tracker.add_node(DependencyNode(
+            project_id="MAT-002", node_type=NodeType.END_BENEFIT, title="Processing reduced",
+            benefit_id=b.id,
+        ))
+        tracker.add_edge(DependencyEdge(
+            project_id="MAT-002", source_node=n1.id, target_node=n2.id
+        ))
+
+        result = tracker.assess_maturity("MAT-002")
+        assert result.level.value >= 2  # Should be at least REPEATABLE
+        assert result.criteria_details["benefits_identified"] is True
+        assert result.criteria_details["measurements_recorded"] is True
+        assert result.criteria_details["dependency_network_mapped"] is True
+        assert result.criteria_details["disbenefits_tracked"] is True
+
+    def test_criteria_total_is_15(self, store, tracker):
+        """Should always assess exactly 15 criteria."""
+        b = _make_benefit(project_id="MAT-003")
+        tracker.ingest(b)
+        result = tracker.assess_maturity("MAT-003")
+        assert result.criteria_total == 15
+
+    def test_narrative_context_builder(self, store, tracker):
+        """build_narrative_context should return expected keys."""
+        b = _make_benefit(project_id="NAR-001")
+        tracker.ingest(b)
+        tracker.record_measurement(b.id, value=80.0)
+
+        context = tracker.build_narrative_context("NAR-001")
+        assert "project_name" in context
+        assert "total_benefits" in context
+        assert "health_score" in context
+        assert "benefit_summaries" in context

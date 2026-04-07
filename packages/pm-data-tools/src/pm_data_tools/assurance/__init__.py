@@ -126,6 +126,8 @@ from .benefits import (
     BenefitMeasurement,
     BenefitStatus,
     BenefitsHealthReport,
+    BenefitsMaturityAssessment,
+    BenefitsMaturityLevel,
     BenefitsTracker,
     DependencyEdge,
     DependencyNode,
@@ -303,6 +305,8 @@ __all__ = [
     "CriterionResult",
     "MaturityLevel",
     # P13 — Benefits Realisation Management
+    "BenefitsMaturityAssessment",
+    "BenefitsMaturityLevel",
     "BenefitsTracker",
     "Benefit",
     "BenefitConfig",

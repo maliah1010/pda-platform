@@ -8,8 +8,10 @@ from mcp.types import TextContent
 
 from .server import BRM_TOOLS as TOOLS  # noqa: F401 — re-exported for unified server
 from .server import (
+    _assess_benefits_maturity,
     _detect_benefits_drift,
     _forecast_benefit_realisation,
+    _generate_benefits_narrative,
     _get_benefit_dependency_network,
     _get_benefits_cascade_impact,
     _get_benefits_health,
@@ -27,6 +29,8 @@ _DISPATCH = {
     "forecast_benefit_realisation": _forecast_benefit_realisation,
     "detect_benefits_drift": _detect_benefits_drift,
     "get_benefits_cascade_impact": _get_benefits_cascade_impact,
+    "generate_benefits_narrative": _generate_benefits_narrative,
+    "assess_benefits_maturity": _assess_benefits_maturity,
 }
 
 

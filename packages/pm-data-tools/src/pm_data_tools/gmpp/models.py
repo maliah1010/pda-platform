@@ -270,6 +270,78 @@ class BenefitsPerformance(BaseModel):
             )
         return v
 
+    @classmethod
+    def from_benefits_register(
+        cls,
+        project_id: str,
+        db_path: str | None = None,
+    ) -> "BenefitsPerformance":
+        """Create a BenefitsPerformance from the BRM benefits register.
+
+        Derives total_planned, realised_to_date, forecast_total, and
+        realisation_rate from registered benefits data, making the benefits
+        register the single source of truth for GMPP quarterly reporting.
+
+        Args:
+            project_id: The project identifier.
+            db_path: Optional path to the SQLite store.
+
+        Returns:
+            A :class:`BenefitsPerformance` populated from register data.
+        """
+        from pathlib import Path
+
+        from pm_data_tools.assurance.benefits import (
+            BenefitStatus,
+            BenefitsTracker,
+            FinancialType,
+        )
+        from pm_data_tools.db.store import AssuranceStore
+
+        store = AssuranceStore(db_path=Path(db_path) if db_path else None)
+        tracker = BenefitsTracker(store=store)
+        report = tracker.analyse_health(project_id)
+        benefits = tracker.get_benefits(project_id)
+
+        # Total planned: sum of target values for financial benefits
+        financial_types = (FinancialType.CASH_RELEASING, FinancialType.NON_CASH_RELEASING)
+        total_planned = Decimal(str(sum(
+            b.target_value or 0.0
+            for b in benefits
+            if not b.is_disbenefit and b.financial_type in financial_types
+        )))
+
+        # Realised: sum of current values for ACHIEVED financial benefits
+        realised = Decimal(str(sum(
+            b.current_actual_value or 0.0
+            for b in benefits
+            if not b.is_disbenefit
+            and b.status == BenefitStatus.ACHIEVED
+            and b.financial_type in financial_types
+        )))
+
+        # Forecast: use current actuals for realizing + target for planned
+        forecast = Decimal(str(sum(
+            (b.current_actual_value if b.status in (BenefitStatus.REALIZING, BenefitStatus.ACHIEVED)
+             else b.target_value) or 0.0
+            for b in benefits
+            if not b.is_disbenefit and b.financial_type in financial_types
+        )))
+
+        # Ensure forecast >= realised
+        if forecast < realised:
+            forecast = realised
+
+        rate = float(realised / total_planned) if total_planned > 0 else 0.0
+
+        return cls(
+            total_planned=total_planned,
+            realised_to_date=realised,
+            forecast_total=forecast,
+            realisation_rate=min(rate, 1.0),
+            confidence=report.overall_health_score,
+        )
+
     model_config = {
         "json_schema_extra": {
             "example": {

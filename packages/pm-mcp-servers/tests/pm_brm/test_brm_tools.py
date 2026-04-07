@@ -1,7 +1,7 @@
 """
 Integration tests for PM-BRM MCP server tools.
 
-Tests all 8 BRM tools with 20+ test cases covering:
+Tests all 10 BRM tools with 30+ test cases covering:
 - Missing required parameters
 - Successful execution with valid params
 - Cross-tool measurement workflow
@@ -14,8 +14,10 @@ import os
 import pytest
 
 from pm_mcp_servers.pm_brm.server import (
+    _assess_benefits_maturity,
     _detect_benefits_drift,
     _forecast_benefit_realisation,
+    _generate_benefits_narrative,
     _get_benefit_dependency_network,
     _get_benefits_cascade_impact,
     _get_benefits_health,
@@ -730,3 +732,115 @@ class TestDependencyNetworkWorkflow:
             assert result["node_count"] == 1
             for node in result["nodes"]:
                 assert node.get("node_type") == "ENABLER"
+
+
+# ---------------------------------------------------------------
+# Tool 9: generate_benefits_narrative
+# ---------------------------------------------------------------
+
+
+class TestGenerateBenefitsNarrative:
+    @pytest.mark.asyncio
+    async def test_missing_project_id(self, tmp_path):
+        result = await _generate_benefits_narrative({"db_path": _db(tmp_path)})
+        parsed = _parse(result)
+        assert "_error" in parsed
+
+    @pytest.mark.asyncio
+    async def test_no_api_key(self, tmp_path, monkeypatch):
+        """Without ANTHROPIC_API_KEY, should return an error."""
+        monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+        db = _db(tmp_path)
+        # Ingest a benefit first
+        await _ingest_benefit(_make_benefit_args(tmp_path, db_path=db))
+
+        result = await _generate_benefits_narrative(
+            {"project_id": "PRJ-001", "db_path": db}
+        )
+        parsed = _parse(result)
+        assert "_error" in parsed
+        assert "ANTHROPIC_API_KEY" in parsed["_error"]
+
+
+# ---------------------------------------------------------------
+# Tool 10: assess_benefits_maturity
+# ---------------------------------------------------------------
+
+
+class TestAssessBenefitsMaturity:
+    @pytest.mark.asyncio
+    async def test_missing_project_id(self, tmp_path):
+        result = await _assess_benefits_maturity({"db_path": _db(tmp_path)})
+        parsed = _parse(result)
+        assert "_error" in parsed
+
+    @pytest.mark.asyncio
+    async def test_empty_project(self, tmp_path):
+        """Empty project should return Level 1 (AWARENESS)."""
+        db = _db(tmp_path)
+        result = _parse(
+            await _assess_benefits_maturity(
+                {"project_id": "PRJ-EMPTY", "db_path": db}
+            )
+        )
+        assert result["level"] == 1
+        assert result["level_name"] == "AWARENESS"
+        assert result["criteria_met"] == 0 or result["score_pct"] == 0.0
+        assert len(result["evidence_gaps"]) > 0
+
+    @pytest.mark.asyncio
+    async def test_with_benefits(self, tmp_path):
+        """Project with benefits should score above Level 1."""
+        db = _db(tmp_path)
+
+        # Ingest a well-defined benefit
+        args = _make_benefit_args(
+            tmp_path,
+            db_path=db,
+            baseline_value=100.0,
+            target_value=50.0,
+            target_date="2027-06-30",
+            measurement_kpi="processing_days",
+            owner_sro="Jane Smith",
+            business_case_ref="BC-001",
+        )
+        await _ingest_benefit(args)
+
+        # Record a measurement
+        ingest_result = _parse(await _ingest_benefit(
+            _make_benefit_args(
+                tmp_path,
+                db_path=db,
+                project_id="PRJ-001",
+                title="Second benefit",
+            )
+        ))
+        benefit_id = ingest_result["benefit_id"]
+        await _track_benefit_measurement(
+            {"benefit_id": benefit_id, "value": 80.0, "db_path": db}
+        )
+
+        result = _parse(
+            await _assess_benefits_maturity(
+                {"project_id": "PRJ-001", "db_path": db}
+            )
+        )
+        assert result["level"] >= 1
+        assert result["score_pct"] > 0
+        assert result["criteria_total"] == 15
+        assert len(result["recommendations"]) >= 0
+
+    @pytest.mark.asyncio
+    async def test_maturity_criteria_details(self, tmp_path):
+        """Verify criteria details dict is returned."""
+        db = _db(tmp_path)
+        await _ingest_benefit(_make_benefit_args(tmp_path, db_path=db))
+
+        result = _parse(
+            await _assess_benefits_maturity(
+                {"project_id": "PRJ-001", "db_path": db}
+            )
+        )
+        assert "criteria_details" in result
+        assert isinstance(result["criteria_details"], dict)
+        assert "benefits_identified" in result["criteria_details"]

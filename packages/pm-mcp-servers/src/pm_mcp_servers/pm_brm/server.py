@@ -13,6 +13,10 @@ Phase 2 tools (dependency network):
 Phase 3 tools (AI/predictive):
   6. forecast_benefit_realisation — Linear extrapolation forecast
   7. detect_benefits_drift — Time-series drift detection
+
+Phase 4 tools (maturity & narratives):
+  9. generate_benefits_narrative — IPA gate-specific assurance narratives
+ 10. assess_benefits_maturity — P3M3 maturity scoring
 """
 
 from __future__ import annotations
@@ -442,6 +446,71 @@ BRM_TOOLS: list[Tool] = [
             "required": ["node_id"],
         },
     ),
+    # ------------------------------------------------------------------
+    # Phase 4: Maturity & Narratives
+    # ------------------------------------------------------------------
+    Tool(
+        name="generate_benefits_narrative",
+        description=(
+            "Generate an IPA-compliant benefits assurance narrative for gate reviews. "
+            "Builds rich context from the benefits register and uses the existing "
+            "NarrativeGenerator with multi-sample AI consensus and confidence scoring. "
+            "Requires ANTHROPIC_API_KEY environment variable."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "project_id": {
+                    "type": "string",
+                    "description": "Project identifier.",
+                },
+                "gate_number": {
+                    "type": "integer",
+                    "description": (
+                        "IPA gate number (0-5) for gate-specific probe questions. "
+                        "0=Opportunity Framing, 1=SOC, 2=OBC, 3=FBC, "
+                        "4=Work to Realise, 5=Benefits Review."
+                    ),
+                    "minimum": 0,
+                    "maximum": 5,
+                },
+                "db_path": {
+                    "type": "string",
+                    "description": (
+                        "Optional path to the SQLite store. "
+                        "Defaults to ~/.pm_data_tools/store.db"
+                    ),
+                },
+            },
+            "required": ["project_id"],
+        },
+    ),
+    Tool(
+        name="assess_benefits_maturity",
+        description=(
+            "Score a project's benefits management maturity against P3M3-aligned "
+            "criteria (Level 1-5). Evaluates data completeness, process maturity, "
+            "dependency mapping, and measurement tracking. Returns maturity level "
+            "with evidence gaps and improvement recommendations."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "project_id": {
+                    "type": "string",
+                    "description": "Project identifier.",
+                },
+                "db_path": {
+                    "type": "string",
+                    "description": (
+                        "Optional path to the SQLite store. "
+                        "Defaults to ~/.pm_data_tools/store.db"
+                    ),
+                },
+            },
+            "required": ["project_id"],
+        },
+    ),
 ]
 
 
@@ -838,6 +907,133 @@ async def _get_benefits_cascade_impact(
                 f"{len(impacts)} downstream node(s) affected by change "
                 f"at node {arguments['node_id']}."
             ),
+        }
+
+        return [TextContent(type="text", text=json.dumps(output, indent=2, default=str))]
+
+    except Exception as exc:
+        return [TextContent(type="text", text=f"Error: {exc}")]
+
+
+# IPA gate-specific probe questions from the 2021 Assurance Guide
+_IPA_GATE_PROBES: dict[int, str] = {
+    0: (
+        "Gate 0 (Opportunity Framing): Have the expected benefits been identified "
+        "at a high level? Is there a clear link between the proposed intervention "
+        "and the strategic objectives it supports?"
+    ),
+    1: (
+        "Gate 1 (Strategic Outline Case): Is there a categorised long-list of "
+        "benefits? Has a benefits dependency network been established linking "
+        "project outputs to strategic objectives? Are benefit owners identified?"
+    ),
+    2: (
+        "Gate 2 (Outline Business Case): Have benefits been valued and appraised "
+        "using Green Book methodology? Is the Benefit-Cost Ratio credible? "
+        "Has optimism bias been applied to benefit estimates?"
+    ),
+    3: (
+        "Gate 3 (Full Business Case): Is there a detailed Benefits Realisation "
+        "Plan? Are baselines established for all quantifiable benefits? Are KPIs "
+        "defined with measurement frequency and data sources? Is benefit ownership "
+        "formally assigned with named individuals?"
+    ),
+    4: (
+        "Gate 4 (Work to Realise): Are benefits being actively tracked against "
+        "baselines? Is there evidence of organisational capability to realise "
+        "benefits? Has benefit ownership transitioned to BAU operational leaders? "
+        "Are leading indicators being monitored for early warning?"
+    ),
+    5: (
+        "Gate 5 (Benefits Review): What benefits have been realised and how do "
+        "actuals compare to the business case? What lessons have been learned "
+        "about benefits management? Are there plans for continuous improvement "
+        "and ongoing benefit monitoring?"
+    ),
+}
+
+
+async def _generate_benefits_narrative(
+    arguments: dict[str, Any],
+) -> list[TextContent]:
+    """Generate IPA-compliant benefits assurance narrative."""
+    try:
+        import os
+
+        api_key = os.environ.get("ANTHROPIC_API_KEY")
+        if not api_key:
+            return [
+                TextContent(
+                    type="text",
+                    text="Error: ANTHROPIC_API_KEY environment variable not set.",
+                )
+            ]
+
+        from pm_data_tools.gmpp.narratives import NarrativeGenerator
+
+        tracker = _get_tracker(arguments)
+        project_id = arguments["project_id"]
+        gate_number = arguments.get("gate_number")
+
+        # Build context from benefits register
+        context = tracker.build_narrative_context(project_id)
+
+        # Enrich with gate-specific probe questions
+        if gate_number is not None and gate_number in _IPA_GATE_PROBES:
+            context["gate_probe"] = _IPA_GATE_PROBES[gate_number]
+            context["gate_number"] = gate_number
+
+        # Generate narrative using existing infrastructure
+        generator = NarrativeGenerator(api_key=api_key)
+        narrative = await generator.generate_benefits_narrative(context)
+
+        output = {
+            "project_id": project_id,
+            "gate_number": gate_number,
+            "narrative_text": narrative.text,
+            "confidence": round(narrative.confidence, 3),
+            "review_level": narrative.review_level.value,
+            "samples_used": narrative.samples_used,
+            "review_reason": narrative.review_reason,
+            "generated_at": narrative.generated_at.isoformat(),
+            "context_summary": {
+                "total_benefits": context.get("total_benefit_count", 0),
+                "health_score": context.get("health_score"),
+                "aggregate_realisation_pct": context.get("aggregate_realisation_pct"),
+                "at_risk_count": context.get("at_risk_count", 0),
+            },
+            "message": (
+                f"Benefits narrative generated with {narrative.confidence:.0%} "
+                f"confidence ({narrative.review_level.value} review recommended)."
+            ),
+        }
+
+        return [TextContent(type="text", text=json.dumps(output, indent=2, default=str))]
+
+    except Exception as exc:
+        return [TextContent(type="text", text=f"Error: {exc}")]
+
+
+async def _assess_benefits_maturity(
+    arguments: dict[str, Any],
+) -> list[TextContent]:
+    """Assess benefits management maturity against P3M3 criteria."""
+    try:
+        tracker = _get_tracker(arguments)
+        assessment = tracker.assess_maturity(arguments["project_id"])
+
+        output = {
+            "project_id": assessment.project_id,
+            "timestamp": assessment.timestamp.isoformat(),
+            "level": assessment.level.value,
+            "level_name": assessment.level.name,
+            "score_pct": round(assessment.score_pct, 1),
+            "criteria_met": assessment.criteria_met,
+            "criteria_total": assessment.criteria_total,
+            "criteria_details": assessment.criteria_details,
+            "evidence_gaps": assessment.evidence_gaps,
+            "recommendations": assessment.recommendations,
+            "message": assessment.message,
         }
 
         return [TextContent(type="text", text=json.dumps(output, indent=2, default=str))]
