@@ -1,6 +1,6 @@
-"""Assurance module: artefact currency, compliance tracking, finding analysis.
+"""Assurance module: artefact currency, compliance tracking, finding analysis, BRM.
 
-This module provides eleven capabilities for assurance gate reviews:
+This module provides twelve capabilities for assurance gate reviews:
 
 - **P1** — :class:`ArtefactCurrencyValidator`: detect stale and last-minute
   artefact updates against a gate date.
@@ -24,6 +24,9 @@ This module provides eleven capabilities for assurance gate reviews:
   domains using explicit indicators and store-derived signals.
 - **P12** — :class:`ARMMScorer`: Agent Readiness Maturity Model — four-dimension,
   28-topic, 251-criterion weakest-link maturity assessment for AI agent deployment.
+- **P13** — :class:`BenefitsTracker`: Benefits Realisation Management — IPA/Green
+  Book-compliant benefits register, time-series measurement tracking, drift
+  detection, dependency network (DAG), cascade impact, and health scoring.
 
 Public API::
 
@@ -114,6 +117,30 @@ from .assumptions import (
     AssumptionValidation,
     DriftResult,
     DriftSeverity,
+)
+from .benefits import (
+    Benefit,
+    BenefitConfig,
+    BenefitDriftResult,
+    BenefitForecast,
+    BenefitMeasurement,
+    BenefitStatus,
+    BenefitsHealthReport,
+    BenefitsMaturityAssessment,
+    BenefitsMaturityLevel,
+    BenefitsTracker,
+    DependencyEdge,
+    DependencyNode,
+    EdgeType,
+    Explicitness,
+    FinancialType,
+    IndicatorType,
+    IpaLifecycleStage,
+    MeasurementFrequency,
+    MeasurementSource,
+    NodeType,
+    RecipientType,
+    TrendDirection,
 )
 from .classifier import (
     ClassificationInput,
@@ -277,6 +304,29 @@ __all__ = [
     "ARMMTopicResult",
     "CriterionResult",
     "MaturityLevel",
+    # P13 — Benefits Realisation Management
+    "BenefitsMaturityAssessment",
+    "BenefitsMaturityLevel",
+    "BenefitsTracker",
+    "Benefit",
+    "BenefitConfig",
+    "BenefitStatus",
+    "BenefitMeasurement",
+    "BenefitDriftResult",
+    "BenefitForecast",
+    "BenefitsHealthReport",
+    "DependencyNode",
+    "DependencyEdge",
+    "FinancialType",
+    "RecipientType",
+    "Explicitness",
+    "IndicatorType",
+    "MeasurementFrequency",
+    "MeasurementSource",
+    "IpaLifecycleStage",
+    "NodeType",
+    "EdgeType",
+    "TrendDirection",
     # Deprecated aliases — will be removed in v0.5.0
     "Recommendation",
     "RecommendationExtractionResult",

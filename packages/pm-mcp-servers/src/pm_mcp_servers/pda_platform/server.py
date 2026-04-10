@@ -1,14 +1,15 @@
 """PDA Platform — unified MCP server.
 
-Aggregates all five PDA MCP servers into a single endpoint:
+Aggregates all six PDA MCP servers into a single endpoint:
 
   pm-data      (6 tools)   Project data loading, querying, conversion
   pm-analyse   (6 tools)   AI-powered risk, forecasting, health assessment
   pm-validate  (4 tools)   Structural, semantic, and NISTA validation
   pm-nista     (5 tools)   GMPP reporting and NISTA integration
   pm-assure   (24 tools)   Assurance quality, compliance, assumptions, workflows, dashboards, ARMM
+  pm-brm      (10 tools)   Benefits Realisation Management
 
-Total: 45 tools accessible through one connection.
+Total: 55 tools accessible through one connection.
 """
 
 from __future__ import annotations
@@ -25,6 +26,8 @@ from ..pm_analyse.registry import TOOLS as ANALYSE_TOOLS
 from ..pm_analyse.registry import dispatch as analyse_dispatch
 from ..pm_assure.registry import TOOLS as ASSURE_TOOLS
 from ..pm_assure.registry import dispatch as assure_dispatch
+from ..pm_brm.registry import TOOLS as BRM_TOOLS
+from ..pm_brm.registry import dispatch as brm_dispatch
 from ..pm_data.registry import TOOLS as DATA_TOOLS
 from ..pm_data.registry import dispatch as data_dispatch
 from ..pm_nista.registry import TOOLS as NISTA_TOOLS
@@ -45,16 +48,17 @@ for _tools, _dispatch_fn in [
     (VALIDATE_TOOLS, validate_dispatch),
     (NISTA_TOOLS, nista_dispatch),
     (ASSURE_TOOLS, assure_dispatch),
+    (BRM_TOOLS, brm_dispatch),
 ]:
     for _tool in _tools:
         _TOOL_DISPATCH[_tool.name] = _dispatch_fn
 
-ALL_TOOLS: list[Tool] = DATA_TOOLS + ANALYSE_TOOLS + VALIDATE_TOOLS + NISTA_TOOLS + ASSURE_TOOLS
+ALL_TOOLS: list[Tool] = DATA_TOOLS + ANALYSE_TOOLS + VALIDATE_TOOLS + NISTA_TOOLS + ASSURE_TOOLS + BRM_TOOLS
 
 logger.info(
     "PDA Platform unified server: %d tools from %d modules",
     len(ALL_TOOLS),
-    5,
+    6,
 )
 
 

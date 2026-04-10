@@ -270,6 +270,83 @@ class AssuranceStore:
                     notes           TEXT,
                     FOREIGN KEY (assessment_id) REFERENCES armm_assessments(id)
                 );
+
+                CREATE TABLE IF NOT EXISTS benefits (
+                    id                     TEXT PRIMARY KEY,
+                    project_id             TEXT NOT NULL,
+                    title                  TEXT NOT NULL,
+                    description            TEXT NOT NULL,
+                    is_disbenefit          INTEGER NOT NULL DEFAULT 0,
+                    status                 TEXT NOT NULL DEFAULT 'IDENTIFIED',
+                    financial_type         TEXT NOT NULL,
+                    recipient_type         TEXT NOT NULL,
+                    explicitness           TEXT NOT NULL DEFAULT 'QUANTIFIABLE',
+                    baseline_value         REAL,
+                    baseline_date          TEXT,
+                    target_value           REAL,
+                    target_date            TEXT,
+                    current_actual_value   REAL,
+                    interim_targets        TEXT NOT NULL DEFAULT '[]',
+                    measurement_kpi        TEXT,
+                    measurement_frequency  TEXT NOT NULL DEFAULT 'QUARTERLY',
+                    indicator_type         TEXT NOT NULL DEFAULT 'LAGGING',
+                    owner_sro              TEXT,
+                    benefits_owner         TEXT,
+                    business_change_owner  TEXT,
+                    ipa_lifecycle_stage    TEXT NOT NULL DEFAULT 'IDENTIFY_QUANTIFY',
+                    business_case_ref      TEXT,
+                    gate_alignment         TEXT,
+                    contributing_projects  TEXT NOT NULL DEFAULT '[]',
+                    associated_risks       TEXT NOT NULL DEFAULT '[]',
+                    associated_assumptions TEXT NOT NULL DEFAULT '[]',
+                    confidence_score       REAL,
+                    created_at             TEXT NOT NULL,
+                    updated_at             TEXT NOT NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS benefit_measurements (
+                    id              TEXT PRIMARY KEY,
+                    benefit_id      TEXT NOT NULL,
+                    project_id      TEXT NOT NULL,
+                    measured_at     TEXT NOT NULL,
+                    value           REAL NOT NULL,
+                    source          TEXT NOT NULL DEFAULT 'MANUAL',
+                    drift_pct       REAL NOT NULL DEFAULT 0.0,
+                    drift_severity  TEXT NOT NULL DEFAULT 'NONE',
+                    realisation_pct REAL,
+                    trend_direction TEXT,
+                    notes           TEXT,
+                    created_at      TEXT NOT NULL,
+                    FOREIGN KEY (benefit_id) REFERENCES benefits(id)
+                );
+
+                CREATE TABLE IF NOT EXISTS benefit_dependency_nodes (
+                    id          TEXT PRIMARY KEY,
+                    project_id  TEXT NOT NULL,
+                    node_type   TEXT NOT NULL,
+                    title       TEXT NOT NULL,
+                    description TEXT,
+                    status      TEXT NOT NULL DEFAULT 'PLANNED',
+                    owner       TEXT,
+                    target_date TEXT,
+                    benefit_id  TEXT,
+                    created_at  TEXT NOT NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS benefit_dependency_edges (
+                    id            TEXT PRIMARY KEY,
+                    project_id    TEXT NOT NULL,
+                    source_node   TEXT NOT NULL,
+                    target_node   TEXT NOT NULL,
+                    edge_type     TEXT NOT NULL DEFAULT 'DEPENDS_ON',
+                    assumption_id TEXT,
+                    risk_id       TEXT,
+                    notes         TEXT,
+                    created_at    TEXT NOT NULL,
+                    FOREIGN KEY (source_node) REFERENCES benefit_dependency_nodes(id),
+                    FOREIGN KEY (target_node) REFERENCES benefit_dependency_nodes(id),
+                    UNIQUE(source_node, target_node)
+                );
                 """
             )
 
@@ -1497,3 +1574,350 @@ class AssuranceStore:
             )
             rows = cursor.fetchall()
         return [dict(row) for row in rows]
+
+    # ------------------------------------------------------------------
+    # Benefits (P13 — Benefits Realisation Management)
+    # ------------------------------------------------------------------
+
+    def upsert_benefit(self, data: dict[str, object]) -> None:
+        """Insert or replace a benefit record.
+
+        Args:
+            data: Dict with keys matching the ``benefits`` table columns.
+        """
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO benefits
+                    (id, project_id, title, description, is_disbenefit, status,
+                     financial_type, recipient_type, explicitness,
+                     baseline_value, baseline_date, target_value, target_date,
+                     current_actual_value, interim_targets,
+                     measurement_kpi, measurement_frequency, indicator_type,
+                     owner_sro, benefits_owner, business_change_owner,
+                     ipa_lifecycle_stage, business_case_ref, gate_alignment,
+                     contributing_projects, associated_risks, associated_assumptions,
+                     confidence_score, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    data["id"],
+                    data["project_id"],
+                    data["title"],
+                    data["description"],
+                    data.get("is_disbenefit", 0),
+                    data.get("status", "IDENTIFIED"),
+                    data["financial_type"],
+                    data["recipient_type"],
+                    data.get("explicitness", "QUANTIFIABLE"),
+                    data.get("baseline_value"),
+                    data.get("baseline_date"),
+                    data.get("target_value"),
+                    data.get("target_date"),
+                    data.get("current_actual_value"),
+                    data.get("interim_targets", "[]"),
+                    data.get("measurement_kpi"),
+                    data.get("measurement_frequency", "QUARTERLY"),
+                    data.get("indicator_type", "LAGGING"),
+                    data.get("owner_sro"),
+                    data.get("benefits_owner"),
+                    data.get("business_change_owner"),
+                    data.get("ipa_lifecycle_stage", "IDENTIFY_QUANTIFY"),
+                    data.get("business_case_ref"),
+                    data.get("gate_alignment"),
+                    data.get("contributing_projects", "[]"),
+                    data.get("associated_risks", "[]"),
+                    data.get("associated_assumptions", "[]"),
+                    data.get("confidence_score"),
+                    data["created_at"],
+                    data["updated_at"],
+                ),
+            )
+        logger.debug("benefit_upserted", id=data["id"], project_id=data["project_id"])
+
+    def get_benefits(
+        self,
+        project_id: str,
+        status_filter: str | None = None,
+        financial_type_filter: str | None = None,
+    ) -> list[dict[str, object]]:
+        """Retrieve benefits for a project with optional filters.
+
+        Args:
+            project_id: The project identifier.
+            status_filter: Optional status value to filter by.
+            financial_type_filter: Optional financial type to filter by.
+
+        Returns:
+            List of row dicts ordered by ``created_at`` ascending.
+        """
+        clauses = ["project_id = ?"]
+        params: list[object] = [project_id]
+        if status_filter:
+            clauses.append("status = ?")
+            params.append(status_filter)
+        if financial_type_filter:
+            clauses.append("financial_type = ?")
+            params.append(financial_type_filter)
+
+        where = f"WHERE {' AND '.join(clauses)}"
+        with self._connect() as conn:
+            cursor = conn.execute(
+                f"SELECT * FROM benefits {where} ORDER BY created_at ASC",
+                params,
+            )
+            rows = cursor.fetchall()
+        return [dict(row) for row in rows]
+
+    def get_benefit_by_id(self, benefit_id: str) -> dict[str, object] | None:
+        """Retrieve a single benefit by ID.
+
+        Args:
+            benefit_id: The benefit identifier.
+
+        Returns:
+            Row dict or ``None`` if not found.
+        """
+        with self._connect() as conn:
+            cursor = conn.execute(
+                "SELECT * FROM benefits WHERE id = ?",
+                (benefit_id,),
+            )
+            row = cursor.fetchone()
+        return dict(row) if row else None
+
+    def update_benefit_status(self, benefit_id: str, status: str) -> None:
+        """Update a benefit's status.
+
+        Args:
+            benefit_id: The benefit identifier.
+            status: New status value.
+        """
+        with self._connect() as conn:
+            conn.execute(
+                "UPDATE benefits SET status = ?, updated_at = datetime('now') WHERE id = ?",
+                (status, benefit_id),
+            )
+        logger.debug("benefit_status_updated", id=benefit_id, status=status)
+
+    # ------------------------------------------------------------------
+    # Benefit measurements
+    # ------------------------------------------------------------------
+
+    def upsert_benefit_measurement(self, data: dict[str, object]) -> None:
+        """Insert or replace a benefit measurement record.
+
+        Args:
+            data: Dict with keys matching the ``benefit_measurements`` table.
+        """
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO benefit_measurements
+                    (id, benefit_id, project_id, measured_at, value, source,
+                     drift_pct, drift_severity, realisation_pct, trend_direction,
+                     notes, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    data["id"],
+                    data["benefit_id"],
+                    data["project_id"],
+                    data["measured_at"],
+                    data["value"],
+                    data.get("source", "MANUAL"),
+                    data.get("drift_pct", 0.0),
+                    data.get("drift_severity", "NONE"),
+                    data.get("realisation_pct"),
+                    data.get("trend_direction"),
+                    data.get("notes"),
+                    data["created_at"],
+                ),
+            )
+        logger.debug(
+            "benefit_measurement_upserted",
+            id=data["id"],
+            benefit_id=data["benefit_id"],
+        )
+
+    def get_benefit_measurements(
+        self, benefit_id: str
+    ) -> list[dict[str, object]]:
+        """Retrieve all measurements for a benefit, oldest first.
+
+        Args:
+            benefit_id: The benefit identifier.
+
+        Returns:
+            List of row dicts ordered by ``measured_at`` ascending.
+        """
+        with self._connect() as conn:
+            cursor = conn.execute(
+                """
+                SELECT * FROM benefit_measurements
+                WHERE benefit_id = ?
+                ORDER BY measured_at ASC
+                """,
+                (benefit_id,),
+            )
+            rows = cursor.fetchall()
+        return [dict(row) for row in rows]
+
+    # ------------------------------------------------------------------
+    # Benefit dependency nodes
+    # ------------------------------------------------------------------
+
+    def upsert_dependency_node(self, data: dict[str, object]) -> None:
+        """Insert or replace a benefit dependency node.
+
+        Args:
+            data: Dict with keys matching the ``benefit_dependency_nodes`` table.
+        """
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO benefit_dependency_nodes
+                    (id, project_id, node_type, title, description,
+                     status, owner, target_date, benefit_id, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    data["id"],
+                    data["project_id"],
+                    data["node_type"],
+                    data["title"],
+                    data.get("description"),
+                    data.get("status", "PLANNED"),
+                    data.get("owner"),
+                    data.get("target_date"),
+                    data.get("benefit_id"),
+                    data["created_at"],
+                ),
+            )
+        logger.debug(
+            "dependency_node_upserted",
+            id=data["id"],
+            node_type=data["node_type"],
+        )
+
+    def get_dependency_nodes(
+        self,
+        project_id: str,
+        node_type: str | None = None,
+    ) -> list[dict[str, object]]:
+        """Retrieve dependency nodes for a project.
+
+        Args:
+            project_id: The project identifier.
+            node_type: Optional node type filter.
+
+        Returns:
+            List of row dicts ordered by ``created_at`` ascending.
+        """
+        clauses = ["project_id = ?"]
+        params: list[object] = [project_id]
+        if node_type:
+            clauses.append("node_type = ?")
+            params.append(node_type)
+
+        where = f"WHERE {' AND '.join(clauses)}"
+        with self._connect() as conn:
+            cursor = conn.execute(
+                f"SELECT * FROM benefit_dependency_nodes {where} ORDER BY created_at ASC",
+                params,
+            )
+            rows = cursor.fetchall()
+        return [dict(row) for row in rows]
+
+    def get_dependency_node_by_id(
+        self, node_id: str
+    ) -> dict[str, object] | None:
+        """Retrieve a single dependency node by ID.
+
+        Args:
+            node_id: The node identifier.
+
+        Returns:
+            Row dict or ``None`` if not found.
+        """
+        with self._connect() as conn:
+            cursor = conn.execute(
+                "SELECT * FROM benefit_dependency_nodes WHERE id = ?",
+                (node_id,),
+            )
+            row = cursor.fetchone()
+        return dict(row) if row else None
+
+    # ------------------------------------------------------------------
+    # Benefit dependency edges
+    # ------------------------------------------------------------------
+
+    def upsert_dependency_edge(self, data: dict[str, object]) -> None:
+        """Insert or replace a benefit dependency edge.
+
+        Args:
+            data: Dict with keys matching the ``benefit_dependency_edges`` table.
+        """
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO benefit_dependency_edges
+                    (id, project_id, source_node, target_node, edge_type,
+                     assumption_id, risk_id, notes, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    data["id"],
+                    data["project_id"],
+                    data["source_node"],
+                    data["target_node"],
+                    data.get("edge_type", "DEPENDS_ON"),
+                    data.get("assumption_id"),
+                    data.get("risk_id"),
+                    data.get("notes"),
+                    data["created_at"],
+                ),
+            )
+        logger.debug(
+            "dependency_edge_upserted",
+            id=data["id"],
+            source=data["source_node"],
+            target=data["target_node"],
+        )
+
+    def get_dependency_edges(
+        self, project_id: str
+    ) -> list[dict[str, object]]:
+        """Retrieve all dependency edges for a project.
+
+        Args:
+            project_id: The project identifier.
+
+        Returns:
+            List of row dicts ordered by ``created_at`` ascending.
+        """
+        with self._connect() as conn:
+            cursor = conn.execute(
+                """
+                SELECT * FROM benefit_dependency_edges
+                WHERE project_id = ?
+                ORDER BY created_at ASC
+                """,
+                (project_id,),
+            )
+            rows = cursor.fetchall()
+        return [dict(row) for row in rows]
+
+    def delete_dependency_edge(self, edge_id: str) -> None:
+        """Delete a dependency edge by ID.
+
+        Args:
+            edge_id: The edge identifier.
+        """
+        with self._connect() as conn:
+            conn.execute(
+                "DELETE FROM benefit_dependency_edges WHERE id = ?",
+                (edge_id,),
+            )
+        logger.debug("dependency_edge_deleted", id=edge_id)
