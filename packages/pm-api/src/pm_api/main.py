@@ -10,10 +10,12 @@ from .routers import (
     actions,
     armm,
     assumptions,
+    benefits,
     classifier,
     compliance,
     currency,
     divergence,
+    gate_readiness,
     lessons,
     overhead,
     overrides,
@@ -26,7 +28,7 @@ from .routers import (
 app = FastAPI(
     title="PDA Platform API",
     version="0.1.0",
-    description="Read-only REST API serving AssuranceStore data for the UDS renderer.",
+    description="REST API serving PDA Platform AssuranceStore data — compliance history, review actions, assumptions, gate readiness, and benefits realisation.",
 )
 
 app.add_middleware(
@@ -52,6 +54,8 @@ app.include_router(classifier.router)
 app.include_router(currency.router)
 app.include_router(assumptions.router)
 app.include_router(armm.router)
+app.include_router(benefits.router)
+app.include_router(gate_readiness.router)
 
 
 @app.on_event("startup")
