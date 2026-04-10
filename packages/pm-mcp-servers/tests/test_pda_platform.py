@@ -95,15 +95,33 @@ class TestRegistryModules:
         assert len(TOOLS) == 2
         assert callable(dispatch)
 
+    def test_risk_registry_loads(self):
+        from pm_mcp_servers.pm_risk.registry import TOOLS, dispatch
+
+        assert len(TOOLS) == 7
+        assert callable(dispatch)
+
+    def test_change_registry_loads(self):
+        from pm_mcp_servers.pm_change.registry import TOOLS, dispatch
+
+        assert len(TOOLS) == 5
+        assert callable(dispatch)
+
+    def test_resource_registry_loads(self):
+        from pm_mcp_servers.pm_resource.registry import TOOLS, dispatch
+
+        assert len(TOOLS) == 5
+        assert callable(dispatch)
+
 
 class TestToolAggregation:
     """Test that tool aggregation in the unified server is correct."""
 
     def test_total_tool_count(self):
-        """Unified server has exactly 67 tools (6+6+4+5+27+10+5+2+2)."""
+        """Unified server has exactly 84 tools (6+6+4+5+27+10+5+2+2+7+5+5)."""
         from pm_mcp_servers.pda_platform.server import ALL_TOOLS
 
-        assert len(ALL_TOOLS) == 67
+        assert len(ALL_TOOLS) == 84
 
     def test_no_duplicate_tool_names(self):
         """No two tools share the same name across modules."""
@@ -120,14 +138,14 @@ class TestToolAggregation:
         assert len(missing) == 0, f"Tools without dispatch: {missing}"
 
     def test_tool_ordering(self):
-        """Tools appear in module order: data, analyse, validate, nista, assure, brm, portfolio, ev, synthesis."""
+        """Tools appear in module order: data, analyse, validate, nista, assure, brm, portfolio, ev, synthesis, risk, change, resource."""
         from pm_mcp_servers.pda_platform.server import ALL_TOOLS
 
         names = [t.name for t in ALL_TOOLS]
         # First tool should be from pm-data
         assert names[0] == "load_project"
-        # Last tool should be from pm-synthesis
-        assert names[-1] == "compare_project_health"
+        # Last tool should be from pm-resource
+        assert names[-1] == "get_portfolio_capacity"
 
     def test_all_tools_have_valid_schemas(self):
         """Every tool has a name, description, and inputSchema."""
@@ -200,6 +218,23 @@ class TestExpectedTools:
         "summarise_project_health", "compare_project_health",
     }
 
+    EXPECTED_RISK_TOOLS = {
+        "ingest_risk", "update_risk_status", "get_risk_register",
+        "get_risk_heat_map", "ingest_mitigation",
+        "get_mitigation_progress", "get_portfolio_risks",
+    }
+
+    EXPECTED_CHANGE_TOOLS = {
+        "log_change_request", "update_change_status", "get_change_log",
+        "get_change_impact_summary", "analyse_change_pressure",
+    }
+
+    EXPECTED_RESOURCE_TOOLS = {
+        "analyse_resource_loading", "detect_resource_conflicts",
+        "get_critical_resources", "log_resource_plan",
+        "get_portfolio_capacity",
+    }
+
     def test_data_tools_present(self):
         from pm_mcp_servers.pm_data.registry import TOOLS
 
@@ -254,6 +289,24 @@ class TestExpectedTools:
         actual = {t.name for t in TOOLS}
         assert actual == self.EXPECTED_SYNTHESIS_TOOLS
 
+    def test_risk_tools_present(self):
+        from pm_mcp_servers.pm_risk.registry import TOOLS
+
+        actual = {t.name for t in TOOLS}
+        assert actual == self.EXPECTED_RISK_TOOLS
+
+    def test_change_tools_present(self):
+        from pm_mcp_servers.pm_change.registry import TOOLS
+
+        actual = {t.name for t in TOOLS}
+        assert actual == self.EXPECTED_CHANGE_TOOLS
+
+    def test_resource_tools_present(self):
+        from pm_mcp_servers.pm_resource.registry import TOOLS
+
+        actual = {t.name for t in TOOLS}
+        assert actual == self.EXPECTED_RESOURCE_TOOLS
+
     def test_all_expected_tools_in_unified(self):
         """Every expected tool from every module is in the unified server."""
         from pm_mcp_servers.pda_platform.server import ALL_TOOLS
@@ -269,6 +322,9 @@ class TestExpectedTools:
             | self.EXPECTED_PORTFOLIO_TOOLS
             | self.EXPECTED_EV_TOOLS
             | self.EXPECTED_SYNTHESIS_TOOLS
+            | self.EXPECTED_RISK_TOOLS
+            | self.EXPECTED_CHANGE_TOOLS
+            | self.EXPECTED_RESOURCE_TOOLS
         )
         assert actual == expected
 

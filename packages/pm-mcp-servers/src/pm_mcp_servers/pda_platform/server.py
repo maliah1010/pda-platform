@@ -1,6 +1,6 @@
 """PDA Platform — unified MCP server.
 
-Aggregates all nine PDA MCP servers into a single endpoint:
+Aggregates all twelve PDA MCP servers into a single endpoint:
 
   pm-data        ( 6 tools)   Project data loading, querying, conversion
   pm-analyse     ( 6 tools)   AI-powered risk, forecasting, health assessment
@@ -11,8 +11,11 @@ Aggregates all nine PDA MCP servers into a single endpoint:
   pm-portfolio   ( 5 tools)   Cross-project portfolio aggregation and health rollup
   pm-ev          ( 2 tools)   Earned Value metrics and HTML dashboard generation
   pm-synthesis   ( 2 tools)   AI-generated executive health summaries and comparisons
+  pm-risk        ( 7 tools)   Risk register, heat map, mitigations, and portfolio risk rollup
+  pm-change      ( 5 tools)   Change control log, impact analysis, and change pressure detection
+  pm-resource    ( 5 tools)   Resource loading, conflict detection, capacity planning
 
-Total: 67 tools accessible through one connection.
+Total: 84 tools accessible through one connection.
 """
 
 from __future__ import annotations
@@ -33,12 +36,18 @@ from ..pm_brm.registry import TOOLS as BRM_TOOLS
 from ..pm_brm.registry import dispatch as brm_dispatch
 from ..pm_data.registry import TOOLS as DATA_TOOLS
 from ..pm_data.registry import dispatch as data_dispatch
+from ..pm_change.registry import TOOLS as CHANGE_TOOLS
+from ..pm_change.registry import dispatch as change_dispatch
 from ..pm_ev.registry import TOOLS as EV_TOOLS
 from ..pm_ev.registry import dispatch as ev_dispatch
 from ..pm_nista.registry import TOOLS as NISTA_TOOLS
 from ..pm_nista.registry import dispatch as nista_dispatch
 from ..pm_portfolio.registry import TOOLS as PORTFOLIO_TOOLS
 from ..pm_portfolio.registry import dispatch as portfolio_dispatch
+from ..pm_resource.registry import TOOLS as RESOURCE_TOOLS
+from ..pm_resource.registry import dispatch as resource_dispatch
+from ..pm_risk.registry import TOOLS as RISK_TOOLS
+from ..pm_risk.registry import dispatch as risk_dispatch
 from ..pm_synthesis.registry import TOOLS as SYNTHESIS_TOOLS
 from ..pm_synthesis.registry import dispatch as synthesis_dispatch
 from ..pm_validate.registry import TOOLS as VALIDATE_TOOLS
@@ -61,6 +70,9 @@ for _tools, _dispatch_fn in [
     (PORTFOLIO_TOOLS, portfolio_dispatch),
     (EV_TOOLS, ev_dispatch),
     (SYNTHESIS_TOOLS, synthesis_dispatch),
+    (RISK_TOOLS, risk_dispatch),
+    (CHANGE_TOOLS, change_dispatch),
+    (RESOURCE_TOOLS, resource_dispatch),
 ]:
     for _tool in _tools:
         _TOOL_DISPATCH[_tool.name] = _dispatch_fn
@@ -68,12 +80,13 @@ for _tools, _dispatch_fn in [
 ALL_TOOLS: list[Tool] = (
     DATA_TOOLS + ANALYSE_TOOLS + VALIDATE_TOOLS + NISTA_TOOLS
     + ASSURE_TOOLS + BRM_TOOLS + PORTFOLIO_TOOLS + EV_TOOLS + SYNTHESIS_TOOLS
+    + RISK_TOOLS + CHANGE_TOOLS + RESOURCE_TOOLS
 )
 
 logger.info(
     "PDA Platform unified server: %d tools from %d modules",
     len(ALL_TOOLS),
-    9,
+    12,
 )
 
 
