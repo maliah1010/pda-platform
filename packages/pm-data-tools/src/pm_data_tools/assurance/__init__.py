@@ -27,6 +27,9 @@ This module provides twelve capabilities for assurance gate reviews:
 - **P13** — :class:`BenefitsTracker`: Benefits Realisation Management — IPA/Green
   Book-compliant benefits register, time-series measurement tracking, drift
   detection, dependency network (DAG), cascade impact, and health scoring.
+- **P14** — :class:`GateReadinessAssessor`: Synthesises P1-P12 outputs into a
+  composite gate-specific readiness assessment with IPA gate weighting, blocking
+  issue detection, and prioritised recommendations.
 
 Public API::
 
@@ -164,6 +167,18 @@ from .divergence import (
     DivergenceSignal,
     DivergenceSnapshot,
     SignalType,
+)
+from .gate_readiness import (
+    AssessmentDimension,
+    DimensionScore,
+    DimensionStatus,
+    GateComparisonResult,
+    GateReadinessAssessment,
+    GateReadinessAssessor,
+    GateReadinessConfig,
+    GateRiskSignal,
+    GateType,
+    ReadinessLevel,
 )
 from .lessons import (
     LessonCategory,
@@ -327,6 +342,17 @@ __all__ = [
     "NodeType",
     "EdgeType",
     "TrendDirection",
+    # P14 — Gate Readiness Assessor
+    "GateReadinessAssessor",
+    "GateReadinessAssessment",
+    "GateReadinessConfig",
+    "GateComparisonResult",
+    "GateRiskSignal",
+    "GateType",
+    "ReadinessLevel",
+    "AssessmentDimension",
+    "DimensionScore",
+    "DimensionStatus",
     # Deprecated aliases — will be removed in v0.5.0
     "Recommendation",
     "RecommendationExtractionResult",

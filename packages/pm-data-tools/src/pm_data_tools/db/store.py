@@ -328,8 +328,8 @@ class AssuranceStore:
                     description TEXT,
                     status      TEXT NOT NULL DEFAULT 'PLANNED',
                     owner       TEXT,
-                    target_date TEXT,
                     benefit_id  TEXT,
+                    target_date TEXT,
                     created_at  TEXT NOT NULL
                 );
 
@@ -346,6 +346,16 @@ class AssuranceStore:
                     FOREIGN KEY (source_node) REFERENCES benefit_dependency_nodes(id),
                     FOREIGN KEY (target_node) REFERENCES benefit_dependency_nodes(id),
                     UNIQUE(source_node, target_node)
+                );
+
+                CREATE TABLE IF NOT EXISTS gate_readiness_assessments (
+                    id              TEXT PRIMARY KEY,
+                    project_id      TEXT NOT NULL,
+                    gate            TEXT NOT NULL,
+                    readiness       TEXT NOT NULL,
+                    composite_score REAL NOT NULL,
+                    assessed_at     TEXT NOT NULL,
+                    result_json     TEXT NOT NULL
                 );
                 """
             )
@@ -1921,3 +1931,86 @@ class AssuranceStore:
                 (edge_id,),
             )
         logger.debug("dependency_edge_deleted", id=edge_id)
+
+    # ------------------------------------------------------------------
+    # Gate readiness assessments (P14)
+    # ------------------------------------------------------------------
+
+    def insert_gate_readiness_assessment(self, data: dict[str, object]) -> None:
+        """Insert or replace a gate readiness assessment.
+
+        Args:
+            data: Dict with keys matching the ``gate_readiness_assessments`` table.
+        """
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO gate_readiness_assessments
+                    (id, project_id, gate, readiness, composite_score,
+                     assessed_at, result_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    data["id"],
+                    data["project_id"],
+                    data["gate"],
+                    data["readiness"],
+                    data["composite_score"],
+                    data["assessed_at"],
+                    data["result_json"],
+                ),
+            )
+        logger.debug(
+            "gate_readiness_assessment_persisted",
+            id=data["id"],
+            project_id=data["project_id"],
+            gate=data["gate"],
+        )
+
+    def get_gate_readiness_history(
+        self,
+        project_id: str,
+        gate: str | None = None,
+    ) -> list[dict[str, object]]:
+        """Retrieve gate readiness assessments for a project.
+
+        Args:
+            project_id: The project identifier.
+            gate: Optional gate type filter.
+
+        Returns:
+            List of row dicts ordered by ``assessed_at`` ascending.
+        """
+        clauses = ["project_id = ?"]
+        params: list[object] = [project_id]
+        if gate:
+            clauses.append("gate = ?")
+            params.append(gate)
+
+        where = f"WHERE {' AND '.join(clauses)}"
+        with self._connect() as conn:
+            cursor = conn.execute(
+                f"SELECT * FROM gate_readiness_assessments {where} ORDER BY assessed_at ASC",
+                params,
+            )
+            rows = cursor.fetchall()
+        return [dict(row) for row in rows]
+
+    def get_gate_readiness_assessment_by_id(
+        self, assessment_id: str
+    ) -> dict[str, object] | None:
+        """Retrieve a single gate readiness assessment by ID.
+
+        Args:
+            assessment_id: The assessment identifier.
+
+        Returns:
+            Row dict or ``None`` if not found.
+        """
+        with self._connect() as conn:
+            cursor = conn.execute(
+                "SELECT * FROM gate_readiness_assessments WHERE id = ?",
+                (assessment_id,),
+            )
+            row = cursor.fetchone()
+        return dict(row) if row else None

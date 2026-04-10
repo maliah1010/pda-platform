@@ -1021,6 +1021,99 @@ ASSURE_TOOLS: list[Tool] = [
                 "required": ["project_id"],
             },
         ),
+        # P14 — Gate Readiness Assessor
+        Tool(
+            name="assess_gate_readiness",
+            description=(
+                "Run a full gate readiness assessment synthesising data from all "
+                "assurance modules (P1-P12). Returns a composite readiness score "
+                "(0.0-1.0), 8-dimension breakdown with gate-specific weighting, "
+                "blocking issues, and prioritised recommendations. Supports all "
+                "7 IPA review points (Gate 0-5 + PAR)."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "project_id": {
+                        "type": "string",
+                        "description": "Project identifier.",
+                    },
+                    "gate": {
+                        "type": "string",
+                        "enum": [
+                            "GATE_0", "GATE_1", "GATE_2", "GATE_3",
+                            "GATE_4", "GATE_5", "PAR",
+                        ],
+                        "description": (
+                            "IPA gate to assess for. GATE_0=Opportunity Framing, "
+                            "GATE_1=SOC, GATE_2=OBC, GATE_3=FBC, "
+                            "GATE_4=Readiness for Service, GATE_5=Operations Review, "
+                            "PAR=Project Assessment Review."
+                        ),
+                    },
+                    "db_path": {
+                        "type": "string",
+                        "description": "Optional path to the SQLite store.",
+                    },
+                },
+                "required": ["project_id", "gate"],
+            },
+        ),
+        Tool(
+            name="get_gate_readiness_history",
+            description=(
+                "Retrieve past gate readiness assessments for a project to show "
+                "progression over time. Optionally filter by gate type."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "project_id": {
+                        "type": "string",
+                        "description": "Project identifier.",
+                    },
+                    "gate": {
+                        "type": "string",
+                        "enum": [
+                            "GATE_0", "GATE_1", "GATE_2", "GATE_3",
+                            "GATE_4", "GATE_5", "PAR",
+                        ],
+                        "description": "Optional gate filter.",
+                    },
+                    "db_path": {
+                        "type": "string",
+                        "description": "Optional path to the SQLite store.",
+                    },
+                },
+                "required": ["project_id"],
+            },
+        ),
+        Tool(
+            name="compare_gate_readiness",
+            description=(
+                "Compare two gate readiness assessments to show improvement or "
+                "regression. Returns score delta, improved/degraded dimensions, "
+                "and resolved/new blocking issues."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "assessment_id_before": {
+                        "type": "string",
+                        "description": "ID of the earlier assessment.",
+                    },
+                    "assessment_id_after": {
+                        "type": "string",
+                        "description": "ID of the later assessment.",
+                    },
+                    "db_path": {
+                        "type": "string",
+                        "description": "Optional path to the SQLite store.",
+                    },
+                },
+                "required": ["assessment_id_before", "assessment_id_after"],
+            },
+        ),
     ]
 
 
@@ -2742,6 +2835,152 @@ def main() -> None:
             )
 
     asyncio.run(arun())
+
+
+# ---------------------------------------------------------------------------
+# P14 — Gate Readiness Assessor handlers
+# ---------------------------------------------------------------------------
+
+
+async def _assess_gate_readiness(arguments: dict[str, Any]) -> list[TextContent]:
+    """Run a full gate readiness assessment."""
+    try:
+        from pm_data_tools.assurance.gate_readiness import (
+            GateReadinessAssessor,
+            GateType,
+        )
+        from pm_data_tools.db.store import AssuranceStore
+
+        raw_db_path = arguments.get("db_path")
+        db_path = Path(raw_db_path) if raw_db_path else None
+        store = AssuranceStore(db_path=db_path)
+        assessor = GateReadinessAssessor(store=store)
+
+        gate = GateType(arguments["gate"])
+        result = assessor.assess(arguments["project_id"], gate)
+
+        output = {
+            "id": result.id,
+            "project_id": result.project_id,
+            "gate": result.gate.value,
+            "readiness": result.readiness.value,
+            "composite_score": round(result.composite_score, 3),
+            "dimensions_scored": result.dimensions_scored,
+            "dimensions_total": result.dimensions_total,
+            "dimension_scores": {
+                k: {
+                    "score": round(v.score, 3),
+                    "status": v.status.value,
+                    "weight": round(v.weight, 3),
+                    "sources_available": v.sources_available,
+                    "sources_missing": v.sources_missing,
+                    "detail": v.detail,
+                }
+                for k, v in result.dimension_scores.items()
+            },
+            "blocking_issues": result.blocking_issues,
+            "risk_signals": [
+                {
+                    "dimension": s.dimension.value,
+                    "source": s.source,
+                    "severity": round(s.severity, 3),
+                    "is_blocking": s.is_blocking,
+                    "detail": s.detail,
+                }
+                for s in result.risk_signals
+            ],
+            "recommended_actions": result.recommended_actions,
+            "data_availability": result.data_availability,
+            "executive_summary": result.executive_summary,
+        }
+
+        return [TextContent(type="text", text=json.dumps(output, indent=2, default=str))]
+
+    except Exception as exc:
+        return [TextContent(type="text", text=f"Error: {exc}")]
+
+
+async def _get_gate_readiness_history(
+    arguments: dict[str, Any],
+) -> list[TextContent]:
+    """Retrieve past gate readiness assessments."""
+    try:
+        from pm_data_tools.assurance.gate_readiness import (
+            GateReadinessAssessor,
+            GateType,
+        )
+        from pm_data_tools.db.store import AssuranceStore
+
+        raw_db_path = arguments.get("db_path")
+        db_path = Path(raw_db_path) if raw_db_path else None
+        store = AssuranceStore(db_path=db_path)
+        assessor = GateReadinessAssessor(store=store)
+
+        gate = GateType(arguments["gate"]) if arguments.get("gate") else None
+        history = assessor.get_history(arguments["project_id"], gate)
+
+        output = {
+            "project_id": arguments["project_id"],
+            "gate_filter": arguments.get("gate"),
+            "total_assessments": len(history),
+            "assessments": [
+                {
+                    "id": a.id,
+                    "gate": a.gate.value,
+                    "readiness": a.readiness.value,
+                    "composite_score": round(a.composite_score, 3),
+                    "assessed_at": a.assessed_at.isoformat(),
+                    "dimensions_scored": a.dimensions_scored,
+                    "blocking_count": len(a.blocking_issues),
+                }
+                for a in history
+            ],
+        }
+
+        return [TextContent(type="text", text=json.dumps(output, indent=2, default=str))]
+
+    except Exception as exc:
+        return [TextContent(type="text", text=f"Error: {exc}")]
+
+
+async def _compare_gate_readiness(
+    arguments: dict[str, Any],
+) -> list[TextContent]:
+    """Compare two gate readiness assessments."""
+    try:
+        from pm_data_tools.assurance.gate_readiness import GateReadinessAssessor
+        from pm_data_tools.db.store import AssuranceStore
+
+        raw_db_path = arguments.get("db_path")
+        db_path = Path(raw_db_path) if raw_db_path else None
+        store = AssuranceStore(db_path=db_path)
+        assessor = GateReadinessAssessor(store=store)
+
+        result = assessor.compare(
+            arguments["assessment_id_before"],
+            arguments["assessment_id_after"],
+        )
+
+        output = {
+            "project_id": result.project_id,
+            "gate": result.gate.value,
+            "before_score": round(result.before_score, 3),
+            "after_score": round(result.after_score, 3),
+            "score_delta": round(result.score_delta, 3),
+            "before_readiness": result.before_readiness.value,
+            "after_readiness": result.after_readiness.value,
+            "readiness_changed": result.readiness_changed,
+            "improved_dimensions": result.improved_dimensions,
+            "degraded_dimensions": result.degraded_dimensions,
+            "resolved_blockers": result.resolved_blockers,
+            "new_blockers": result.new_blockers,
+            "message": result.message,
+        }
+
+        return [TextContent(type="text", text=json.dumps(output, indent=2, default=str))]
+
+    except Exception as exc:
+        return [TextContent(type="text", text=f"Error: {exc}")]
 
 
 if __name__ == "__main__":  # pragma: no cover

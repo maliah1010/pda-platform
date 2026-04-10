@@ -6,10 +6,10 @@ Aggregates all six PDA MCP servers into a single endpoint:
   pm-analyse   (6 tools)   AI-powered risk, forecasting, health assessment
   pm-validate  (4 tools)   Structural, semantic, and NISTA validation
   pm-nista     (5 tools)   GMPP reporting and NISTA integration
-  pm-assure   (24 tools)   Assurance quality, compliance, assumptions, workflows, dashboards, ARMM
+  pm-assure   (27 tools)   Assurance quality, compliance, assumptions, workflows, dashboards, ARMM, gate readiness
   pm-brm      (10 tools)   Benefits Realisation Management
 
-Total: 55 tools accessible through one connection.
+Total: 58 tools accessible through one connection.
 """
 
 from __future__ import annotations
