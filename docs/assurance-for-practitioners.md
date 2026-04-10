@@ -752,3 +752,184 @@ No.  The Workflow Engine is deterministic — it runs the same steps in the same
 order every time, with no AI decision-making about what to do next.  It is a
 structured pipeline, not an autonomous agent.  This means it is fully
 reproducible and auditable.
+
+---
+
+## P11 — Assumption Drift Tracker
+
+Every project runs on assumptions: that a third-party system will be delivered on
+time, that a key resource will remain available, that regulatory approval will
+follow the expected timeline. When those assumptions are no longer true, the project
+is exposed to risk. The Assumption Drift Tracker monitors whether assumptions are
+holding.
+
+**What it does**
+
+You register an assumption at the point it is made — with a description and the
+baseline state it represents. At each review, you validate the assumption by
+recording what the current state actually is. The platform computes whether the
+assumption is still valid, how far it has drifted from baseline, and what would be
+affected if it failed.
+
+**Three tools:**
+
+- *Ingest an assumption* — register a new assumption with baseline
+- *Validate an assumption* — record a check and mark whether it still holds
+- *Get assumption drift* — retrieve all assumptions and their current drift status
+
+**Why it matters**
+
+Assumption failure is one of the most common causes of project overruns. Projects
+that track assumptions formally catch emerging problems earlier and have a documented
+record for gateway reviews.
+
+**Example prompts:**
+
+> "Register this assumption for project ALPHA-01: 'The legacy database migration
+> will complete by Q2.' The baseline state is 'migration not yet started'."
+
+> "Validate the assumption we registered last month. The current state is: the
+> migration is six weeks behind schedule."
+
+> "Show me all assumptions for project ALPHA-01 and flag any that are drifting."
+
+---
+
+## P12 — Agent Readiness Maturity Model (ARMM)
+
+The Agent Readiness Maturity Model assesses how ready a project or programme is
+to deploy AI agents in its delivery. It evaluates 251 criteria across 28 topics
+in four dimensions: data readiness, process maturity, governance structures, and
+technical infrastructure. The result is a maturity level from 1 (initial) to 5
+(optimised).
+
+**What it does**
+
+You ask Claude to run an ARMM assessment for a project. The platform analyses
+available data in the assurance store and produces a structured report with your
+maturity level per dimension, a breakdown of which criteria are met and which are
+not, and prioritised recommendations for improvement.
+
+**When to use it**
+
+ARMM is most useful when your organisation is planning to introduce AI-assisted
+project management, or when responding to OGP or IPA questions about AI governance
+in major project delivery.
+
+**Example prompt:**
+
+> "Run an ARMM assessment for project DELTA-02 and tell me what level we are at,
+> and what the biggest gaps are."
+
+---
+
+## P13 — Benefits Realisation Management
+
+Benefits are why projects exist. The Benefits Realisation Management module (P13)
+gives project teams a structured, IPA and Green Book-compliant way to register,
+track, and report on the benefits their project is expected to deliver — from initial
+identification through to post-project review.
+
+Benefits are classified using three frameworks simultaneously:
+
+- **Green Book financial type** — cash-releasing, non-cash-releasing, quantifiable,
+  or qualitative
+- **IPA recipient type** — government, private sector, or wider UK public
+- **Ward and Daniel explicitness** — financial, quantifiable, measurable, or observable
+
+**Core capabilities:**
+
+- Register benefits and dis-benefits with full metadata
+- Record measurements over time and compute drift from baseline
+- Map benefits in a dependency network (DAG) connecting project outputs to
+  strategic objectives
+- Detect drift using time-series analysis — ordered by severity
+- Forecast realisation probability using current trajectory
+- Identify cascade impacts through the dependency network
+- Generate IPA-compliant gate review narratives (with AI confidence scoring)
+- Score benefits management maturity against P3M3 criteria (Levels 1–5)
+
+**Example prompts:**
+
+> "Register a benefit for project BETA-03: 'Reduction in manual processing time',
+> financial type QUANTIFIABLE, recipient GOVERNMENT, baseline 40 hours per week,
+> target 8 hours per week by March 2027."
+
+> "Record a measurement for that benefit — we measured 32 hours per week last month."
+
+> "Show me the benefits health for project BETA-03. Which benefits are at risk?"
+
+> "Generate an IPA benefits assurance narrative for project BETA-03 for Gate 3."
+
+> "What is the benefits maturity score for project BETA-03?"
+
+For full documentation, see [Benefits Realisation Reference](brm.md) and the
+[Benefits Practitioner Guide](brm-for-practitioners.md).
+
+---
+
+## P14 — Gate Readiness Assessor
+
+Gate reviews are high-stakes events. The Gate Readiness Assessor (P14) synthesises
+all available assurance signals — from P1 through P13 — into a single composite
+readiness score, broken down by eight assessment dimensions with gate-specific
+weighting.
+
+**The eight dimensions:**
+
+| Dimension | What it measures |
+|-----------|-----------------|
+| Artefact readiness | Are all required artefacts current and complete? |
+| Compliance trajectory | Is NISTA compliance improving? |
+| Assumption integrity | Are assumptions still valid? |
+| Confidence quality | Is AI extraction consistent and high-confidence? |
+| Governance | Are override decisions being documented? |
+| Learning | Is the project drawing on lessons from past reviews? |
+| Benefits maturity | Are benefits being tracked and realised? |
+| Domain alignment | Is the assurance approach appropriate for the project's complexity? |
+
+Each dimension is weighted differently depending on the gate type. Early gates
+(0, 1) weight assumptions and governance heavily. Later gates (3, 4, 5) weight
+artefact completeness and benefits evidence more.
+
+**Four readiness levels:**
+
+- **READY** — All blocking issues resolved; proceed with confidence
+- **CONDITIONALLY READY** — Minor gaps; proceed with named actions
+- **AT RISK** — Significant gaps; review recommended before gate
+- **NOT READY** — Blocking issues unresolved; gate submission not advised
+
+**Example prompts:**
+
+> "Run a gate readiness assessment for project GAMMA-01 at Gate 3."
+
+> "Show me the gate readiness history for project GAMMA-01 — how has it
+> progressed over the last three assessments?"
+
+> "Compare the Gate 3 assessment from last month with this month's assessment
+> for project GAMMA-01."
+
+For full documentation, see [Gate Readiness Reference](gate-readiness.md) and the
+[Gate Readiness Practitioner Guide](gate-readiness-for-practitioners.md).
+
+---
+
+## Using all fourteen features together
+
+The fourteen features form a complete, layered assurance capability:
+
+| Layer | Features | Purpose |
+|-------|---------|---------|
+| Evidence quality | P1, P4 | Is the evidence reliable and consistent? |
+| Compliance trajectory | P2 | Is data quality improving over time? |
+| Action management | P3 | Are review findings being addressed? |
+| Scheduling | P5 | When is the next review needed? |
+| Governance | P6 | Are override decisions documented? |
+| Organisational learning | P7 | Are we learning from past projects? |
+| Efficiency | P8 | Is assurance effort well spent? |
+| Orchestration | P9 | Run P1–P8 in a coordinated sequence |
+| Profiling | P10 | Is the right intensity of assurance applied? |
+| Assumption tracking | P11 | Are underlying assumptions still holding? |
+| AI readiness | P12 | Is the project ready for AI-assisted delivery? |
+| Benefits tracking | P13 | Are expected benefits being realised? |
+| Gate readiness | P14 | Is the project ready for its next gateway? |

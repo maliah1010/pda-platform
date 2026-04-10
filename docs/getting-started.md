@@ -208,7 +208,7 @@ pip install pm-mcp-servers
 # or %APPDATA%/Claude/claude_desktop_config.json (Windows)
 ```
 
-Add the **unified server** to your Claude config (recommended — gives access to all 45 tools):
+Add the **unified server** to your Claude config (recommended — gives access to all 58 tools):
 
 ```json
 {

@@ -50,7 +50,7 @@ Add the PDA Platform server:
 
 ### Step 3: Restart Claude Desktop
 
-Restart the application. You should see PDA Platform listed in the MCP tools panel with 45 tools available.
+Restart the application. You should see PDA Platform listed in the MCP tools panel with 58 tools available.
 
 ### Step 4: Test
 
@@ -74,7 +74,7 @@ Claude.ai supports remote MCP servers over SSE. You can connect to a hosted PDA 
 https://pda-platform-i33p.onrender.com/sse
 ```
 
-4. The 45 tools will appear in the conversation
+4. The 58 tools will appear in the conversation
 
 ### Hosting your own instance
 
@@ -130,7 +130,7 @@ In your project's `.claude/settings.json` or your global Claude Code config, add
 
 ### Step 3: Use
 
-The 45 tools are now available in your Claude Code session.
+The 58 tools are now available in your Claude Code session.
 
 ---
 
@@ -202,7 +202,7 @@ Connect your client to `http://localhost:8080/sse`.
 
 ## What you get
 
-Once connected, your AI assistant has access to 45 tools across five areas:
+Once connected, your AI assistant has access to 58 tools across six areas:
 
 | Area | Tools | What it does |
 |------|-------|-------------|
@@ -210,7 +210,8 @@ Once connected, your AI assistant has access to 45 tools across five areas:
 | **Analysis** | 6 | Identify risks, forecast completion (Monte Carlo, EVM), detect outliers, assess health, suggest mitigations, compare baselines |
 | **Validation** | 4 | Validate structure, business rules, NISTA compliance, custom rules |
 | **NISTA** | 5 | Generate GMPP quarterly reports, AI narratives, submit to NISTA API, fetch metadata, validate reports |
-| **Assurance** | 24 | Track assumptions and drift, check artefact currency, analyse review findings, monitor confidence, schedule reviews, log overrides, search lessons learned, measure overhead, run workflows, classify programme complexity, generate dashboards and ARMM reports |
+| **Assurance** | 27 | Track assumptions and drift, check artefact currency, analyse review findings, monitor confidence, schedule reviews, log overrides, search lessons learned, measure overhead, run workflows, classify programme complexity, assess gate readiness (P14), generate dashboards and ARMM reports |
+| **Benefits** | 10 | Register benefits (P13), track measurements, detect drift, map dependency networks, cascade impact analysis, forecast realisation, assess maturity |
 
 ---
 

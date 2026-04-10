@@ -1,6 +1,8 @@
 # Assurance Module — Developer Reference
 
-This document describes the ten assurance features in the PDA Platform:
+This document describes the assurance features in the PDA Platform (P1–P14).
+P13 (Benefits Realisation Management) is documented in full in [brm.md](brm.md).
+P14 (Gate Readiness Assessor) is documented in full in [gate-readiness.md](gate-readiness.md).
 
 - **P1 — Artefact Currency Validator**: Detects stale or anomalously refreshed
   evidence artefacts by inspecting document metadata timestamps against
@@ -32,6 +34,19 @@ This document describes the ten assurance features in the PDA Platform:
   domains (CLEAR / COMPLICATED / COMPLEX / CHAOTIC) using up to seven explicit
   indicators and four store-derived signals, then returns a tailored assurance
   profile with recommended cadence and toolset.
+- **P11 — Assumption Drift Tracker**: Registers assumptions with baselines,
+  records validation checks, computes drift, and identifies cascade impact on
+  dependent risks, benefits, and decisions.
+- **P12 — Agent Readiness Maturity Model (ARMM)**: Four-dimension, 28-topic,
+  251-criterion weakest-link maturity assessment for AI agent deployment readiness.
+- **P13 — Benefits Realisation Management**: IPA/Green Book-compliant benefit
+  register with measurement tracking, dependency network (DAG), drift detection,
+  realisation forecasting, cascade impact analysis, and P3M3 maturity scoring.
+  See [brm.md](brm.md).
+- **P14 — Gate Readiness Assessor**: Synthesises P1–P13 outputs into a
+  gate-specific composite readiness score (0.0–1.0) with 8-dimension breakdown,
+  blocking issue detection, and prioritised recommendations. Supports all 7 IPA
+  review points (Gate 0–5 + PAR). See [gate-readiness.md](gate-readiness.md).
 
 ---
 
