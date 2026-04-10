@@ -68,7 +68,7 @@ class TestRegistryModules:
     def test_assure_registry_loads(self):
         from pm_mcp_servers.pm_assure.registry import TOOLS, dispatch
 
-        assert len(TOOLS) == 24
+        assert len(TOOLS) == 27
         assert callable(dispatch)
 
 
@@ -76,10 +76,10 @@ class TestToolAggregation:
     """Test that tool aggregation in the unified server is correct."""
 
     def test_total_tool_count(self):
-        """Unified server has exactly 45 tools (6+6+4+5+24)."""
+        """Unified server has exactly 58 tools (6+6+4+5+27+10)."""
         from pm_mcp_servers.pda_platform.server import ALL_TOOLS
 
-        assert len(ALL_TOOLS) == 45
+        assert len(ALL_TOOLS) == 58
 
     def test_no_duplicate_tool_names(self):
         """No two tools share the same name across modules."""
@@ -102,8 +102,8 @@ class TestToolAggregation:
         names = [t.name for t in ALL_TOOLS]
         # First tool should be from pm-data
         assert names[0] == "load_project"
-        # Last tool should be from pm-assure
-        assert names[-1] == "get_armm_report"
+        # Last tool should be from pm-brm
+        assert names[-1] == "assess_benefits_maturity"
 
     def test_all_tools_have_valid_schemas(self):
         """Every tool has a name, description, and inputSchema."""
@@ -151,6 +151,15 @@ class TestExpectedTools:
         "get_assumption_drift", "get_cascade_impact",
         "create_project_from_profile", "export_dashboard_data",
         "export_dashboard_html", "get_armm_report",
+        "assess_gate_readiness", "get_gate_readiness_history", "compare_gate_readiness",
+    }
+
+    EXPECTED_BRM_TOOLS = {
+        "ingest_benefit", "track_benefit_measurement", "get_benefits_health",
+        "map_benefit_dependency", "get_benefit_dependency_network",
+        "forecast_benefit_realisation", "detect_benefits_drift",
+        "get_benefits_cascade_impact", "generate_benefits_narrative",
+        "assess_benefits_maturity",
     }
 
     def test_data_tools_present(self):
@@ -183,6 +192,12 @@ class TestExpectedTools:
         actual = {t.name for t in TOOLS}
         assert actual == self.EXPECTED_ASSURE_TOOLS
 
+    def test_brm_tools_present(self):
+        from pm_mcp_servers.pm_brm.registry import TOOLS
+
+        actual = {t.name for t in TOOLS}
+        assert actual == self.EXPECTED_BRM_TOOLS
+
     def test_all_expected_tools_in_unified(self):
         """Every expected tool from every module is in the unified server."""
         from pm_mcp_servers.pda_platform.server import ALL_TOOLS
@@ -194,6 +209,7 @@ class TestExpectedTools:
             | self.EXPECTED_VALIDATE_TOOLS
             | self.EXPECTED_NISTA_TOOLS
             | self.EXPECTED_ASSURE_TOOLS
+            | self.EXPECTED_BRM_TOOLS
         )
         assert actual == expected
 
