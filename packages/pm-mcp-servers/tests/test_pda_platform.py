@@ -2,7 +2,7 @@
 
 Covers:
   - Server creation and tool aggregation
-  - All 5 registry modules load correctly
+  - All 9 registry modules load correctly
   - No duplicate tool names across modules
   - Every tool has a dispatch entry
   - Tool count matches expected total
@@ -71,15 +71,39 @@ class TestRegistryModules:
         assert len(TOOLS) == 27
         assert callable(dispatch)
 
+    def test_brm_registry_loads(self):
+        from pm_mcp_servers.pm_brm.registry import TOOLS, dispatch
+
+        assert len(TOOLS) == 10
+        assert callable(dispatch)
+
+    def test_portfolio_registry_loads(self):
+        from pm_mcp_servers.pm_portfolio.registry import TOOLS, dispatch
+
+        assert len(TOOLS) == 5
+        assert callable(dispatch)
+
+    def test_ev_registry_loads(self):
+        from pm_mcp_servers.pm_ev.registry import TOOLS, dispatch
+
+        assert len(TOOLS) == 2
+        assert callable(dispatch)
+
+    def test_synthesis_registry_loads(self):
+        from pm_mcp_servers.pm_synthesis.registry import TOOLS, dispatch
+
+        assert len(TOOLS) == 2
+        assert callable(dispatch)
+
 
 class TestToolAggregation:
     """Test that tool aggregation in the unified server is correct."""
 
     def test_total_tool_count(self):
-        """Unified server has exactly 58 tools (6+6+4+5+27+10)."""
+        """Unified server has exactly 67 tools (6+6+4+5+27+10+5+2+2)."""
         from pm_mcp_servers.pda_platform.server import ALL_TOOLS
 
-        assert len(ALL_TOOLS) == 58
+        assert len(ALL_TOOLS) == 67
 
     def test_no_duplicate_tool_names(self):
         """No two tools share the same name across modules."""
@@ -96,14 +120,14 @@ class TestToolAggregation:
         assert len(missing) == 0, f"Tools without dispatch: {missing}"
 
     def test_tool_ordering(self):
-        """Tools appear in module order: data, analyse, validate, nista, assure."""
+        """Tools appear in module order: data, analyse, validate, nista, assure, brm, portfolio, ev, synthesis."""
         from pm_mcp_servers.pda_platform.server import ALL_TOOLS
 
         names = [t.name for t in ALL_TOOLS]
         # First tool should be from pm-data
         assert names[0] == "load_project"
-        # Last tool should be from pm-brm
-        assert names[-1] == "assess_benefits_maturity"
+        # Last tool should be from pm-synthesis
+        assert names[-1] == "compare_project_health"
 
     def test_all_tools_have_valid_schemas(self):
         """Every tool has a name, description, and inputSchema."""
@@ -162,6 +186,20 @@ class TestExpectedTools:
         "assess_benefits_maturity",
     }
 
+    EXPECTED_PORTFOLIO_TOOLS = {
+        "get_portfolio_health", "get_portfolio_gate_readiness",
+        "get_portfolio_brm_overview", "get_portfolio_armm_summary",
+        "get_portfolio_assumptions_risk",
+    }
+
+    EXPECTED_EV_TOOLS = {
+        "compute_ev_metrics", "generate_ev_dashboard",
+    }
+
+    EXPECTED_SYNTHESIS_TOOLS = {
+        "summarise_project_health", "compare_project_health",
+    }
+
     def test_data_tools_present(self):
         from pm_mcp_servers.pm_data.registry import TOOLS
 
@@ -198,6 +236,24 @@ class TestExpectedTools:
         actual = {t.name for t in TOOLS}
         assert actual == self.EXPECTED_BRM_TOOLS
 
+    def test_portfolio_tools_present(self):
+        from pm_mcp_servers.pm_portfolio.registry import TOOLS
+
+        actual = {t.name for t in TOOLS}
+        assert actual == self.EXPECTED_PORTFOLIO_TOOLS
+
+    def test_ev_tools_present(self):
+        from pm_mcp_servers.pm_ev.registry import TOOLS
+
+        actual = {t.name for t in TOOLS}
+        assert actual == self.EXPECTED_EV_TOOLS
+
+    def test_synthesis_tools_present(self):
+        from pm_mcp_servers.pm_synthesis.registry import TOOLS
+
+        actual = {t.name for t in TOOLS}
+        assert actual == self.EXPECTED_SYNTHESIS_TOOLS
+
     def test_all_expected_tools_in_unified(self):
         """Every expected tool from every module is in the unified server."""
         from pm_mcp_servers.pda_platform.server import ALL_TOOLS
@@ -210,6 +266,9 @@ class TestExpectedTools:
             | self.EXPECTED_NISTA_TOOLS
             | self.EXPECTED_ASSURE_TOOLS
             | self.EXPECTED_BRM_TOOLS
+            | self.EXPECTED_PORTFOLIO_TOOLS
+            | self.EXPECTED_EV_TOOLS
+            | self.EXPECTED_SYNTHESIS_TOOLS
         )
         assert actual == expected
 
