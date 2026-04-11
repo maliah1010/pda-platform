@@ -11,13 +11,13 @@ Aggregates all fourteen PDA MCP servers into a single endpoint:
   pm-portfolio   ( 5 tools)   Cross-project portfolio aggregation and health rollup
   pm-ev          ( 2 tools)   Earned Value metrics and HTML dashboard generation
   pm-synthesis   ( 2 tools)   AI-generated executive health summaries and comparisons
-  pm-risk        ( 7 tools)   Risk register, heat map, mitigations, and portfolio risk rollup
+  pm-risk        ( 9 tools)   Risk register, heat map, mitigations, velocity tracking, stale register detection
   pm-change      ( 5 tools)   Change control log, impact analysis, and change pressure detection
   pm-resource    ( 5 tools)   Resource loading, conflict detection, capacity planning
   pm-financial   ( 5 tools)   Budget baseline, actuals, cost performance, EAC forecasting
-  pm-knowledge   ( 5 tools)   Pre-loaded IPA benchmark data, failure patterns, and guidance references
+  pm-knowledge   ( 8 tools)   IPA benchmarks, failure patterns, guidance, reference class checks, pre-mortem questions
 
-Total: 94 tools accessible through one connection.
+Total: 99 tools accessible through one connection.
 """
 
 from __future__ import annotations

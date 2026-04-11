@@ -9,9 +9,12 @@ from mcp.types import TextContent
 from .server import KNOWLEDGE_TOOLS as TOOLS  # noqa: F401 — re-exported for unified server
 from .server import (
     _get_benchmark_data,
+    _get_benchmark_percentile,
     _get_failure_patterns,
     _get_ipa_guidance,
+    _generate_premortem_questions,
     _list_knowledge_categories,
+    _run_reference_class_check,
     _search_knowledge_base,
 )
 
@@ -21,6 +24,9 @@ _DISPATCH = {
     "get_failure_patterns": _get_failure_patterns,
     "get_ipa_guidance": _get_ipa_guidance,
     "search_knowledge_base": _search_knowledge_base,
+    "run_reference_class_check": _run_reference_class_check,
+    "get_benchmark_percentile": _get_benchmark_percentile,
+    "generate_premortem_questions": _generate_premortem_questions,
 }
 
 

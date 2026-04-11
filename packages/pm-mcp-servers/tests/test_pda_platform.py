@@ -98,7 +98,7 @@ class TestRegistryModules:
     def test_risk_registry_loads(self):
         from pm_mcp_servers.pm_risk.registry import TOOLS, dispatch
 
-        assert len(TOOLS) == 7
+        assert len(TOOLS) == 9
         assert callable(dispatch)
 
     def test_change_registry_loads(self):
@@ -122,7 +122,7 @@ class TestRegistryModules:
     def test_knowledge_registry_loads(self):
         from pm_mcp_servers.pm_knowledge.registry import TOOLS, dispatch
 
-        assert len(TOOLS) == 5
+        assert len(TOOLS) == 8
         assert callable(dispatch)
 
 
@@ -130,10 +130,10 @@ class TestToolAggregation:
     """Test that tool aggregation in the unified server is correct."""
 
     def test_total_tool_count(self):
-        """Unified server has exactly 94 tools (6+6+4+5+27+10+5+2+2+7+5+5+5+5)."""
+        """Unified server has exactly 99 tools (6+6+4+5+27+10+5+2+2+9+5+5+5+8)."""
         from pm_mcp_servers.pda_platform.server import ALL_TOOLS
 
-        assert len(ALL_TOOLS) == 94
+        assert len(ALL_TOOLS) == 99
 
     def test_no_duplicate_tool_names(self):
         """No two tools share the same name across modules."""
@@ -157,7 +157,7 @@ class TestToolAggregation:
         # First tool should be from pm-data
         assert names[0] == "load_project"
         # Last tool should be from pm-knowledge
-        assert names[-1] == "search_knowledge_base"
+        assert names[-1] == "generate_premortem_questions"
 
     def test_all_tools_have_valid_schemas(self):
         """Every tool has a name, description, and inputSchema."""
@@ -234,6 +234,7 @@ class TestExpectedTools:
         "ingest_risk", "update_risk_status", "get_risk_register",
         "get_risk_heat_map", "ingest_mitigation",
         "get_mitigation_progress", "get_portfolio_risks",
+        "get_risk_velocity", "detect_stale_risks",
     }
 
     EXPECTED_CHANGE_TOOLS = {
@@ -255,6 +256,8 @@ class TestExpectedTools:
     EXPECTED_KNOWLEDGE_TOOLS = {
         "list_knowledge_categories", "get_benchmark_data",
         "get_failure_patterns", "get_ipa_guidance", "search_knowledge_base",
+        "run_reference_class_check", "get_benchmark_percentile",
+        "generate_premortem_questions",
     }
 
     def test_data_tools_present(self):

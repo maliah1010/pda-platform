@@ -591,3 +591,248 @@ KNOWLEDGE_CATEGORIES = {
         "topics": [g["topic"] for g in GUIDANCE_REFERENCES],
     },
 }
+
+# ── Pre-mortem question library ───────────────────────────────────────────────
+# Structured challenge questions for IPA gate reviews, keyed by gate and risk flag.
+# Based on cognitive science research into optimism bias, planning fallacy,
+# escalation of commitment, and groupthink in project governance.
+
+PREMORTEM_QUESTIONS: dict[str, list[dict]] = {
+    "GATE_0": [
+        {
+            "question": "What would have to be true about the strategic context for this programme not to be needed?",
+            "targets": ["strategic_rationale"],
+            "failure_mode": "Strategic misalignment",
+        },
+        {
+            "question": "Is this programme being driven by evidence of genuine need, or by political momentum that has already made the decision?",
+            "targets": ["strategic_rationale", "governance"],
+            "failure_mode": "Post-hoc rationalisation",
+        },
+        {
+            "question": "Who has the strongest incentive to see this programme approved, and how might that have shaped the options appraisal?",
+            "targets": ["governance", "benefits"],
+            "failure_mode": "Optimism bias in options appraisal",
+        },
+        {
+            "question": "If a comparable programme had failed in the last five years, what would have caused that failure — and are those conditions present here?",
+            "targets": ["risk", "delivery"],
+            "failure_mode": "Failure to learn from reference class",
+        },
+        {
+            "question": "What is the minimum viable version of this programme that would still deliver the core strategic benefit?",
+            "targets": ["scope", "benefits"],
+            "failure_mode": "Scope overreach",
+        },
+    ],
+    "GATE_1": [
+        {
+            "question": "What is the reference class for programmes of this type and scale — what does the P80 whole-life cost imply for this estimate?",
+            "targets": ["financials", "optimism_bias"],
+            "failure_mode": "Optimism bias in cost estimation",
+        },
+        {
+            "question": "Which assumption, if wrong, would most severely undermine the preferred option's value for money?",
+            "targets": ["assumptions", "benefits"],
+            "failure_mode": "Fragile business case",
+        },
+        {
+            "question": "If the primary benefit fails to materialise, what is the fallback position — and has it been formally assessed?",
+            "targets": ["benefits", "risk"],
+            "failure_mode": "No contingency in benefits case",
+        },
+        {
+            "question": "Has optimism bias been applied to the schedule as well as to the cost — and has the programme team agreed with the uplift?",
+            "targets": ["schedule", "optimism_bias"],
+            "failure_mode": "Schedule optimism bias",
+        },
+        {
+            "question": "Are the benefits measurable against a pre-intervention baseline that has already been established?",
+            "targets": ["benefits", "measurement"],
+            "failure_mode": "Unverifiable benefits",
+        },
+        {
+            "question": "Is the SRO empowered to make the decisions this programme will require — including decisions to descope or stop?",
+            "targets": ["governance", "leadership"],
+            "failure_mode": "SRO without authority",
+        },
+    ],
+    "GATE_2": [
+        {
+            "question": "Has the market been genuinely tested, or has a preferred supplier already been identified informally before the procurement begins?",
+            "targets": ["commercial", "competition"],
+            "failure_mode": "Foregone conclusion procurement",
+        },
+        {
+            "question": "What is the exit strategy if the chosen delivery partner underperforms or fails — and is it genuinely executable?",
+            "targets": ["commercial", "risk"],
+            "failure_mode": "Supplier lock-in",
+        },
+        {
+            "question": "Is the risk allocation in the proposed contract appropriate — or is the public sector retaining risks that the supplier is better placed to manage?",
+            "targets": ["commercial", "risk"],
+            "failure_mode": "Poor risk transfer",
+        },
+        {
+            "question": "Has optimism bias been applied to the procurement timeline, not just to the delivery cost?",
+            "targets": ["schedule", "commercial"],
+            "failure_mode": "Procurement schedule optimism",
+        },
+        {
+            "question": "Are the requirements sufficiently defined to write enforceable contract terms — or will ambiguity create disputes during delivery?",
+            "targets": ["requirements", "commercial"],
+            "failure_mode": "Ambiguous requirements in contract",
+        },
+        {
+            "question": "What assumptions about supplier capability have been made — and have they been independently verified?",
+            "targets": ["commercial", "risk"],
+            "failure_mode": "Unverified supplier capability",
+        },
+    ],
+    "GATE_3": [
+        {
+            "question": "Is the Full Business Case materially different from the Outline Business Case in ways that should have triggered re-approval at a higher level?",
+            "targets": ["governance", "financials"],
+            "failure_mode": "Scope/cost change without escalation",
+        },
+        {
+            "question": "What will cause the first major milestone to slip — and is there explicit contingency for that scenario?",
+            "targets": ["schedule", "risk"],
+            "failure_mode": "No schedule contingency for first critical milestone",
+        },
+        {
+            "question": "Are the contract terms genuinely enforceable, or have concessions been made during negotiations that reduce commercial leverage?",
+            "targets": ["commercial"],
+            "failure_mode": "Negotiation concessions weakening the contract",
+        },
+        {
+            "question": "Has the programme team genuinely tested the schedule by resource-loading it — or does it assume continuous availability of people who have other commitments?",
+            "targets": ["schedule", "resources"],
+            "failure_mode": "Unresourced schedule",
+        },
+        {
+            "question": "Is there a clear process for managing scope change — and is it understood by the supplier as well as the programme team?",
+            "targets": ["scope", "commercial"],
+            "failure_mode": "No effective change control",
+        },
+        {
+            "question": "Have all key dependencies on other programmes or external parties been formally agreed and documented?",
+            "targets": ["dependencies", "risk"],
+            "failure_mode": "Unconfirmed critical dependencies",
+        },
+        {
+            "question": "If this programme had to be stopped six months from now, what would have been wasted — and is that an acceptable risk given current confidence?",
+            "targets": ["governance", "risk"],
+            "failure_mode": "Sunk cost escalation risk",
+        },
+    ],
+    "GATE_4": [
+        {
+            "question": "Has user acceptance testing revealed issues that are being accepted as known issues without formal risk acceptance — and who has accepted that risk?",
+            "targets": ["quality", "governance"],
+            "failure_mode": "Known issues accepted without formal governance",
+        },
+        {
+            "question": "Is the business genuinely ready to absorb this change — or is readiness being claimed under delivery pressure?",
+            "targets": ["business_readiness", "change_management"],
+            "failure_mode": "Premature go-live under schedule pressure",
+        },
+        {
+            "question": "What will happen to benefits realisation if the hypercare period ends before all go-live issues are resolved?",
+            "targets": ["benefits", "risk"],
+            "failure_mode": "Benefits undermined by unresolved go-live issues",
+        },
+        {
+            "question": "Are the people who will operate this service trained and confident — or are they being trained on documentation that does not reflect the final system?",
+            "targets": ["people", "change_management"],
+            "failure_mode": "Inadequate operational readiness",
+        },
+        {
+            "question": "Has the transition plan been tested — including the fallback/rollback scenario if go-live fails?",
+            "targets": ["risk", "delivery"],
+            "failure_mode": "No tested rollback plan",
+        },
+    ],
+    "GATE_5": [
+        {
+            "question": "Are the benefits being measured in a way that genuinely attributes outcomes to this programme — or could the same results have occurred without it?",
+            "targets": ["benefits", "measurement"],
+            "failure_mode": "Attribution failure",
+        },
+        {
+            "question": "What proportion of the intended beneficiaries are experiencing the claimed benefits — and has this been directly measured?",
+            "targets": ["benefits", "measurement"],
+            "failure_mode": "Benefits claimed but not measured at user level",
+        },
+        {
+            "question": "Have the lessons from this programme been shared in a way that will actually change practice — or just documented in a report nobody will read?",
+            "targets": ["lessons_learned", "governance"],
+            "failure_mode": "Lessons learned captured but not applied",
+        },
+        {
+            "question": "Is there a credible plan for continuing to track benefits beyond the point at which the programme team disbands?",
+            "targets": ["benefits", "governance"],
+            "failure_mode": "Benefits orphaned at programme closure",
+        },
+        {
+            "question": "Were the costs ultimately incurred consistent with the approved business case — and if not, has the variance been formally explained?",
+            "targets": ["financials", "governance"],
+            "failure_mode": "Unexplained final cost variance",
+        },
+    ],
+    "ANY": [
+        {
+            "question": "If this programme failed to deliver its primary benefit, what is the single most likely cause based on current evidence?",
+            "targets": ["benefits", "risk"],
+            "failure_mode": "Primary benefit non-delivery",
+        },
+        {
+            "question": "What is the programme team not telling senior stakeholders — and why?",
+            "targets": ["governance", "reporting"],
+            "failure_mode": "Bad news suppression",
+        },
+        {
+            "question": "Which assumption, if wrong, would most severely undermine the current delivery confidence rating?",
+            "targets": ["assumptions", "risk"],
+            "failure_mode": "Key assumption failure",
+        },
+        {
+            "question": "Is the risk register a genuine picture of what could go wrong — or a curated list of manageable risks?",
+            "targets": ["risk"],
+            "failure_mode": "Risk register as compliance exercise",
+        },
+        {
+            "question": "What would a sceptical but fair external reviewer say is the programme's biggest blind spot?",
+            "targets": ["governance", "risk"],
+            "failure_mode": "Governance blind spot",
+        },
+    ],
+}
+
+# Risk flag to question mapping for targeted pre-mortems
+RISK_FLAG_QUESTIONS: dict[str, list[str]] = {
+    "optimism_bias": [
+        "Has the submitted cost estimate been compared against the IPA benchmark distribution for projects of this type? If so, at what percentile does it sit?",
+        "Was optimism bias applied in accordance with HM Treasury Green Book guidance — and was the uplift percentage justified with reference class evidence?",
+    ],
+    "benefits_unowned": [
+        "Who is personally accountable for each benefit — and have those individuals formally accepted accountability in writing?",
+        "If a benefit is not realised, who faces consequences — and is that person currently engaged with the programme?",
+    ],
+    "schedule_no_float": [
+        "The schedule shows no float on the critical path. What is the contingency plan if the first critical milestone slips by two weeks?",
+        "Has the schedule been independently reviewed for logic quality — are all tasks linked, resource-loaded, and free of artificial constraints?",
+    ],
+    "supplier_dependency": [
+        "What would happen to this programme if the lead supplier became financially distressed or was acquired in the next 12 months?",
+        "Is the exit provision in the contract genuinely executable — has it been tested or reviewed by commercial and legal teams?",
+    ],
+    "stale_risks": [
+        "The risk register has not been updated recently. Which risks have been most active in the past 60 days — and why are they not reflected in the register?",
+        "Are risk owners actively managing their risks, or has ownership become nominal?",
+    ],
+    "sro_capacity": [
+        "How many days per month is the SRO able to devote to this programme — and is that sufficient given the current delivery stage?",
+        "If the SRO were unavailable for four weeks, who would make the decisions that only the SRO can make?",
+    ],
+}
