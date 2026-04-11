@@ -1,0 +1,52 @@
+name: Publish to PyPI
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  publish:
+    name: Build and publish packages
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write  # Required for trusted publishing
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install build tools
+        run: pip install build twine
+
+      # Publish in dependency order: agent-task-planning first,
+      # then pm-data-tools (depends on agent-task-planning),
+      # then pm-mcp-servers (depends on pm-data-tools),
+      # then the meta-package pda-platform (depends on all three).
+
+      - name: Build agent-task-planning
+        run: python -m build packages/agent-task-planning
+
+      - name: Build pm-data-tools
+        run: python -m build packages/pm-data-tools
+
+      - name: Build pm-mcp-servers
+        run: python -m build packages/pm-mcp-servers
+
+      - name: Build pda-platform (meta-package)
+        run: python -m build packages/pda-platform
+
+      - name: Publish all packages to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: |
+            packages/agent-task-planning/dist
+            packages/pm-data-tools/dist
+            packages/pm-mcp-servers/dist
+            packages/pda-platform/dist
+          skip-existing: true
