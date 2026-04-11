@@ -79,6 +79,12 @@ pm-knowledge-server = "pm_mcp_servers.pm_knowledge.server:main"
 pda-platform-server = "pm_mcp_servers.pda_platform.server:main"
 pda-platform-remote = "pm_mcp_servers.pda_platform.remote:main"
 
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+markers = [
+    "behavioural: marks tests as behavioural/integration tests that verify correct outputs (deselect with '-m not behavioural')",
+]
+
 [tool.ruff]
 line-length = 120
 target-version = "py310"

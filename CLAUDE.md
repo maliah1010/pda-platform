@@ -135,10 +135,10 @@ Current documentation status (update this when docs are written):
 | pm-data | ✅ | ✅ v2.0 | n/a | ✅ |
 | pm-analyse | ✅ | ✅ v2.0 | ✅ | ✅ |
 | pm-validate | ✅ | ✅ v2.0 | n/a | partial |
-| pm-nista | ❌ needed | ✅ v2.0 | n/a | partial |
+| pm-nista | ✅ | ✅ v2.0 | n/a | partial |
 | pm-assure | ✅ | ✅ v2.0 | ✅ | ✅ |
-| pm-brm | ✅ | ✅ v2.0 | ⚠️ needed | ✅ |
-| pm-gate-readiness | ✅ | ✅ v2.0 | ⚠️ needed | ✅ |
+| pm-brm | ✅ | ✅ v2.0 | ✅ | ✅ |
+| pm-gate-readiness | ✅ | ✅ v2.0 | ✅ | ✅ |
 | pm-portfolio | ✅ | ✅ v2.0 | n/a | ✅ |
 | pm-ev | ✅ | ✅ v2.0 | ✅ | partial |
 | pm-synthesis | ✅ | ✅ v2.0 | ✅ | partial |
