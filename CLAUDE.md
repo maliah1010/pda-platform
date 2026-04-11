@@ -76,10 +76,13 @@ The tool count (currently **99**) appears in multiple places. When adding new to
 | `docs/architecture-overview.md` | Module table |
 | `docs/connection-guide.md` | Tool count references |
 | `docs/getting-started.md` | Tool count references |
-| `packages/pm-mcp-servers/README.md` | Tool count |
+| `packages/pm-mcp-servers/README.md` | Module table, total tool count |
+| `packages/pda-platform/README.md` | Module table, total tool count |
+| `packages/pda-platform/pyproject.toml` | `description` field tool count |
+| `packages/pm-mcp-servers/pyproject.toml` | `description` field tool count and module count |
 | `docs/hackathon/CHALLENGE.md` | Numbers section |
 | `docs/hackathon/QUICKSTART.md` | What's Available section |
-| `packages/pda-platform/README.md` | Module table |
+| `server.json` | `description` field (root level) |
 | `CLAUDE.md` (this file) | Package versions table, MCP tool count |
 
 ## Store Schema — Keep in Sync
@@ -129,21 +132,21 @@ Current documentation status (update this when docs are written):
 
 | Module | For-practitioners guide | MCP reference | Model card | Persona guide coverage |
 |---|---|---|---|---|
-| pm-data | ✅ | ✅ (partial — pre-v1) | n/a | ✅ |
-| pm-analyse | ✅ | ✅ (partial — pre-v1) | ⚠️ needed | ✅ |
-| pm-validate | ✅ | ✅ (partial — pre-v1) | n/a | partial |
-| pm-nista | ❌ needed | ✅ (partial — pre-v1) | n/a | partial |
-| pm-assure | ✅ | ✅ (partial — pre-v1) | ✅ | ✅ |
-| pm-brm | ✅ | ✅ (partial — pre-v1) | ⚠️ needed | ✅ |
-| pm-gate-readiness | ✅ | ✅ (partial — pre-v1) | ⚠️ needed | ✅ |
-| pm-portfolio | ❌ needed | ❌ needed | n/a | partial |
-| pm-ev | ❌ needed | ❌ needed | ⚠️ needed | ❌ |
-| pm-synthesis | ❌ needed | ❌ needed | ⚠️ needed | ❌ |
-| pm-risk | ❌ needed | ❌ needed | n/a | partial |
-| pm-change | ❌ needed | ❌ needed | n/a | ❌ |
-| pm-resource | ❌ needed | ❌ needed | n/a | ❌ |
-| pm-financial | ❌ needed | ❌ needed | n/a | partial |
-| pm-knowledge | ❌ needed | ❌ needed | n/a | ✅ (via prompts) |
+| pm-data | ✅ | ✅ v2.0 | n/a | ✅ |
+| pm-analyse | ✅ | ✅ v2.0 | ✅ | ✅ |
+| pm-validate | ✅ | ✅ v2.0 | n/a | partial |
+| pm-nista | ❌ needed | ✅ v2.0 | n/a | partial |
+| pm-assure | ✅ | ✅ v2.0 | ✅ | ✅ |
+| pm-brm | ✅ | ✅ v2.0 | ⚠️ needed | ✅ |
+| pm-gate-readiness | ✅ | ✅ v2.0 | ⚠️ needed | ✅ |
+| pm-portfolio | ✅ | ✅ v2.0 | n/a | ✅ |
+| pm-ev | ✅ | ✅ v2.0 | ✅ | partial |
+| pm-synthesis | ✅ | ✅ v2.0 | ✅ | partial |
+| pm-risk | ✅ | ✅ v2.0 | n/a | ✅ |
+| pm-change | ✅ | ✅ v2.0 | n/a | partial |
+| pm-resource | ✅ | ✅ v2.0 | n/a | partial |
+| pm-financial | ✅ | ✅ v2.0 | n/a | ✅ |
+| pm-knowledge | ✅ | ✅ v2.0 | n/a | ✅ |
 
 ## Adding a New MCP Module
 
@@ -155,7 +158,7 @@ Standard pattern (see `pm_brm` as the reference implementation):
 5. Wire into `pda_platform/server.py` — import, add to dispatch loop and `ALL_TOOLS`
 6. Update `test_pda_platform.py` — new registry test, tool presence test, updated counts
 7. Run `python -m pytest packages/pm-mcp-servers/tests/` — must pass
-8. Update all tool count references (see table above)
+8. Update all tool count references (see table above) — this includes `packages/pda-platform/README.md`, `packages/pm-mcp-servers/README.md`, both `pyproject.toml` description fields, and `server.json`
 9. **Write for-practitioners guide, MCP reference section, and model card (if AI-powered)** — see Documentation Requirements above
 10. **Update relevant persona guides with worked examples** — see Documentation Requirements above
 11. Bump package versions
