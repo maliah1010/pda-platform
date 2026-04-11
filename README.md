@@ -8,7 +8,7 @@
 [![PyPI - pm-data-tools](https://img.shields.io/pypi/v/pm-data-tools)](https://pypi.org/project/pm-data-tools/)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18133574.svg)](https://doi.org/10.5281/zenodo.18133574)
 
-**99 tools · 14 modules · Production-deployed · Published on PyPI**
+**103 tools · 15 modules · Production-deployed · Published on PyPI**
 
 ---
 
@@ -65,7 +65,7 @@ See the full **[Connection Guide](docs/connection-guide.md)** for Claude.ai, Cla
 
 ---
 
-## What Claude can do with 99 tools
+## What Claude can do with 103 tools
 
 Once connected, Claude can answer questions like:
 
@@ -92,20 +92,23 @@ Once connected, Claude can answer questions like:
 - **Pre-mortem question generation** — structured challenge questions for Gates 0–5, targeting optimism bias, groupthink, and known cognitive failure modes
 - **ARMM maturity assessment** — 251-criterion AI readiness assessment across 4 dimensions and 28 topics
 - **8 schedule data format parsers** — MSPDI, Primavera P6, Jira, Monday, Asana, Smartsheet, GMPP, NISTA
+- **Cross-module red flag scanner** — single tool (`scan_for_red_flags`) queries risk, benefits, gate conditions, cost, change, and resources simultaneously and returns a prioritised CRITICAL/HIGH/MEDIUM alert list
+- **Narrative divergence detection** — `detect_narrative_divergence` compares written project narrative against quantitative data, classifying claims as SUPPORTED/CONTRADICTED/UNVERIFIABLE; directly targets optimism bias
+- **Monte Carlo schedule simulation** — probabilistic P50/P80/P90 delivery dates using PERT distributions, optionally calibrated against the risk register
 - **AI-powered narrative generation** — multi-sample consensus with confidence scoring, IPA-format executive summaries
 - **Agent Readiness Maturity Model** — governance framework for AI deployment on major projects
 
 ---
 
-## 14 MCP Modules
+## 15 MCP Modules
 
 | Module | Tools | What it does |
 |--------|------:|-------------|
 | pm-data | 6 | Project loading, querying, format conversion across 8 PM data formats |
-| pm-analyse | 6 | AI risk analysis, schedule forecasting, health assessment, baseline comparison |
+| pm-analyse | 7 | AI risk analysis, schedule forecasting, health assessment, narrative divergence detection |
 | pm-validate | 4 | Structural, semantic, and NISTA compliance validation |
 | pm-nista | 5 | GMPP quarterly reporting, NISTA integration, longitudinal compliance |
-| pm-assure | 27 | Assurance lifecycle: artefact currency, gate readiness, ARMM, assumption drift, workflow engine |
+| pm-assure | 28 | Assurance lifecycle: artefact currency, gate readiness, ARMM, assumption drift, workflow engine, cross-module red flag scanning |
 | pm-brm | 10 | Benefits Realisation Management: register, measurement, dependency network, drift, maturity |
 | pm-portfolio | 5 | Cross-project portfolio aggregation, health rollup, systemic risk detection |
 | pm-ev | 2 | Earned Value metrics (SPI/CPI/EAC/TCPI) and HTML S-curve dashboard |
@@ -115,7 +118,8 @@ Once connected, Claude can answer questions like:
 | pm-resource | 5 | Resource loading, conflict detection, portfolio capacity planning |
 | pm-financial | 5 | Budget baseline, period actuals, EAC forecasting, spend profile |
 | pm-knowledge | 8 | IPA benchmarks, failure patterns, guidance references, reference class checks, pre-mortem questions |
-| **Total** | **99** | One unified endpoint · One connection |
+| pm-simulation | 2 | Monte Carlo schedule simulation with PERT distributions, P50/P80/P90 delivery dates |
+| **Total** | **103** | One unified endpoint · One connection |
 
 ---
 

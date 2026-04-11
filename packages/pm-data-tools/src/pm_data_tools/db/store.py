@@ -475,6 +475,26 @@ class AssuranceStore:
                     notes           TEXT,
                     created_at      TEXT NOT NULL
                 );
+
+                CREATE TABLE IF NOT EXISTS simulation_runs (
+                    id                   TEXT PRIMARY KEY,
+                    project_id           TEXT NOT NULL,
+                    simulation_type      TEXT NOT NULL,
+                    n_simulations        INTEGER NOT NULL,
+                    p50_days             INTEGER,
+                    p80_days             INTEGER,
+                    p90_days             INTEGER,
+                    p50_date             TEXT,
+                    p80_date             TEXT,
+                    p90_date             TEXT,
+                    mean_duration_days   REAL,
+                    std_deviation_days   REAL,
+                    cost_p50             REAL,
+                    cost_p80             REAL,
+                    cost_p90             REAL,
+                    run_at               TEXT DEFAULT (datetime('now')),
+                    parameters_json      TEXT
+                );
                 """
             )
 
@@ -2535,3 +2555,79 @@ class AssuranceStore:
             )
             rows = cursor.fetchall()
         return [dict(row) for row in rows]
+
+    # ------------------------------------------------------------------
+    # Simulation runs
+    # ------------------------------------------------------------------
+
+    def upsert_simulation_run(self, run: dict) -> None:
+        """Insert or replace a Monte Carlo simulation run record.
+
+        Args:
+            run: Dict with keys matching the ``simulation_runs`` table columns.
+                Must include ``id``, ``project_id``, ``simulation_type``,
+                ``n_simulations``.  All other columns are optional.
+        """
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO simulation_runs
+                    (id, project_id, simulation_type, n_simulations,
+                     p50_days, p80_days, p90_days,
+                     p50_date, p80_date, p90_date,
+                     mean_duration_days, std_deviation_days,
+                     cost_p50, cost_p80, cost_p90,
+                     run_at, parameters_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    run["id"],
+                    run["project_id"],
+                    run["simulation_type"],
+                    run["n_simulations"],
+                    run.get("p50_days"),
+                    run.get("p80_days"),
+                    run.get("p90_days"),
+                    run.get("p50_date"),
+                    run.get("p80_date"),
+                    run.get("p90_date"),
+                    run.get("mean_duration_days"),
+                    run.get("std_deviation_days"),
+                    run.get("cost_p50"),
+                    run.get("cost_p80"),
+                    run.get("cost_p90"),
+                    run.get("run_at"),
+                    run.get("parameters_json"),
+                ),
+            )
+        logger.debug(
+            "simulation_run_upserted",
+            id=run["id"],
+            project_id=run["project_id"],
+            simulation_type=run["simulation_type"],
+        )
+
+    def get_latest_simulation(
+        self, project_id: str, simulation_type: str
+    ) -> dict | None:
+        """Retrieve the most recent simulation run for a project and type.
+
+        Args:
+            project_id: The project identifier.
+            simulation_type: The simulation type (e.g. ``"schedule"``).
+
+        Returns:
+            A row dict for the latest run, or ``None`` if no run exists.
+        """
+        with self._connect() as conn:
+            cursor = conn.execute(
+                """
+                SELECT * FROM simulation_runs
+                WHERE project_id = ? AND simulation_type = ?
+                ORDER BY run_at DESC
+                LIMIT 1
+                """,
+                (project_id, simulation_type),
+            )
+            row = cursor.fetchone()
+        return dict(row) if row else None

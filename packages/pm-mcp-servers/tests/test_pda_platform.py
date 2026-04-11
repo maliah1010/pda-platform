@@ -50,7 +50,7 @@ class TestRegistryModules:
     def test_analyse_registry_loads(self):
         from pm_mcp_servers.pm_analyse.registry import TOOLS, dispatch
 
-        assert len(TOOLS) == 6
+        assert len(TOOLS) == 7
         assert callable(dispatch)
 
     def test_validate_registry_loads(self):
@@ -68,7 +68,7 @@ class TestRegistryModules:
     def test_assure_registry_loads(self):
         from pm_mcp_servers.pm_assure.registry import TOOLS, dispatch
 
-        assert len(TOOLS) == 27
+        assert len(TOOLS) == 28
         assert callable(dispatch)
 
     def test_brm_registry_loads(self):
@@ -125,15 +125,48 @@ class TestRegistryModules:
         assert len(TOOLS) == 8
         assert callable(dispatch)
 
+    def test_simulation_registry_loads(self):
+        from pm_mcp_servers.pm_simulation.registry import TOOLS, dispatch
+
+        assert len(TOOLS) == 2
+        assert callable(dispatch)
+
+
+class TestSimulationModule:
+    """Test the pm_simulation module tools and dispatch."""
+
+    EXPECTED_SIMULATION_TOOLS = {
+        "run_schedule_simulation",
+        "get_simulation_results",
+    }
+
+    def test_simulation_tools_present(self):
+        from pm_mcp_servers.pm_simulation.registry import TOOLS
+
+        actual = {t.name for t in TOOLS}
+        assert actual == self.EXPECTED_SIMULATION_TOOLS
+
+    def test_simulation_tools_in_unified(self):
+        from pm_mcp_servers.pda_platform.server import ALL_TOOLS
+
+        actual = {t.name for t in ALL_TOOLS}
+        assert self.EXPECTED_SIMULATION_TOOLS.issubset(actual)
+
+    def test_simulation_tools_have_dispatch(self):
+        from pm_mcp_servers.pda_platform.server import _TOOL_DISPATCH
+
+        for tool_name in self.EXPECTED_SIMULATION_TOOLS:
+            assert tool_name in _TOOL_DISPATCH, f"{tool_name} missing from dispatch"
+
 
 class TestToolAggregation:
     """Test that tool aggregation in the unified server is correct."""
 
     def test_total_tool_count(self):
-        """Unified server has exactly 99 tools (6+6+4+5+27+10+5+2+2+9+5+5+5+8)."""
+        """Unified server has exactly 103 tools (6+7+4+5+28+10+5+2+2+9+5+5+5+8+2)."""
         from pm_mcp_servers.pda_platform.server import ALL_TOOLS
 
-        assert len(ALL_TOOLS) == 99
+        assert len(ALL_TOOLS) == 103
 
     def test_no_duplicate_tool_names(self):
         """No two tools share the same name across modules."""
@@ -150,14 +183,14 @@ class TestToolAggregation:
         assert len(missing) == 0, f"Tools without dispatch: {missing}"
 
     def test_tool_ordering(self):
-        """Tools appear in module order: data, analyse, validate, nista, assure, brm, portfolio, ev, synthesis, risk, change, resource, financial, knowledge."""
+        """Tools appear in module order: data, analyse, validate, nista, assure, brm, portfolio, ev, synthesis, risk, change, resource, financial, knowledge, simulation."""
         from pm_mcp_servers.pda_platform.server import ALL_TOOLS
 
         names = [t.name for t in ALL_TOOLS]
         # First tool should be from pm-data
         assert names[0] == "load_project"
-        # Last tool should be from pm-knowledge
-        assert names[-1] == "generate_premortem_questions"
+        # Last tool should be from pm-simulation
+        assert names[-1] == "get_simulation_results"
 
     def test_all_tools_have_valid_schemas(self):
         """Every tool has a name, description, and inputSchema."""
@@ -181,6 +214,7 @@ class TestExpectedTools:
     EXPECTED_ANALYSE_TOOLS = {
         "identify_risks", "forecast_completion", "detect_outliers",
         "assess_health", "suggest_mitigations", "compare_baseline",
+        "detect_narrative_divergence",
     }
 
     EXPECTED_VALIDATE_TOOLS = {
@@ -206,6 +240,7 @@ class TestExpectedTools:
         "create_project_from_profile", "export_dashboard_data",
         "export_dashboard_html", "get_armm_report",
         "assess_gate_readiness", "get_gate_readiness_history", "compare_gate_readiness",
+        "scan_for_red_flags",
     }
 
     EXPECTED_BRM_TOOLS = {
@@ -364,6 +399,7 @@ class TestExpectedTools:
             | self.EXPECTED_RESOURCE_TOOLS
             | self.EXPECTED_FINANCIAL_TOOLS
             | self.EXPECTED_KNOWLEDGE_TOOLS
+            | TestSimulationModule.EXPECTED_SIMULATION_TOOLS
         )
         assert actual == expected
 

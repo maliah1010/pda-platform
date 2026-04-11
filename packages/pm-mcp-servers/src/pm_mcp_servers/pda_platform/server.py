@@ -1,12 +1,12 @@
 """PDA Platform — unified MCP server.
 
-Aggregates all fourteen PDA MCP servers into a single endpoint:
+Aggregates all fifteen PDA MCP servers into a single endpoint:
 
   pm-data        ( 6 tools)   Project data loading, querying, conversion
-  pm-analyse     ( 6 tools)   AI-powered risk, forecasting, health assessment
+  pm-analyse     ( 7 tools)   AI-powered risk, forecasting, health assessment, narrative divergence detection
   pm-validate    ( 4 tools)   Structural, semantic, and NISTA validation
   pm-nista       ( 5 tools)   GMPP reporting and NISTA integration
-  pm-assure      (27 tools)   Assurance quality, compliance, assumptions, workflows, dashboards, ARMM, gate readiness
+  pm-assure      (28 tools)   Assurance quality, compliance, assumptions, workflows, dashboards, ARMM, gate readiness, red flag scanning
   pm-brm         (10 tools)   Benefits Realisation Management
   pm-portfolio   ( 5 tools)   Cross-project portfolio aggregation and health rollup
   pm-ev          ( 2 tools)   Earned Value metrics and HTML dashboard generation
@@ -16,8 +16,9 @@ Aggregates all fourteen PDA MCP servers into a single endpoint:
   pm-resource    ( 5 tools)   Resource loading, conflict detection, capacity planning
   pm-financial   ( 5 tools)   Budget baseline, actuals, cost performance, EAC forecasting
   pm-knowledge   ( 8 tools)   IPA benchmarks, failure patterns, guidance, reference class checks, pre-mortem questions
+  pm-simulation  ( 2 tools)   Monte Carlo schedule and cost simulation with PERT/triangular distributions
 
-Total: 99 tools accessible through one connection.
+Total: 103 tools accessible through one connection.
 """
 
 from __future__ import annotations
@@ -44,6 +45,8 @@ from ..pm_financial.registry import TOOLS as FINANCIAL_TOOLS
 from ..pm_financial.registry import dispatch as financial_dispatch
 from ..pm_knowledge.registry import TOOLS as KNOWLEDGE_TOOLS
 from ..pm_knowledge.registry import dispatch as knowledge_dispatch
+from ..pm_simulation.registry import TOOLS as SIMULATION_TOOLS
+from ..pm_simulation.registry import dispatch as simulation_dispatch
 from ..pm_ev.registry import TOOLS as EV_TOOLS
 from ..pm_ev.registry import dispatch as ev_dispatch
 from ..pm_nista.registry import TOOLS as NISTA_TOOLS
@@ -81,6 +84,7 @@ for _tools, _dispatch_fn in [
     (RESOURCE_TOOLS, resource_dispatch),
     (FINANCIAL_TOOLS, financial_dispatch),
     (KNOWLEDGE_TOOLS, knowledge_dispatch),
+    (SIMULATION_TOOLS, simulation_dispatch),
 ]:
     for _tool in _tools:
         _TOOL_DISPATCH[_tool.name] = _dispatch_fn
@@ -89,12 +93,13 @@ ALL_TOOLS: list[Tool] = (
     DATA_TOOLS + ANALYSE_TOOLS + VALIDATE_TOOLS + NISTA_TOOLS
     + ASSURE_TOOLS + BRM_TOOLS + PORTFOLIO_TOOLS + EV_TOOLS + SYNTHESIS_TOOLS
     + RISK_TOOLS + CHANGE_TOOLS + RESOURCE_TOOLS + FINANCIAL_TOOLS + KNOWLEDGE_TOOLS
+    + SIMULATION_TOOLS
 )
 
 logger.info(
     "PDA Platform unified server: %d tools from %d modules",
     len(ALL_TOOLS),
-    14,
+    15,
 )
 
 

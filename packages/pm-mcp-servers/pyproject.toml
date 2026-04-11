@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "pm-mcp-servers"
 version = "1.1.0"
-description = "99 MCP tools across 14 modules for UK government IPA Gate Review assurance. Risk registers, earned value, benefits realisation, gate readiness, portfolio analysis, and IPA benchmark data."
+description = "103 MCP tools across 15 modules for UK government IPA Gate Review assurance. Risk registers, Monte Carlo simulation, narrative divergence detection, earned value, benefits realisation, and gate readiness."
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.10"
