@@ -426,6 +426,44 @@ class AssuranceStore:
                     notes           TEXT,
                     created_at      TEXT NOT NULL
                 );
+
+                CREATE TABLE IF NOT EXISTS financial_baselines (
+                    id              TEXT PRIMARY KEY,
+                    project_id      TEXT NOT NULL,
+                    label           TEXT NOT NULL DEFAULT 'APPROVED',
+                    total_budget    REAL NOT NULL,
+                    cost_category   TEXT NOT NULL DEFAULT 'TOTAL',
+                    period_start    TEXT,
+                    period_end      TEXT,
+                    period_budget   REAL,
+                    currency        TEXT NOT NULL DEFAULT 'GBP',
+                    notes           TEXT,
+                    created_at      TEXT NOT NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS financial_actuals (
+                    id              TEXT PRIMARY KEY,
+                    project_id      TEXT NOT NULL,
+                    period          TEXT NOT NULL,
+                    actual_spend    REAL NOT NULL,
+                    cost_category   TEXT NOT NULL DEFAULT 'TOTAL',
+                    committed_spend REAL,
+                    source          TEXT,
+                    notes           TEXT,
+                    created_at      TEXT NOT NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS financial_forecasts (
+                    id              TEXT PRIMARY KEY,
+                    project_id      TEXT NOT NULL,
+                    forecast_date   TEXT NOT NULL,
+                    eac             REAL NOT NULL,
+                    method          TEXT NOT NULL DEFAULT 'MANUAL',
+                    confidence_pct  REAL,
+                    p80_estimate    REAL,
+                    notes           TEXT,
+                    created_at      TEXT NOT NULL
+                );
                 """
             )
 
@@ -2326,6 +2364,118 @@ class AssuranceStore:
         with self._connect() as conn:
             cursor = conn.execute(
                 "SELECT * FROM resource_plans ORDER BY project_id, period_start ASC"
+            )
+            rows = cursor.fetchall()
+        return [dict(row) for row in rows]
+
+    # ------------------------------------------------------------------
+    # Financial Management (P19)
+    # ------------------------------------------------------------------
+
+    def upsert_financial_baseline(self, data: dict[str, object]) -> None:
+        """Insert or replace a financial baseline record."""
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO financial_baselines
+                    (id, project_id, label, total_budget, cost_category,
+                     period_start, period_end, period_budget, currency,
+                     notes, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    data["id"], data["project_id"],
+                    data.get("label", "APPROVED"), data["total_budget"],
+                    data.get("cost_category", "TOTAL"),
+                    data.get("period_start"), data.get("period_end"),
+                    data.get("period_budget"), data.get("currency", "GBP"),
+                    data.get("notes"), data["created_at"],
+                ),
+            )
+        logger.debug("financial_baseline_upserted", id=data["id"], project_id=data["project_id"])
+
+    def get_financial_baselines(
+        self, project_id: str, label: str | None = None
+    ) -> list[dict[str, object]]:
+        """Retrieve financial baselines for a project."""
+        clauses = ["project_id = ?"]
+        params: list[object] = [project_id]
+        if label:
+            clauses.append("label = ?")
+            params.append(label)
+        where = f"WHERE {' AND '.join(clauses)}"
+        with self._connect() as conn:
+            cursor = conn.execute(
+                f"SELECT * FROM financial_baselines {where} ORDER BY created_at ASC",
+                params,
+            )
+            rows = cursor.fetchall()
+        return [dict(row) for row in rows]
+
+    def upsert_financial_actual(self, data: dict[str, object]) -> None:
+        """Insert or replace a financial actuals record for a period."""
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO financial_actuals
+                    (id, project_id, period, actual_spend, cost_category,
+                     committed_spend, source, notes, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    data["id"], data["project_id"], data["period"],
+                    data["actual_spend"], data.get("cost_category", "TOTAL"),
+                    data.get("committed_spend"), data.get("source"),
+                    data.get("notes"), data["created_at"],
+                ),
+            )
+        logger.debug("financial_actual_upserted", id=data["id"], project_id=data["project_id"])
+
+    def get_financial_actuals(
+        self, project_id: str, cost_category: str | None = None
+    ) -> list[dict[str, object]]:
+        """Retrieve financial actuals for a project, ordered by period ascending."""
+        clauses = ["project_id = ?"]
+        params: list[object] = [project_id]
+        if cost_category:
+            clauses.append("cost_category = ?")
+            params.append(cost_category)
+        where = f"WHERE {' AND '.join(clauses)}"
+        with self._connect() as conn:
+            cursor = conn.execute(
+                f"SELECT * FROM financial_actuals {where} ORDER BY period ASC",
+                params,
+            )
+            rows = cursor.fetchall()
+        return [dict(row) for row in rows]
+
+    def upsert_financial_forecast(self, data: dict[str, object]) -> None:
+        """Insert or replace a financial forecast (EAC) record."""
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO financial_forecasts
+                    (id, project_id, forecast_date, eac, method,
+                     confidence_pct, p80_estimate, notes, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    data["id"], data["project_id"], data["forecast_date"],
+                    data["eac"], data.get("method", "MANUAL"),
+                    data.get("confidence_pct"), data.get("p80_estimate"),
+                    data.get("notes"), data["created_at"],
+                ),
+            )
+        logger.debug("financial_forecast_upserted", id=data["id"], project_id=data["project_id"])
+
+    def get_financial_forecasts(
+        self, project_id: str
+    ) -> list[dict[str, object]]:
+        """Retrieve financial forecasts for a project, ordered by forecast_date ascending."""
+        with self._connect() as conn:
+            cursor = conn.execute(
+                "SELECT * FROM financial_forecasts WHERE project_id = ? ORDER BY forecast_date ASC",
+                (project_id,),
             )
             rows = cursor.fetchall()
         return [dict(row) for row in rows]

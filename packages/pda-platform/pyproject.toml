@@ -1,11 +1,11 @@
 [build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
-name = "pm-mcp-servers"
+name = "pda-platform"
 version = "1.0.0"
-description = "89 MCP tools for AI-powered UK government project delivery assurance. Connects Claude and other AI assistants to schedule data, risk registers, financial tracking, gate readiness, and benefits realisation."
+description = "AI-powered project delivery assurance for UK government. 89 MCP tools covering schedule analysis, risk registers, financial tracking, gate readiness, benefits realisation, and more."
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.10"
@@ -30,6 +30,7 @@ keywords = [
     "earned-value",
     "benefits-realisation",
     "uk-government",
+    "project-delivery",
 ]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -45,21 +46,21 @@ classifiers = [
     "Topic :: Office/Business :: Scheduling",
 ]
 
+# Meta-package: depends on all three constituent packages.
+# Installing pda-platform pulls in everything needed to run the
+# unified 89-tool MCP server.
 dependencies = [
-    "mcp>=0.9.0",
+    "agent-task-planning>=1.0.0",
     "pm-data-tools>=1.0.0",
-    "uvicorn>=0.20.0",
-    "starlette>=0.27.0",
-    "anthropic>=0.18.0",
+    "pm-mcp-servers>=1.0.0",
 ]
 
 [project.optional-dependencies]
-dev = [
-    "pytest>=7.0",
-    "pytest-asyncio>=0.21",
-    "pytest-cov>=4.0",
-    "mypy>=1.0",
-    "httpx>=0.25.0",
+# Full install including AI mining and optional LLM clients
+full = [
+    "agent-task-planning[mining,anthropic]>=1.0.0",
+    "pm-data-tools[all]>=1.0.0",
+    "pm-mcp-servers>=1.0.0",
 ]
 
 [project.urls]
@@ -69,19 +70,6 @@ Repository = "https://github.com/antnewman/pda-platform"
 Issues = "https://github.com/antnewman/pda-platform/issues"
 Changelog = "https://github.com/antnewman/pda-platform/releases"
 
-[project.scripts]
-pm-data-server = "pm_mcp_servers.pm_data.server:main"
-pm-validate-server = "pm_mcp_servers.pm_validate.server:main"
-pm-analyse-server = "pm_mcp_servers.pm_analyse.server:main"
-pm-nista-server = "pm_mcp_servers.pm_nista.server:main"
-pm-assure-server = "pm_mcp_servers.pm_assure.server:main"
-pda-platform-server = "pm_mcp_servers.pda_platform.server:main"
-pda-platform-remote = "pm_mcp_servers.pda_platform.remote:main"
-
-[tool.ruff]
-line-length = 120
-target-version = "py310"
-
-[tool.ruff.lint]
-select = ["E", "F", "I", "N", "W", "UP"]
-ignore = ["E501", "E722"]
+[tool.hatch.build.targets.wheel]
+# Meta-package has no source code — the wheel contains only metadata.
+packages = []

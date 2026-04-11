@@ -4,13 +4,16 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pm-data-tools"
-version = "0.2.0"
-description = "Universal parser and validator for project management data. Supports NISTA compliance."
+version = "1.0.0"
+description = "Universal parser, validator, and assurance store for UK government project management data. Supports NISTA, GMPP, MSPDI, Primavera P6, Jira, and more."
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.10"
 authors = [
-    {name = "Members of the PDA Task Force"}
+    {name = "Ant Newman", email = "ant@tortoiseai.co.uk"},
+]
+maintainers = [
+    {name = "Ant Newman", email = "ant@tortoiseai.co.uk"},
 ]
 keywords = [
     "project-management",
@@ -21,17 +24,26 @@ keywords = [
     "jira",
     "nista",
     "gmpp",
+    "assurance",
+    "ipa",
+    "gate-readiness",
+    "benefits-realisation",
+    "risk-register",
+    "earned-value",
 ]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
+    "Intended Audience :: Other Audience",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Office/Business :: Scheduling",
     "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 
 dependencies = [
@@ -39,8 +51,8 @@ dependencies = [
     "click>=8.0.0",
     "pydantic>=2.0.0",
     "python-dateutil>=2.8.0",
-    "httpx[http2]>=0.25.0",  # For NISTA API client
-    "agent-task-planning>=0.2.0",  # For AI narrative generation
+    "httpx[http2]>=0.25.0",
+    "agent-task-planning>=1.0.0",
 ]
 
 [project.optional-dependencies]
@@ -54,9 +66,6 @@ dev = [
     "httpx>=0.25.0",
     "types-python-dateutil>=2.8.0",
 ]
-# Assurance module: recurrence detection via sentence-transformer embeddings.
-# sentence-transformers itself is declared as an optional extra in
-# agent-task-planning[mining]; reference that instead of duplicating.
 assurance = [
     "structlog>=23.0.0",
 ]
@@ -69,10 +78,11 @@ all = [
 pm-data-tools = "pm_data_tools.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/PDA-Task-Force/pda-platform"
-Documentation = "https://github.com/PDA-Task-Force/pda-platform/tree/main/packages/pm-data-tools"
-Repository = "https://github.com/PDA-Task-Force/pda-platform"
-Issues = "https://github.com/PDA-Task-Force/pda-platform/issues"
+Homepage = "https://github.com/antnewman/pda-platform"
+Documentation = "https://github.com/antnewman/pda-platform/tree/main/docs"
+Repository = "https://github.com/antnewman/pda-platform"
+Issues = "https://github.com/antnewman/pda-platform/issues"
+Changelog = "https://github.com/antnewman/pda-platform/releases"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/pm_data_tools"]

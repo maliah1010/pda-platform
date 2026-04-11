@@ -1,6 +1,6 @@
 """PDA Platform — unified MCP server.
 
-Aggregates all twelve PDA MCP servers into a single endpoint:
+Aggregates all thirteen PDA MCP servers into a single endpoint:
 
   pm-data        ( 6 tools)   Project data loading, querying, conversion
   pm-analyse     ( 6 tools)   AI-powered risk, forecasting, health assessment
@@ -14,8 +14,9 @@ Aggregates all twelve PDA MCP servers into a single endpoint:
   pm-risk        ( 7 tools)   Risk register, heat map, mitigations, and portfolio risk rollup
   pm-change      ( 5 tools)   Change control log, impact analysis, and change pressure detection
   pm-resource    ( 5 tools)   Resource loading, conflict detection, capacity planning
+  pm-financial   ( 5 tools)   Budget baseline, actuals, cost performance, EAC forecasting
 
-Total: 84 tools accessible through one connection.
+Total: 89 tools accessible through one connection.
 """
 
 from __future__ import annotations
@@ -38,6 +39,8 @@ from ..pm_data.registry import TOOLS as DATA_TOOLS
 from ..pm_data.registry import dispatch as data_dispatch
 from ..pm_change.registry import TOOLS as CHANGE_TOOLS
 from ..pm_change.registry import dispatch as change_dispatch
+from ..pm_financial.registry import TOOLS as FINANCIAL_TOOLS
+from ..pm_financial.registry import dispatch as financial_dispatch
 from ..pm_ev.registry import TOOLS as EV_TOOLS
 from ..pm_ev.registry import dispatch as ev_dispatch
 from ..pm_nista.registry import TOOLS as NISTA_TOOLS
@@ -73,6 +76,7 @@ for _tools, _dispatch_fn in [
     (RISK_TOOLS, risk_dispatch),
     (CHANGE_TOOLS, change_dispatch),
     (RESOURCE_TOOLS, resource_dispatch),
+    (FINANCIAL_TOOLS, financial_dispatch),
 ]:
     for _tool in _tools:
         _TOOL_DISPATCH[_tool.name] = _dispatch_fn
@@ -80,13 +84,13 @@ for _tools, _dispatch_fn in [
 ALL_TOOLS: list[Tool] = (
     DATA_TOOLS + ANALYSE_TOOLS + VALIDATE_TOOLS + NISTA_TOOLS
     + ASSURE_TOOLS + BRM_TOOLS + PORTFOLIO_TOOLS + EV_TOOLS + SYNTHESIS_TOOLS
-    + RISK_TOOLS + CHANGE_TOOLS + RESOURCE_TOOLS
+    + RISK_TOOLS + CHANGE_TOOLS + RESOURCE_TOOLS + FINANCIAL_TOOLS
 )
 
 logger.info(
     "PDA Platform unified server: %d tools from %d modules",
     len(ALL_TOOLS),
-    12,
+    13,
 )
 
 
