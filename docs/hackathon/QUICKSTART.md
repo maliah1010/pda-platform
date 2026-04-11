@@ -1,6 +1,6 @@
 # Connect to the PDA Platform
 
-The PDA Platform is a live MCP server with 28 project assurance tools. Connect in under 30 seconds.
+The PDA Platform is a live MCP server with 58 project assurance tools. Connect in under 30 seconds.
 
 **Server URL:** `https://pda-platform-i33p.onrender.com/sse`
 
@@ -15,7 +15,7 @@ The PDA Platform is a live MCP server with 28 project assurance tools. Connect i
 5. **Name:** `PDA Platform`
 6. **URL:** `https://pda-platform-i33p.onrender.com/sse`
 7. Click **Connect**
-8. Return to a new chat — the 28 PDA tools will appear in the tools menu
+8. Return to a new chat — the 58 PDA tools will appear in the tools menu
 
 **Note:** The first request may take 30-60 seconds if the server is cold (free tier). Subsequent requests are instant.
 
@@ -60,20 +60,37 @@ Restart Claude Desktop after saving.
 
 ## ChatGPT / Gemini / Other AI Platforms
 
-These platforms do not currently support MCP (Model Context Protocol) as of March 2026. When they add MCP support, the same server URL will work:
+Any MCP-compatible client can connect using the same server URL:
 
 `https://pda-platform-i33p.onrender.com/sse`
 
-In the meantime, the PDA Platform REST API is available at:
+The PDA Platform REST API is also available at:
 `https://pda-platform-i33p.onrender.com/docs` (interactive Swagger UI)
 
 ---
 
 ## What's Available
 
-28 tools across two servers:
+58 tools across six modules:
 
-### Assurance (23 tools)
+### Project Data (6 tools)
+- Load MS Project, Primavera P6, Jira, Monday, Smartsheet, GMPP, and NISTA files
+- Query tasks, get critical path, analyse dependencies, export to other formats
+
+### Analysis (6 tools)
+- Risk identification, schedule forecasting (Monte Carlo / EVM)
+- Outlier detection, health assessment, mitigation suggestions, baseline comparison
+
+### Validation (4 tools)
+- Structure, semantic, NISTA compliance, and custom rule validation
+
+### GMPP & NISTA (5 tools)
+- GMPP quarterly report generation
+- AI narrative generation (DCA, cost, schedule, benefits, risk)
+- NISTA API submission (sandbox/production)
+- NISTA metadata fetch and report validation
+
+### Assurance (27 tools)
 - **P1** Artefact currency checks
 - **P2** Longitudinal compliance tracking
 - **P3** Review action extraction and tracking
@@ -86,14 +103,13 @@ In the meantime, the PDA Platform REST API is available at:
 - **P10** Cynefin domain classification
 - **P11** Assumption drift tracking and cascade impact
 - **P12** ARMM maturity assessment (251 criteria, 4 dimensions)
-- **Hackathon** Project creation from profile, dashboard data/HTML export
+- **P14** Gate readiness assessment (GATE_0 through PAR)
+- Project creation from profile, dashboard data/HTML export, ARMM reports
 
-### GMPP & NISTA (5 tools)
-- GMPP quarterly report generation
-- AI narrative generation (DCA, cost, schedule, benefits, risk)
-- NISTA API submission (sandbox/production)
-- NISTA metadata fetch
-- GMPP report validation
+### Benefits Realisation Management (10 tools)
+- **P13** Benefit registration, measurement tracking, drift detection
+- Dependency network mapping, cascade impact analysis
+- Realisation forecasting, maturity assessment, portfolio overview
 
 ---
 

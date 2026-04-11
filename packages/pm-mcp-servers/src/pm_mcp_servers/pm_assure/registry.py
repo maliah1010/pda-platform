@@ -7,15 +7,17 @@ from typing import Any
 from mcp.types import TextContent
 
 from .server import ASSURE_TOOLS as TOOLS  # noqa: F401 — re-exported for unified server
-
 from .server import (
     _analyse_assurance_overhead,
     _analyse_override_patterns,
+    _assess_gate_readiness,
     _check_artefact_currency,
     _check_confidence_divergence,
     _classify_project_domain,
+    _compare_gate_readiness,
     _get_assumption_drift,
     _get_cascade_impact,
+    _get_gate_readiness_history,
     _get_workflow_history,
     _ingest_assumption,
     _ingest_lesson,
@@ -52,6 +54,9 @@ _DISPATCH = {
     "validate_assumption": _validate_assumption,
     "get_assumption_drift": _get_assumption_drift,
     "get_cascade_impact": _get_cascade_impact,
+    "assess_gate_readiness": _assess_gate_readiness,
+    "get_gate_readiness_history": _get_gate_readiness_history,
+    "compare_gate_readiness": _compare_gate_readiness,
 }
 
 

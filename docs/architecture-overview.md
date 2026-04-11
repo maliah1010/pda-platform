@@ -193,8 +193,8 @@ openai         # Optional: GPT integration
 
 #### Unified Server
 
-The **`pda-platform-server`** is a single MCP endpoint that aggregates all 41 tools
-from 5 modules. Each module exports a `registry.py` with its tool definitions and a
+The **`pda-platform-server`** is a single MCP endpoint that aggregates all 58 tools
+from 6 modules. Each module exports a `registry.py` with its tool definitions and a
 `dispatch()` function. The unified server imports and combines them at startup.
 
 For remote access (e.g., from Claude.ai), **`pda-platform-remote`** wraps the unified
@@ -208,8 +208,9 @@ server in an SSE transport layer using Starlette and uvicorn.
 | **pm-analyse** | 6 | AI-powered risk identification, forecasting, health assessment |
 | **pm-validate** | 4 | Structural, semantic, and NISTA compliance validation |
 | **pm-nista** | 5 | GMPP reporting, AI narratives, NISTA API integration |
-| **pm-assure** | 20 | Assurance lifecycle: assumptions, compliance, findings, scheduling, overrides, lessons, overhead, workflows, domain classification |
-| **Total** | **41** | |
+| **pm-assure** | 27 | Assurance lifecycle: P1–P12 + gate readiness (P14): assumptions, compliance, findings, scheduling, overrides, lessons, overhead, workflows, domain classification, dashboards, ARMM, gate readiness |
+| **pm-brm** | 10 | Benefits Realisation Management (P13): benefit register, measurement tracking, dependency network, cascade impact, drift detection, maturity scoring |
+| **Total** | **58** | |
 
 Individual servers (`pm-data-server`, `pm-assure-server`, etc.) remain available for
 use cases where only a subset of tools is needed.

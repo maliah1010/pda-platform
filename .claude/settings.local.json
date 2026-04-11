@@ -61,7 +61,9 @@
       "WebFetch(domain:www.constructionnews.co.uk)",
       "WebFetch(domain:www.productivity.ac.uk)",
       "WebFetch(domain:www.reinforcementproductsonline.co.uk)",
-      "Bash(2)"
+      "Bash(2)",
+      "Bash(git fetch:*)",
+      "Bash(git merge:*)"
     ]
   }
 }

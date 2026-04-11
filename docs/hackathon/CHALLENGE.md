@@ -57,8 +57,8 @@ The output: a complete assurance baseline with dashboard, ready to email.
 
 ## The Numbers
 
-- **28** MCP tools available
-- **12** assurance modules (OPAL)
+- **58** MCP tools available
+- **14** assurance modules (P1–P14)
 - **251** ARMM maturity criteria
 - **4** Cynefin complexity domains
 - **~60 seconds** end to end

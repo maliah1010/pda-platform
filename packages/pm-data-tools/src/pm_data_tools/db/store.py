@@ -270,6 +270,162 @@ class AssuranceStore:
                     notes           TEXT,
                     FOREIGN KEY (assessment_id) REFERENCES armm_assessments(id)
                 );
+
+                CREATE TABLE IF NOT EXISTS benefits (
+                    id                     TEXT PRIMARY KEY,
+                    project_id             TEXT NOT NULL,
+                    title                  TEXT NOT NULL,
+                    description            TEXT NOT NULL,
+                    is_disbenefit          INTEGER NOT NULL DEFAULT 0,
+                    status                 TEXT NOT NULL DEFAULT 'IDENTIFIED',
+                    financial_type         TEXT NOT NULL,
+                    recipient_type         TEXT NOT NULL,
+                    explicitness           TEXT NOT NULL DEFAULT 'QUANTIFIABLE',
+                    baseline_value         REAL,
+                    baseline_date          TEXT,
+                    target_value           REAL,
+                    target_date            TEXT,
+                    current_actual_value   REAL,
+                    interim_targets        TEXT NOT NULL DEFAULT '[]',
+                    measurement_kpi        TEXT,
+                    measurement_frequency  TEXT NOT NULL DEFAULT 'QUARTERLY',
+                    indicator_type         TEXT NOT NULL DEFAULT 'LAGGING',
+                    owner_sro              TEXT,
+                    benefits_owner         TEXT,
+                    business_change_owner  TEXT,
+                    ipa_lifecycle_stage    TEXT NOT NULL DEFAULT 'IDENTIFY_QUANTIFY',
+                    business_case_ref      TEXT,
+                    gate_alignment         TEXT,
+                    contributing_projects  TEXT NOT NULL DEFAULT '[]',
+                    associated_risks       TEXT NOT NULL DEFAULT '[]',
+                    associated_assumptions TEXT NOT NULL DEFAULT '[]',
+                    confidence_score       REAL,
+                    created_at             TEXT NOT NULL,
+                    updated_at             TEXT NOT NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS benefit_measurements (
+                    id              TEXT PRIMARY KEY,
+                    benefit_id      TEXT NOT NULL,
+                    project_id      TEXT NOT NULL,
+                    measured_at     TEXT NOT NULL,
+                    value           REAL NOT NULL,
+                    source          TEXT NOT NULL DEFAULT 'MANUAL',
+                    drift_pct       REAL NOT NULL DEFAULT 0.0,
+                    drift_severity  TEXT NOT NULL DEFAULT 'NONE',
+                    realisation_pct REAL,
+                    trend_direction TEXT,
+                    notes           TEXT,
+                    created_at      TEXT NOT NULL,
+                    FOREIGN KEY (benefit_id) REFERENCES benefits(id)
+                );
+
+                CREATE TABLE IF NOT EXISTS benefit_dependency_nodes (
+                    id          TEXT PRIMARY KEY,
+                    project_id  TEXT NOT NULL,
+                    node_type   TEXT NOT NULL,
+                    title       TEXT NOT NULL,
+                    description TEXT,
+                    status      TEXT NOT NULL DEFAULT 'PLANNED',
+                    owner       TEXT,
+                    benefit_id  TEXT,
+                    target_date TEXT,
+                    created_at  TEXT NOT NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS benefit_dependency_edges (
+                    id            TEXT PRIMARY KEY,
+                    project_id    TEXT NOT NULL,
+                    source_node   TEXT NOT NULL,
+                    target_node   TEXT NOT NULL,
+                    edge_type     TEXT NOT NULL DEFAULT 'DEPENDS_ON',
+                    assumption_id TEXT,
+                    risk_id       TEXT,
+                    notes         TEXT,
+                    created_at    TEXT NOT NULL,
+                    FOREIGN KEY (source_node) REFERENCES benefit_dependency_nodes(id),
+                    FOREIGN KEY (target_node) REFERENCES benefit_dependency_nodes(id),
+                    UNIQUE(source_node, target_node)
+                );
+
+                CREATE TABLE IF NOT EXISTS gate_readiness_assessments (
+                    id              TEXT PRIMARY KEY,
+                    project_id      TEXT NOT NULL,
+                    gate            TEXT NOT NULL,
+                    readiness       TEXT NOT NULL,
+                    composite_score REAL NOT NULL,
+                    assessed_at     TEXT NOT NULL,
+                    result_json     TEXT NOT NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS risks (
+                    id              TEXT PRIMARY KEY,
+                    project_id      TEXT NOT NULL,
+                    title           TEXT NOT NULL,
+                    description     TEXT,
+                    category        TEXT NOT NULL DEFAULT 'DELIVERY',
+                    likelihood      INTEGER NOT NULL DEFAULT 3,
+                    impact          INTEGER NOT NULL DEFAULT 3,
+                    risk_score      INTEGER NOT NULL DEFAULT 9,
+                    status          TEXT NOT NULL DEFAULT 'OPEN',
+                    owner           TEXT,
+                    target_date     TEXT,
+                    proximity       TEXT,
+                    notes           TEXT,
+                    created_at      TEXT NOT NULL,
+                    updated_at      TEXT NOT NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS risk_mitigations (
+                    id              TEXT PRIMARY KEY,
+                    risk_id         TEXT NOT NULL,
+                    project_id      TEXT NOT NULL,
+                    action          TEXT NOT NULL,
+                    owner           TEXT,
+                    target_date     TEXT,
+                    status          TEXT NOT NULL DEFAULT 'PLANNED',
+                    effectiveness   TEXT,
+                    residual_likelihood INTEGER,
+                    residual_impact     INTEGER,
+                    notes           TEXT,
+                    created_at      TEXT NOT NULL,
+                    updated_at      TEXT NOT NULL,
+                    FOREIGN KEY (risk_id) REFERENCES risks(id)
+                );
+
+                CREATE TABLE IF NOT EXISTS change_requests (
+                    id                  TEXT PRIMARY KEY,
+                    project_id          TEXT NOT NULL,
+                    title               TEXT NOT NULL,
+                    description         TEXT,
+                    change_type         TEXT NOT NULL DEFAULT 'SCOPE',
+                    impact_cost         REAL,
+                    impact_schedule_days INTEGER,
+                    impact_scope        TEXT,
+                    status              TEXT NOT NULL DEFAULT 'SUBMITTED',
+                    raised_by           TEXT,
+                    approved_by         TEXT,
+                    raised_date         TEXT NOT NULL,
+                    decision_date       TEXT,
+                    implementation_date TEXT,
+                    notes               TEXT,
+                    created_at          TEXT NOT NULL,
+                    updated_at          TEXT NOT NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS resource_plans (
+                    id              TEXT PRIMARY KEY,
+                    project_id      TEXT NOT NULL,
+                    resource_name   TEXT NOT NULL,
+                    role            TEXT,
+                    period_start    TEXT NOT NULL,
+                    period_end      TEXT NOT NULL,
+                    planned_days    REAL NOT NULL DEFAULT 0.0,
+                    actual_days     REAL,
+                    availability_pct REAL NOT NULL DEFAULT 100.0,
+                    notes           TEXT,
+                    created_at      TEXT NOT NULL
+                );
                 """
             )
 
@@ -1494,6 +1650,682 @@ class AssuranceStore:
             cursor = conn.execute(
                 f"SELECT * FROM armm_criterion_results {where} ORDER BY criterion_id ASC",
                 params,
+            )
+            rows = cursor.fetchall()
+        return [dict(row) for row in rows]
+
+    # ------------------------------------------------------------------
+    # Benefits (P13 — Benefits Realisation Management)
+    # ------------------------------------------------------------------
+
+    def upsert_benefit(self, data: dict[str, object]) -> None:
+        """Insert or replace a benefit record.
+
+        Args:
+            data: Dict with keys matching the ``benefits`` table columns.
+        """
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO benefits
+                    (id, project_id, title, description, is_disbenefit, status,
+                     financial_type, recipient_type, explicitness,
+                     baseline_value, baseline_date, target_value, target_date,
+                     current_actual_value, interim_targets,
+                     measurement_kpi, measurement_frequency, indicator_type,
+                     owner_sro, benefits_owner, business_change_owner,
+                     ipa_lifecycle_stage, business_case_ref, gate_alignment,
+                     contributing_projects, associated_risks, associated_assumptions,
+                     confidence_score, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    data["id"],
+                    data["project_id"],
+                    data["title"],
+                    data["description"],
+                    data.get("is_disbenefit", 0),
+                    data.get("status", "IDENTIFIED"),
+                    data["financial_type"],
+                    data["recipient_type"],
+                    data.get("explicitness", "QUANTIFIABLE"),
+                    data.get("baseline_value"),
+                    data.get("baseline_date"),
+                    data.get("target_value"),
+                    data.get("target_date"),
+                    data.get("current_actual_value"),
+                    data.get("interim_targets", "[]"),
+                    data.get("measurement_kpi"),
+                    data.get("measurement_frequency", "QUARTERLY"),
+                    data.get("indicator_type", "LAGGING"),
+                    data.get("owner_sro"),
+                    data.get("benefits_owner"),
+                    data.get("business_change_owner"),
+                    data.get("ipa_lifecycle_stage", "IDENTIFY_QUANTIFY"),
+                    data.get("business_case_ref"),
+                    data.get("gate_alignment"),
+                    data.get("contributing_projects", "[]"),
+                    data.get("associated_risks", "[]"),
+                    data.get("associated_assumptions", "[]"),
+                    data.get("confidence_score"),
+                    data["created_at"],
+                    data["updated_at"],
+                ),
+            )
+        logger.debug("benefit_upserted", id=data["id"], project_id=data["project_id"])
+
+    def get_benefits(
+        self,
+        project_id: str,
+        status_filter: str | None = None,
+        financial_type_filter: str | None = None,
+    ) -> list[dict[str, object]]:
+        """Retrieve benefits for a project with optional filters.
+
+        Args:
+            project_id: The project identifier.
+            status_filter: Optional status value to filter by.
+            financial_type_filter: Optional financial type to filter by.
+
+        Returns:
+            List of row dicts ordered by ``created_at`` ascending.
+        """
+        clauses = ["project_id = ?"]
+        params: list[object] = [project_id]
+        if status_filter:
+            clauses.append("status = ?")
+            params.append(status_filter)
+        if financial_type_filter:
+            clauses.append("financial_type = ?")
+            params.append(financial_type_filter)
+
+        where = f"WHERE {' AND '.join(clauses)}"
+        with self._connect() as conn:
+            cursor = conn.execute(
+                f"SELECT * FROM benefits {where} ORDER BY created_at ASC",
+                params,
+            )
+            rows = cursor.fetchall()
+        return [dict(row) for row in rows]
+
+    def get_benefit_by_id(self, benefit_id: str) -> dict[str, object] | None:
+        """Retrieve a single benefit by ID.
+
+        Args:
+            benefit_id: The benefit identifier.
+
+        Returns:
+            Row dict or ``None`` if not found.
+        """
+        with self._connect() as conn:
+            cursor = conn.execute(
+                "SELECT * FROM benefits WHERE id = ?",
+                (benefit_id,),
+            )
+            row = cursor.fetchone()
+        return dict(row) if row else None
+
+    def update_benefit_status(self, benefit_id: str, status: str) -> None:
+        """Update a benefit's status.
+
+        Args:
+            benefit_id: The benefit identifier.
+            status: New status value.
+        """
+        with self._connect() as conn:
+            conn.execute(
+                "UPDATE benefits SET status = ?, updated_at = datetime('now') WHERE id = ?",
+                (status, benefit_id),
+            )
+        logger.debug("benefit_status_updated", id=benefit_id, status=status)
+
+    # ------------------------------------------------------------------
+    # Benefit measurements
+    # ------------------------------------------------------------------
+
+    def upsert_benefit_measurement(self, data: dict[str, object]) -> None:
+        """Insert or replace a benefit measurement record.
+
+        Args:
+            data: Dict with keys matching the ``benefit_measurements`` table.
+        """
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO benefit_measurements
+                    (id, benefit_id, project_id, measured_at, value, source,
+                     drift_pct, drift_severity, realisation_pct, trend_direction,
+                     notes, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    data["id"],
+                    data["benefit_id"],
+                    data["project_id"],
+                    data["measured_at"],
+                    data["value"],
+                    data.get("source", "MANUAL"),
+                    data.get("drift_pct", 0.0),
+                    data.get("drift_severity", "NONE"),
+                    data.get("realisation_pct"),
+                    data.get("trend_direction"),
+                    data.get("notes"),
+                    data["created_at"],
+                ),
+            )
+        logger.debug(
+            "benefit_measurement_upserted",
+            id=data["id"],
+            benefit_id=data["benefit_id"],
+        )
+
+    def get_benefit_measurements(
+        self, benefit_id: str
+    ) -> list[dict[str, object]]:
+        """Retrieve all measurements for a benefit, oldest first.
+
+        Args:
+            benefit_id: The benefit identifier.
+
+        Returns:
+            List of row dicts ordered by ``measured_at`` ascending.
+        """
+        with self._connect() as conn:
+            cursor = conn.execute(
+                """
+                SELECT * FROM benefit_measurements
+                WHERE benefit_id = ?
+                ORDER BY measured_at ASC
+                """,
+                (benefit_id,),
+            )
+            rows = cursor.fetchall()
+        return [dict(row) for row in rows]
+
+    # ------------------------------------------------------------------
+    # Benefit dependency nodes
+    # ------------------------------------------------------------------
+
+    def upsert_dependency_node(self, data: dict[str, object]) -> None:
+        """Insert or replace a benefit dependency node.
+
+        Args:
+            data: Dict with keys matching the ``benefit_dependency_nodes`` table.
+        """
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO benefit_dependency_nodes
+                    (id, project_id, node_type, title, description,
+                     status, owner, target_date, benefit_id, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    data["id"],
+                    data["project_id"],
+                    data["node_type"],
+                    data["title"],
+                    data.get("description"),
+                    data.get("status", "PLANNED"),
+                    data.get("owner"),
+                    data.get("target_date"),
+                    data.get("benefit_id"),
+                    data["created_at"],
+                ),
+            )
+        logger.debug(
+            "dependency_node_upserted",
+            id=data["id"],
+            node_type=data["node_type"],
+        )
+
+    def get_dependency_nodes(
+        self,
+        project_id: str,
+        node_type: str | None = None,
+    ) -> list[dict[str, object]]:
+        """Retrieve dependency nodes for a project.
+
+        Args:
+            project_id: The project identifier.
+            node_type: Optional node type filter.
+
+        Returns:
+            List of row dicts ordered by ``created_at`` ascending.
+        """
+        clauses = ["project_id = ?"]
+        params: list[object] = [project_id]
+        if node_type:
+            clauses.append("node_type = ?")
+            params.append(node_type)
+
+        where = f"WHERE {' AND '.join(clauses)}"
+        with self._connect() as conn:
+            cursor = conn.execute(
+                f"SELECT * FROM benefit_dependency_nodes {where} ORDER BY created_at ASC",
+                params,
+            )
+            rows = cursor.fetchall()
+        return [dict(row) for row in rows]
+
+    def get_dependency_node_by_id(
+        self, node_id: str
+    ) -> dict[str, object] | None:
+        """Retrieve a single dependency node by ID.
+
+        Args:
+            node_id: The node identifier.
+
+        Returns:
+            Row dict or ``None`` if not found.
+        """
+        with self._connect() as conn:
+            cursor = conn.execute(
+                "SELECT * FROM benefit_dependency_nodes WHERE id = ?",
+                (node_id,),
+            )
+            row = cursor.fetchone()
+        return dict(row) if row else None
+
+    # ------------------------------------------------------------------
+    # Benefit dependency edges
+    # ------------------------------------------------------------------
+
+    def upsert_dependency_edge(self, data: dict[str, object]) -> None:
+        """Insert or replace a benefit dependency edge.
+
+        Args:
+            data: Dict with keys matching the ``benefit_dependency_edges`` table.
+        """
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO benefit_dependency_edges
+                    (id, project_id, source_node, target_node, edge_type,
+                     assumption_id, risk_id, notes, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    data["id"],
+                    data["project_id"],
+                    data["source_node"],
+                    data["target_node"],
+                    data.get("edge_type", "DEPENDS_ON"),
+                    data.get("assumption_id"),
+                    data.get("risk_id"),
+                    data.get("notes"),
+                    data["created_at"],
+                ),
+            )
+        logger.debug(
+            "dependency_edge_upserted",
+            id=data["id"],
+            source=data["source_node"],
+            target=data["target_node"],
+        )
+
+    def get_dependency_edges(
+        self, project_id: str
+    ) -> list[dict[str, object]]:
+        """Retrieve all dependency edges for a project.
+
+        Args:
+            project_id: The project identifier.
+
+        Returns:
+            List of row dicts ordered by ``created_at`` ascending.
+        """
+        with self._connect() as conn:
+            cursor = conn.execute(
+                """
+                SELECT * FROM benefit_dependency_edges
+                WHERE project_id = ?
+                ORDER BY created_at ASC
+                """,
+                (project_id,),
+            )
+            rows = cursor.fetchall()
+        return [dict(row) for row in rows]
+
+    def delete_dependency_edge(self, edge_id: str) -> None:
+        """Delete a dependency edge by ID.
+
+        Args:
+            edge_id: The edge identifier.
+        """
+        with self._connect() as conn:
+            conn.execute(
+                "DELETE FROM benefit_dependency_edges WHERE id = ?",
+                (edge_id,),
+            )
+        logger.debug("dependency_edge_deleted", id=edge_id)
+
+    # ------------------------------------------------------------------
+    # Gate readiness assessments (P14)
+    # ------------------------------------------------------------------
+
+    def insert_gate_readiness_assessment(self, data: dict[str, object]) -> None:
+        """Insert or replace a gate readiness assessment.
+
+        Args:
+            data: Dict with keys matching the ``gate_readiness_assessments`` table.
+        """
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO gate_readiness_assessments
+                    (id, project_id, gate, readiness, composite_score,
+                     assessed_at, result_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    data["id"],
+                    data["project_id"],
+                    data["gate"],
+                    data["readiness"],
+                    data["composite_score"],
+                    data["assessed_at"],
+                    data["result_json"],
+                ),
+            )
+        logger.debug(
+            "gate_readiness_assessment_persisted",
+            id=data["id"],
+            project_id=data["project_id"],
+            gate=data["gate"],
+        )
+
+    def get_gate_readiness_history(
+        self,
+        project_id: str,
+        gate: str | None = None,
+    ) -> list[dict[str, object]]:
+        """Retrieve gate readiness assessments for a project.
+
+        Args:
+            project_id: The project identifier.
+            gate: Optional gate type filter.
+
+        Returns:
+            List of row dicts ordered by ``assessed_at`` ascending.
+        """
+        clauses = ["project_id = ?"]
+        params: list[object] = [project_id]
+        if gate:
+            clauses.append("gate = ?")
+            params.append(gate)
+
+        where = f"WHERE {' AND '.join(clauses)}"
+        with self._connect() as conn:
+            cursor = conn.execute(
+                f"SELECT * FROM gate_readiness_assessments {where} ORDER BY assessed_at ASC",
+                params,
+            )
+            rows = cursor.fetchall()
+        return [dict(row) for row in rows]
+
+    def get_gate_readiness_assessment_by_id(
+        self, assessment_id: str
+    ) -> dict[str, object] | None:
+        """Retrieve a single gate readiness assessment by ID.
+
+        Args:
+            assessment_id: The assessment identifier.
+
+        Returns:
+            Row dict or ``None`` if not found.
+        """
+        with self._connect() as conn:
+            cursor = conn.execute(
+                "SELECT * FROM gate_readiness_assessments WHERE id = ?",
+                (assessment_id,),
+            )
+            row = cursor.fetchone()
+        return dict(row) if row else None
+
+    # ------------------------------------------------------------------
+    # Risk Register (P16)
+    # ------------------------------------------------------------------
+
+    def upsert_risk(self, data: dict[str, object]) -> None:
+        """Insert or replace a risk record."""
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO risks
+                    (id, project_id, title, description, category,
+                     likelihood, impact, risk_score, status, owner,
+                     target_date, proximity, notes, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    data["id"], data["project_id"], data["title"],
+                    data.get("description"), data.get("category", "DELIVERY"),
+                    data.get("likelihood", 3), data.get("impact", 3),
+                    data.get("risk_score", 9), data.get("status", "OPEN"),
+                    data.get("owner"), data.get("target_date"),
+                    data.get("proximity"), data.get("notes"),
+                    data["created_at"], data["updated_at"],
+                ),
+            )
+        logger.debug("risk_upserted", id=data["id"], project_id=data["project_id"])
+
+    def get_risks(
+        self,
+        project_id: str,
+        status_filter: str | None = None,
+        category_filter: str | None = None,
+    ) -> list[dict[str, object]]:
+        """Retrieve risks for a project with optional filters, ordered by risk_score desc."""
+        clauses = ["project_id = ?"]
+        params: list[object] = [project_id]
+        if status_filter:
+            clauses.append("status = ?")
+            params.append(status_filter)
+        if category_filter:
+            clauses.append("category = ?")
+            params.append(category_filter)
+        where = f"WHERE {' AND '.join(clauses)}"
+        with self._connect() as conn:
+            cursor = conn.execute(
+                f"SELECT * FROM risks {where} ORDER BY risk_score DESC, created_at ASC",
+                params,
+            )
+            rows = cursor.fetchall()
+        return [dict(row) for row in rows]
+
+    def get_risk_by_id(self, risk_id: str) -> dict[str, object] | None:
+        """Retrieve a single risk by ID."""
+        with self._connect() as conn:
+            cursor = conn.execute("SELECT * FROM risks WHERE id = ?", (risk_id,))
+            row = cursor.fetchone()
+        return dict(row) if row else None
+
+    def update_risk_status(self, risk_id: str, status: str, notes: str | None = None) -> None:
+        """Update a risk's status and optionally append notes."""
+        with self._connect() as conn:
+            conn.execute(
+                "UPDATE risks SET status = ?, updated_at = datetime('now')"
+                + (", notes = ?" if notes else "")
+                + " WHERE id = ?",
+                (status, notes, risk_id) if notes else (status, risk_id),
+            )
+        logger.debug("risk_status_updated", id=risk_id, status=status)
+
+    def upsert_mitigation(self, data: dict[str, object]) -> None:
+        """Insert or replace a risk mitigation record."""
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO risk_mitigations
+                    (id, risk_id, project_id, action, owner, target_date,
+                     status, effectiveness, residual_likelihood, residual_impact,
+                     notes, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    data["id"], data["risk_id"], data["project_id"],
+                    data["action"], data.get("owner"), data.get("target_date"),
+                    data.get("status", "PLANNED"), data.get("effectiveness"),
+                    data.get("residual_likelihood"), data.get("residual_impact"),
+                    data.get("notes"), data["created_at"], data["updated_at"],
+                ),
+            )
+        logger.debug("mitigation_upserted", id=data["id"], risk_id=data["risk_id"])
+
+    def get_mitigations(self, risk_id: str) -> list[dict[str, object]]:
+        """Retrieve all mitigations for a risk, ordered by created_at."""
+        with self._connect() as conn:
+            cursor = conn.execute(
+                "SELECT * FROM risk_mitigations WHERE risk_id = ? ORDER BY created_at ASC",
+                (risk_id,),
+            )
+            rows = cursor.fetchall()
+        return [dict(row) for row in rows]
+
+    def get_mitigations_by_project(self, project_id: str) -> list[dict[str, object]]:
+        """Retrieve all mitigations for a project, ordered by created_at."""
+        with self._connect() as conn:
+            cursor = conn.execute(
+                "SELECT * FROM risk_mitigations WHERE project_id = ? ORDER BY created_at ASC",
+                (project_id,),
+            )
+            rows = cursor.fetchall()
+        return [dict(row) for row in rows]
+
+    # ------------------------------------------------------------------
+    # Change Control Log (P17)
+    # ------------------------------------------------------------------
+
+    def upsert_change_request(self, data: dict[str, object]) -> None:
+        """Insert or replace a change request record."""
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO change_requests
+                    (id, project_id, title, description, change_type,
+                     impact_cost, impact_schedule_days, impact_scope,
+                     status, raised_by, approved_by, raised_date,
+                     decision_date, implementation_date, notes,
+                     created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    data["id"], data["project_id"], data["title"],
+                    data.get("description"), data.get("change_type", "SCOPE"),
+                    data.get("impact_cost"), data.get("impact_schedule_days"),
+                    data.get("impact_scope"), data.get("status", "SUBMITTED"),
+                    data.get("raised_by"), data.get("approved_by"),
+                    data["raised_date"], data.get("decision_date"),
+                    data.get("implementation_date"), data.get("notes"),
+                    data["created_at"], data["updated_at"],
+                ),
+            )
+        logger.debug("change_request_upserted", id=data["id"], project_id=data["project_id"])
+
+    def get_change_requests(
+        self,
+        project_id: str,
+        status_filter: str | None = None,
+        change_type_filter: str | None = None,
+    ) -> list[dict[str, object]]:
+        """Retrieve change requests for a project with optional filters."""
+        clauses = ["project_id = ?"]
+        params: list[object] = [project_id]
+        if status_filter:
+            clauses.append("status = ?")
+            params.append(status_filter)
+        if change_type_filter:
+            clauses.append("change_type = ?")
+            params.append(change_type_filter)
+        where = f"WHERE {' AND '.join(clauses)}"
+        with self._connect() as conn:
+            cursor = conn.execute(
+                f"SELECT * FROM change_requests {where} ORDER BY raised_date ASC",
+                params,
+            )
+            rows = cursor.fetchall()
+        return [dict(row) for row in rows]
+
+    def get_change_request_by_id(self, change_id: str) -> dict[str, object] | None:
+        """Retrieve a single change request by ID."""
+        with self._connect() as conn:
+            cursor = conn.execute(
+                "SELECT * FROM change_requests WHERE id = ?", (change_id,)
+            )
+            row = cursor.fetchone()
+        return dict(row) if row else None
+
+    def update_change_status(
+        self,
+        change_id: str,
+        status: str,
+        approved_by: str | None = None,
+        decision_date: str | None = None,
+    ) -> None:
+        """Update a change request's status."""
+        with self._connect() as conn:
+            conn.execute(
+                """UPDATE change_requests
+                   SET status = ?, approved_by = COALESCE(?, approved_by),
+                       decision_date = COALESCE(?, decision_date),
+                       updated_at = datetime('now')
+                   WHERE id = ?""",
+                (status, approved_by, decision_date, change_id),
+            )
+        logger.debug("change_status_updated", id=change_id, status=status)
+
+    # ------------------------------------------------------------------
+    # Resource Plans (P18)
+    # ------------------------------------------------------------------
+
+    def upsert_resource_plan(self, data: dict[str, object]) -> None:
+        """Insert or replace a resource plan period record."""
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO resource_plans
+                    (id, project_id, resource_name, role, period_start,
+                     period_end, planned_days, actual_days, availability_pct,
+                     notes, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    data["id"], data["project_id"], data["resource_name"],
+                    data.get("role"), data["period_start"], data["period_end"],
+                    data.get("planned_days", 0.0), data.get("actual_days"),
+                    data.get("availability_pct", 100.0), data.get("notes"),
+                    data["created_at"],
+                ),
+            )
+        logger.debug("resource_plan_upserted", id=data["id"], project_id=data["project_id"])
+
+    def get_resource_plans(
+        self,
+        project_id: str,
+        resource_name: str | None = None,
+    ) -> list[dict[str, object]]:
+        """Retrieve resource plan records for a project."""
+        clauses = ["project_id = ?"]
+        params: list[object] = [project_id]
+        if resource_name:
+            clauses.append("resource_name = ?")
+            params.append(resource_name)
+        where = f"WHERE {' AND '.join(clauses)}"
+        with self._connect() as conn:
+            cursor = conn.execute(
+                f"SELECT * FROM resource_plans {where} ORDER BY period_start ASC",
+                params,
+            )
+            rows = cursor.fetchall()
+        return [dict(row) for row in rows]
+
+    def get_all_resource_plans(self) -> list[dict[str, object]]:
+        """Retrieve all resource plan records across all projects."""
+        with self._connect() as conn:
+            cursor = conn.execute(
+                "SELECT * FROM resource_plans ORDER BY project_id, period_start ASC"
             )
             rows = cursor.fetchall()
         return [dict(row) for row in rows]
