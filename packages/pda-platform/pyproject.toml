@@ -50,9 +50,9 @@ classifiers = [
 # Installing pda-platform pulls in everything needed to run the
 # unified 89-tool MCP server.
 dependencies = [
-    "agent-task-planning>=1.0.0",
-    "pm-data-tools>=1.0.0",
-    "pm-mcp-servers>=1.0.0",
+    "agent-task-planning>=0.2.0",
+    "pm-data-tools>=0.2.0",
+    "pm-mcp-servers>=0.3.0",
 ]
 
 [project.optional-dependencies]
