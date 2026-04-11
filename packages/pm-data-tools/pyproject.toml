@@ -10,10 +10,10 @@ readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.10"
 authors = [
-    {name = "Ant Newman", email = "ant@tortoiseai.co.uk"},
+    {name = "Ant Newman", email = "antjsnewman@outlook.com"},
 ]
 maintainers = [
-    {name = "Ant Newman", email = "ant@tortoiseai.co.uk"},
+    {name = "Ant Newman", email = "antjsnewman@outlook.com"},
 ]
 keywords = [
     "project-management",
