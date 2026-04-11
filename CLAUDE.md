@@ -53,16 +53,18 @@ Use semantic versioning:
 ### How to release to PyPI
 
 1. Bump all four `version = "x.y.z"` fields in their respective `pyproject.toml` files
-2. Update inter-package dependency pins to match (e.g. `pm-data-tools>=1.1.0`)
+2. Update inter-package dependency pins to `>=` the **previous published version** (NOT the new version — see warning below)
 3. Commit: `chore: bump versions to x.y.z`
 4. Merge dev → main via PR
 5. Tag on main: `git tag vx.y.z && git push antnewman vx.y.z`
 6. The GitHub Actions workflow (`.github/workflows/publish.yml`) builds and publishes all four packages automatically
+7. After publish completes, update the inter-package pins to `>=x.y.z` in a follow-up commit if needed
 
 ### What NOT to do
 - Do not publish manually with `twine upload` — use the workflow
 - Do not bump only one package — all four must stay in sync
 - Do not tag on `dev` — always tag on `main` after the PR is merged
+- **Do not pin inter-package deps to the NEW version before it is published** — Render builds from source but pip resolves deps from PyPI. If `pm-data-tools` requires `agent-task-planning>=1.1.0` but 1.1.0 is not yet on PyPI, Render will fail. Keep pins at the last confirmed published version until the new version is live on PyPI.
 
 ## MCP Tool Count — Keep in Sync
 
