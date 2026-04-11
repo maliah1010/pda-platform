@@ -119,15 +119,21 @@ class TestRegistryModules:
         assert len(TOOLS) == 5
         assert callable(dispatch)
 
+    def test_knowledge_registry_loads(self):
+        from pm_mcp_servers.pm_knowledge.registry import TOOLS, dispatch
+
+        assert len(TOOLS) == 5
+        assert callable(dispatch)
+
 
 class TestToolAggregation:
     """Test that tool aggregation in the unified server is correct."""
 
     def test_total_tool_count(self):
-        """Unified server has exactly 89 tools (6+6+4+5+27+10+5+2+2+7+5+5+5)."""
+        """Unified server has exactly 94 tools (6+6+4+5+27+10+5+2+2+7+5+5+5+5)."""
         from pm_mcp_servers.pda_platform.server import ALL_TOOLS
 
-        assert len(ALL_TOOLS) == 89
+        assert len(ALL_TOOLS) == 94
 
     def test_no_duplicate_tool_names(self):
         """No two tools share the same name across modules."""
@@ -144,14 +150,14 @@ class TestToolAggregation:
         assert len(missing) == 0, f"Tools without dispatch: {missing}"
 
     def test_tool_ordering(self):
-        """Tools appear in module order: data, analyse, validate, nista, assure, brm, portfolio, ev, synthesis, risk, change, resource, financial."""
+        """Tools appear in module order: data, analyse, validate, nista, assure, brm, portfolio, ev, synthesis, risk, change, resource, financial, knowledge."""
         from pm_mcp_servers.pda_platform.server import ALL_TOOLS
 
         names = [t.name for t in ALL_TOOLS]
         # First tool should be from pm-data
         assert names[0] == "load_project"
-        # Last tool should be from pm-financial
-        assert names[-1] == "get_spend_profile"
+        # Last tool should be from pm-knowledge
+        assert names[-1] == "search_knowledge_base"
 
     def test_all_tools_have_valid_schemas(self):
         """Every tool has a name, description, and inputSchema."""
@@ -246,6 +252,11 @@ class TestExpectedTools:
         "get_cost_performance", "log_cost_forecast", "get_spend_profile",
     }
 
+    EXPECTED_KNOWLEDGE_TOOLS = {
+        "list_knowledge_categories", "get_benchmark_data",
+        "get_failure_patterns", "get_ipa_guidance", "search_knowledge_base",
+    }
+
     def test_data_tools_present(self):
         from pm_mcp_servers.pm_data.registry import TOOLS
 
@@ -324,6 +335,12 @@ class TestExpectedTools:
         actual = {t.name for t in TOOLS}
         assert actual == self.EXPECTED_FINANCIAL_TOOLS
 
+    def test_knowledge_tools_present(self):
+        from pm_mcp_servers.pm_knowledge.registry import TOOLS
+
+        actual = {t.name for t in TOOLS}
+        assert actual == self.EXPECTED_KNOWLEDGE_TOOLS
+
     def test_all_expected_tools_in_unified(self):
         """Every expected tool from every module is in the unified server."""
         from pm_mcp_servers.pda_platform.server import ALL_TOOLS
@@ -343,6 +360,7 @@ class TestExpectedTools:
             | self.EXPECTED_CHANGE_TOOLS
             | self.EXPECTED_RESOURCE_TOOLS
             | self.EXPECTED_FINANCIAL_TOOLS
+            | self.EXPECTED_KNOWLEDGE_TOOLS
         )
         assert actual == expected
 
