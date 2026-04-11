@@ -89,6 +89,62 @@ When adding a new module that needs persistence:
 2. Add store methods in the same file (upsert/get pattern)
 3. Do this BEFORE launching agents to build the MCP module — agents depend on the store methods existing
 
+## Documentation Requirements — Mandatory for Every Feature
+
+Every new module, tool, or significant capability **must** be accompanied by documentation before it is considered complete. This is non-negotiable.
+
+### For every new MCP module, write:
+
+| Document | Location | What it covers |
+|---|---|---|
+| For-practitioners guide | `docs/<module-name>-for-practitioners.md` | What the module does, when to use each tool, worked examples with realistic inputs/outputs, common workflows, limitations |
+| Section in MCP tools reference | `docs/mcp-tools-reference.md` | Parameter-level reference for each tool — all inputs, outputs, enums, defaults |
+| Model card (AI-powered modules only) | `docs/model-cards/<module-name>.md` | Model behaviour, limitations, confidence calibration, failure modes |
+
+### For every new tool added to an existing module:
+
+1. Add a parameter-level entry to `docs/mcp-tools-reference.md`
+2. Add an example to the relevant for-practitioners guide
+3. If the tool changes what a persona can do, update the relevant persona guide in `docs/guides/`
+
+### Persona-based user guides — keep current
+
+Four guides live in `docs/guides/`. Update them whenever a new module or tool is relevant to that persona's work:
+
+| Guide | Persona | Focus |
+|---|---|---|
+| `docs/guides/sro-guide.md` | Senior Responsible Owner | Delivery confidence, benefits, escalation, board-ready outputs |
+| `docs/guides/pm-guide.md` | Project Manager | Schedule, cost, risk, resources, operational actions |
+| `docs/guides/assurance-reviewer-guide.md` | Independent Assurance Reviewer | Gate reviews, IPA methodology, challenge, DCA ratings |
+| `docs/guides/portfolio-manager-guide.md` | Portfolio Manager | Cross-project analysis, systemic risk, coherence, intervention |
+
+Each guide must include:
+- What tools are most relevant to this persona
+- At least 3 worked examples (realistic conversation + tool call sequence + output interpretation)
+- How to combine role system prompts with research prompts
+
+### Documentation debt tracking
+
+Current documentation status (update this when docs are written):
+
+| Module | For-practitioners guide | MCP reference | Model card | Persona guide coverage |
+|---|---|---|---|---|
+| pm-data | ✅ | ✅ (partial — pre-v1) | n/a | ✅ |
+| pm-analyse | ✅ | ✅ (partial — pre-v1) | ⚠️ needed | ✅ |
+| pm-validate | ✅ | ✅ (partial — pre-v1) | n/a | partial |
+| pm-nista | ❌ needed | ✅ (partial — pre-v1) | n/a | partial |
+| pm-assure | ✅ | ✅ (partial — pre-v1) | ✅ | ✅ |
+| pm-brm | ✅ | ✅ (partial — pre-v1) | ⚠️ needed | ✅ |
+| pm-gate-readiness | ✅ | ✅ (partial — pre-v1) | ⚠️ needed | ✅ |
+| pm-portfolio | ❌ needed | ❌ needed | n/a | partial |
+| pm-ev | ❌ needed | ❌ needed | ⚠️ needed | ❌ |
+| pm-synthesis | ❌ needed | ❌ needed | ⚠️ needed | ❌ |
+| pm-risk | ❌ needed | ❌ needed | n/a | partial |
+| pm-change | ❌ needed | ❌ needed | n/a | ❌ |
+| pm-resource | ❌ needed | ❌ needed | n/a | ❌ |
+| pm-financial | ❌ needed | ❌ needed | n/a | partial |
+| pm-knowledge | ❌ needed | ❌ needed | n/a | ✅ (via prompts) |
+
 ## Adding a New MCP Module
 
 Standard pattern (see `pm_brm` as the reference implementation):
@@ -100,7 +156,9 @@ Standard pattern (see `pm_brm` as the reference implementation):
 6. Update `test_pda_platform.py` — new registry test, tool presence test, updated counts
 7. Run `python -m pytest packages/pm-mcp-servers/tests/` — must pass
 8. Update all tool count references (see table above)
-9. Bump package versions
+9. **Write for-practitioners guide, MCP reference section, and model card (if AI-powered)** — see Documentation Requirements above
+10. **Update relevant persona guides with worked examples** — see Documentation Requirements above
+11. Bump package versions
 
 ## Deployment
 - **Render:** `main` branch auto-deploys via `render.yaml`. The build installs from source (not PyPI).
